@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ShoppingCart, Heart, User, Menu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 
 interface Product {
@@ -29,6 +28,7 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener
@@ -127,16 +127,25 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               {user ? (
                 <>
-                  <Button variant="ghost" size="sm">
-                    <Heart className="w-4 h-4 mr-2" />
-                    Wishlist
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Cart
-                  </Button>
+                  <Link to="/wishlist">
+                    <Button variant="ghost" size="sm">
+                      <Heart className="w-4 h-4 mr-2" />
+                      Wishlist
+                    </Button>
+                  </Link>
+                  <Link to="/cart">
+                    <Button variant="ghost" size="sm">
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Cart
+                    </Button>
+                  </Link>
+                  <Link to="/profile">
+                    <Button variant="ghost" size="sm">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </Button>
+                  </Link>
                   <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                    <User className="w-4 h-4 mr-2" />
                     Sign Out
                   </Button>
                 </>
@@ -190,7 +199,11 @@ const Index = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+              <div 
+                key={product.id} 
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(`/product/${product.id}`)}
+              >
                 <div className="aspect-square bg-gray-200 flex items-center justify-center">
                   {product.image_url ? (
                     <img 
@@ -223,7 +236,7 @@ const Index = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                     <Button className="flex-1" size="sm">
                       Add to Cart
                     </Button>
@@ -255,10 +268,10 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">About Us</a></li>
-                <li><a href="#" className="hover:text-white">Contact</a></li>
-                <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white">Terms of Service</a></li>
+                <li><Link to="/" className="hover:text-white">Home</Link></li>
+                <li><Link to="/cart" className="hover:text-white">Cart</Link></li>
+                <li><Link to="/wishlist" className="hover:text-white">Wishlist</Link></li>
+                <li><Link to="/profile" className="hover:text-white">Profile</Link></li>
               </ul>
             </div>
             <div>
