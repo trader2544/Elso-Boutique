@@ -29,12 +29,12 @@ serve(async (req) => {
       );
     }
 
-    // Get M-Pesa credentials from Supabase secrets
-    const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY');
-    const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET');
-    const shortcode = Deno.env.get('MPESA_SHORTCODE');
-    const passkey = Deno.env.get('MPESA_PASSKEY');
-    const tillNumber = Deno.env.get('MPESA_TILL_NUMBER');
+    // Get M-Pesa credentials from Supabase secrets - trim whitespace
+    const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY')?.trim();
+    const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET')?.trim();
+    const shortcode = Deno.env.get('MPESA_SHORTCODE')?.trim();
+    const passkey = Deno.env.get('MPESA_PASSKEY')?.trim();
+    const tillNumber = Deno.env.get('MPESA_TILL_NUMBER')?.trim();
 
     if (!consumerKey || !consumerSecret || !shortcode || !passkey || !tillNumber) {
       console.error('Missing M-Pesa configuration');
@@ -101,12 +101,12 @@ serve(async (req) => {
       BusinessShortCode: shortcode,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerBuyGoodsOnline", // For Till Number
-      Amount: Math.ceil(amount), // Ensure it's an integer
+      TransactionType: "CustomerBuyGoodsOnline",
+      Amount: Math.ceil(amount),
       PartyA: formattedPhone,
-      PartyB: tillNumber, // Use Till Number instead of shortcode
+      PartyB: tillNumber,
       PhoneNumber: formattedPhone,
-      CallBackURL: "https://your-callback-url.com/callback", // You should implement this
+      CallBackURL: `https://vpqjobkdwrbdxnvwnuke.supabase.co/functions/v1/mpesa-callback`,
       AccountReference: `ORDER_${orderId}`,
       TransactionDesc: `Payment for order ${orderId.slice(-8)}`
     };

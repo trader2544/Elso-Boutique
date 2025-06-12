@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
 import MobileProductCard from "@/components/MobileProductCard";
+import FloatingBackground from "@/components/FloatingBackground";
 import { useCart } from "@/hooks/useCart";
 
 interface Product {
@@ -23,28 +23,6 @@ interface Product {
   review_count: number | null;
   in_stock: boolean;
 }
-
-const FloatingHearts = () => {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {[...Array(20)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute text-pink-200 opacity-10 animate-float"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 5}s`,
-            animationDuration: `${4 + Math.random() * 3}s`,
-            fontSize: `${8 + Math.random() * 12}px`,
-          }}
-        >
-          💖
-        </div>
-      ))}
-    </div>
-  );
-};
 
 const Index = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -144,16 +122,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 relative">
-      <FloatingHearts />
+    <div className="min-h-screen relative">
+      <FloatingBackground />
       
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50 relative">
+      <header className="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 relative border-b border-pink-100">
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden shadow-md">
                 <img
                   src="/lovable-uploads/3942f446-3594-43a8-b602-0e80b80bdd8c.png"
                   alt="ELSO Boutique"
@@ -176,42 +154,42 @@ const Index = () => {
                 <>
                   {userRole === 'admin' && (
                     <Link to="/admin">
-                      <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3">
+                      <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-100">
                         <Settings className="w-4 h-4 md:mr-2" />
                         <span className="hidden md:inline">Admin</span>
                       </Button>
                     </Link>
                   )}
                   <Link to="/wishlist">
-                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3">
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-100">
                       <Heart className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Wishlist</span>
                     </Button>
                   </Link>
                   <Link to="/cart">
-                    <Button variant="ghost" size="sm" className="rounded-full relative p-2 md:px-3">
+                    <Button variant="ghost" size="sm" className="rounded-full relative p-2 md:px-3 hover:bg-pink-100">
                       <ShoppingCart className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Cart</span>
                       {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md">
                           {cartCount}
                         </span>
                       )}
                     </Button>
                   </Link>
                   <Link to="/profile">
-                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3">
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-100">
                       <User className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Profile</span>
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex rounded-full">
+                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex rounded-full hover:bg-pink-100">
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <Link to="/auth">
-                  <Button className="rounded-full text-sm">
+                  <Button className="rounded-full text-sm bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md">
                     <User className="w-4 h-4 mr-1 md:mr-2" />
                     Sign In
                   </Button>
@@ -240,7 +218,11 @@ const Index = () => {
               key={category}
               variant={selectedCategory === category ? "default" : "outline"}
               onClick={() => setSelectedCategory(category)}
-              className="mb-2 rounded-full text-xs md:text-sm px-3 py-1 md:px-4 md:py-2"
+              className={`mb-2 rounded-full text-xs md:text-sm px-3 py-1 md:px-4 md:py-2 transition-all ${
+                selectedCategory === category 
+                  ? "bg-gradient-to-r from-pink-500 to-purple-500 shadow-md" 
+                  : "border-pink-200 hover:bg-pink-50"
+              }`}
               size="sm"
             >
               {category}
@@ -272,7 +254,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8 md:py-12 relative z-10">
+      <footer className="bg-gradient-to-r from-pink-900 to-purple-900 text-white py-8 md:py-12 relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
             <div>

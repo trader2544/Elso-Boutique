@@ -2,52 +2,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { Order, convertJsonToOrderProducts } from "@/types/order";
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  previous_price: number | null;
-  category: string;
-  image_url: string | null;
-  in_stock: boolean;
-}
-
-interface NewProduct {
-  name: string;
-  description: string;
-  price: string;
-  previous_price: string;
-  category: string;
-  image_url: string;
-}
+import { Order, convertJsonToOrderProducts, OrderStatus } from "@/types/order";
+import AdminDashboard from "@/components/AdminDashboard";
+import AdminProducts from "@/components/AdminProducts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Admin = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [newProduct, setNewProduct] = useState<NewProduct>({
-    name: "",
-    description: "",
-    price: "",
-    previous_price: "",
-    category: "",
-    image_url: "",
-  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -78,26 +48,12 @@ const Admin = () => {
       }
       
       setUserRole(data.role);
-      await Promise.all([fetchProducts(), fetchOrders()]);
+      await fetchOrders();
     } catch (error) {
       console.error("Error checking user role:", error);
       navigate("/");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error("Error fetching products:", error);
     }
   };
 
@@ -128,74 +84,7 @@ const Admin = () => {
     }
   };
 
-  const addProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const { error } = await supabase
-        .from("products")
-        .insert({
-          name: newProduct.name,
-          description: newProduct.description,
-          price: parseFloat(newProduct.price),
-          previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
-          category: newProduct.category,
-          image_url: newProduct.image_url || null,
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Product added successfully",
-      });
-
-      setNewProduct({
-        name: "",
-        description: "",
-        price: "",
-        previous_price: "",
-        category: "",
-        image_url: "",
-      });
-
-      await fetchProducts();
-    } catch (error) {
-      console.error("Error adding product:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add product",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteProduct = async (productId: string) => {
-    try {
-      const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", productId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Product deleted successfully",
-      });
-
-      await fetchProducts();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete product",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       const { error } = await supabase
         .from("orders")
@@ -233,7 +122,7 @@ const Admin = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
       </div>
     );
@@ -241,14 +130,14 @@ const Admin = () => {
 
   if (!user || userRole !== "admin") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center">
+        <Card className="w-full max-w-md shadow-lg border-pink-200">
           <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
+            <CardTitle className="text-pink-700">Access Denied</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
-            <Button onClick={() => navigate("/")} className="w-full">
+            <Button onClick={() => navigate("/")} className="w-full bg-gradient-to-r from-pink-500 to-purple-500">
               Go Home
             </Button>
           </CardContent>
@@ -258,159 +147,73 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className="mb-6"
+          className="mb-6 hover:bg-pink-100"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Button>
 
-        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-8 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+          Admin Dashboard
+        </h1>
 
-        <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 bg-white shadow-md border border-pink-200">
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700">
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="products" className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700">
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700">
+              Orders
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Add New Product</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={addProduct} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Product Name</Label>
-                      <Input
-                        id="name"
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="category">Category</Label>
-                      <Input
-                        id="category"
-                        value={newProduct.category}
-                        onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="price">Price (KSh)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        value={newProduct.price}
-                        onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="previous_price">Previous Price (KSh)</Label>
-                      <Input
-                        id="previous_price"
-                        type="number"
-                        step="0.01"
-                        value={newProduct.previous_price}
-                        onChange={(e) => setNewProduct({ ...newProduct, previous_price: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={newProduct.description}
-                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="image_url">Image URL</Label>
-                    <Input
-                      id="image_url"
-                      type="url"
-                      value={newProduct.image_url}
-                      onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
-                    />
-                  </div>
-                  <Button type="submit">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Product
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+          <TabsContent value="dashboard">
+            <AdminDashboard />
+          </TabsContent>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Existing Products</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {products.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{product.name}</h3>
-                        <p className="text-sm text-gray-600">{product.category}</p>
-                        <p className="text-sm font-medium text-pink-600">
-                          KSh {product.price.toLocaleString()}
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteProduct(product.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="products">
+            <AdminProducts />
           </TabsContent>
 
           <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Management</CardTitle>
+            <Card className="shadow-lg border-pink-200">
+              <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+                <CardTitle className="text-pink-700">Order Management</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="border rounded-lg p-4">
+                    <div key={order.id} className="border border-pink-200 rounded-lg p-4 bg-white shadow-sm">
                       <div className="flex flex-col md:flex-row md:items-start justify-between mb-4">
                         <div>
-                          <p className="font-semibold">Order #{order.id.slice(-8)}</p>
+                          <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
                           <p className="text-sm text-gray-600">
                             {new Date(order.created_at).toLocaleDateString()}
                           </p>
                           {order.profiles && (
-                            <div className="text-sm text-gray-600 mt-1">
-                              <p>Customer: {order.profiles.full_name}</p>
-                              <p>Email: {order.profiles.email}</p>
-                              <p>Phone: {order.customer_phone || order.profiles.phone}</p>
+                            <div className="text-sm text-gray-600 mt-1 space-y-1">
+                              <p className="text-pink-700">👤 Customer: {order.profiles.full_name}</p>
+                              <p className="text-purple-700">📧 Email: {order.profiles.email}</p>
+                              <p className="text-pink-700">📱 Phone: {order.customer_phone || order.profiles.phone}</p>
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 mt-4 md:mt-0">
                           <Badge className={getStatusColor(order.status)}>
                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                           </Badge>
                           <select
                             value={order.status}
-                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                            className="text-sm border rounded px-2 py-1"
+                            onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                            className="text-sm border border-pink-200 rounded px-2 py-1 focus:border-pink-400"
                           >
                             <option value="pending">Pending</option>
                             <option value="paid">Paid</option>
@@ -421,19 +224,20 @@ const Admin = () => {
                         </div>
                       </div>
                       
-                      <div className="space-y-2 mb-4">
+                      <div className="space-y-2 mb-4 bg-pink-50 p-3 rounded-lg">
+                        <h4 className="font-medium text-pink-700">📦 Order Items:</h4>
                         {order.products.map((product, index) => (
                           <div key={index} className="flex justify-between text-sm">
-                            <span>{product.name} x {product.quantity}</span>
-                            <span>KSh {(product.price * product.quantity).toLocaleString()}</span>
+                            <span className="text-gray-700">{product.name} x {product.quantity}</span>
+                            <span className="text-pink-600 font-medium">KSh {(product.price * product.quantity).toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
                       
-                      <div className="border-t pt-2">
+                      <div className="border-t border-pink-200 pt-2">
                         <div className="flex justify-between font-semibold">
-                          <span>Total:</span>
-                          <span className="text-pink-600">
+                          <span className="text-gray-700">Total:</span>
+                          <span className="text-pink-600 text-lg">
                             KSh {order.total_price.toLocaleString()}
                           </span>
                         </div>

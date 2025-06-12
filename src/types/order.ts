@@ -1,5 +1,5 @@
 
-import { Json } from "@/integrations/supabase/types";
+export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";
 
 export interface OrderProduct {
   id: string;
@@ -10,31 +10,30 @@ export interface OrderProduct {
 
 export interface Order {
   id: string;
-  total_price: number;
-  status: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
-  created_at: string;
+  user_id: string;
   products: OrderProduct[];
-  customer_phone?: string | null;
-  user_id?: string | null;
-  payment_method?: string | null;
-  transaction_id?: string | null;
+  total_price: number;
+  status: OrderStatus;
+  customer_phone: string | null;
+  payment_method: string | null;
+  transaction_id: string | null;
+  created_at: string;
   profiles?: {
-    full_name: string;
+    full_name: string | null;
     email: string;
-    phone: string;
-  } | null;
+    phone: string | null;
+  };
 }
 
-// Helper function to convert Json to OrderProduct
-export const convertJsonToOrderProducts = (products: Json | Json[]): OrderProduct[] => {
-  if (!products) return [];
-  
-  const productsArray = Array.isArray(products) ? products : [products];
-  
-  return productsArray.map((product: any) => ({
-    id: product?.id || '',
-    name: product?.name || '',
-    price: Number(product?.price) || 0,
-    quantity: Number(product?.quantity) || 1,
-  }));
-};
+export function convertJsonToOrderProducts(jsonData: any): OrderProduct[] {
+  if (!jsonData) return [];
+  if (Array.isArray(jsonData)) {
+    return jsonData.map(item => ({
+      id: item.id || '',
+      name: item.name || '',
+      price: Number(item.price) || 0,
+      quantity: Number(item.quantity) || 1,
+    }));
+  }
+  return [];
+}
