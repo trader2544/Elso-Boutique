@@ -1,119 +1,35 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, Minus, ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "@/hooks/useCart";
+import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-
-interface CartItem {
-  id: string;
-  quantity: number;
-  products: {
-    id: string;
-    name: string;
-    price: number;
-    image_url: string | null;
-    in_stock: boolean;
-  };
-}
 
 const Cart = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [authLoading, setAuthLoading] = useState(true);
+  const { cartItems, updateQuantity, removeFromCart, isLoading } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) {
-        fetchCartItems();
-      } else {
-        setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
       }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
-
-  const fetchCartItems = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("cart_items")
-        .select(`
-          *,
-          products (
-            id,
-            name,
-            price,
-            image_url,
-            in_stock
-          )
-        `)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      setCartItems(data || []);
-    } catch (error) {
-      console.error("Error fetching cart items:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load cart items",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-
-    try {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity: newQuantity })
-        .eq("id", itemId);
-
-      if (error) throw error;
-      fetchCartItems();
-    } catch (error) {
-      console.error("Error updating quantity:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update quantity",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const removeItem = async (itemId: string) => {
-    try {
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("id", itemId);
-
-      if (error) throw error;
-      fetchCartItems();
-      toast({
-        title: "Success",
-        description: "Item removed from cart",
-      });
-    } catch (error) {
-      console.error("Error removing item:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove item",
-        variant: "destructive",
-      });
-    }
-  };
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
@@ -125,10 +41,18 @@ const Cart = () => {
     navigate("/checkout");
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md mx-4">
           <CardHeader>
             <CardTitle>Sign In Required</CardTitle>
           </CardHeader>
@@ -143,17 +67,9 @@ const Cart = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
@@ -163,9 +79,14 @@ const Cart = () => {
           Continue Shopping
         </Button>
 
-        <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Shopping Cart</h1>
 
-        {cartItems.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+            <p className="mt-2 text-gray-600">Loading cart...</p>
+          </div>
+        ) : cartItems.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <h2 className="text-xl font-semibold mb-4">Your cart is empty</h2>
@@ -176,13 +97,13 @@ const Cart = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => (
                 <Card key={item.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden">
+                  <CardContent className="p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                      <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                         {item.products.image_url ? (
                           <img
                             src={item.products.image_url}
@@ -196,9 +117,9 @@ const Cart = () => {
                         )}
                       </div>
 
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{item.products.name}</h3>
-                        <p className="text-pink-600 font-bold">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base md:text-lg truncate">{item.products.name}</h3>
+                        <p className="text-pink-600 font-bold text-sm md:text-base">
                           KSh {item.products.price.toLocaleString()}
                         </p>
                         {!item.products.in_stock && (
@@ -206,43 +127,48 @@ const Cart = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="w-4 h-4" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                          className="w-16 text-center"
-                          min="1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || isLoading}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            className="w-16 text-center"
+                            min="1"
+                            disabled={isLoading}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            disabled={isLoading}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
 
-                      <div className="text-right">
-                        <p className="font-bold">
-                          KSh {(item.products.price * item.quantity).toLocaleString()}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="text-left sm:text-right">
+                          <p className="font-bold text-sm md:text-base">
+                            KSh {(item.products.price * item.quantity).toLocaleString()}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-red-500 hover:text-red-700 p-0 h-auto"
+                            disabled={isLoading}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -256,11 +182,11 @@ const Cart = () => {
                   <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm md:text-base">
                     <span>Subtotal:</span>
                     <span>KSh {getTotalPrice().toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm md:text-base">
                     <span>Shipping:</span>
                     <span>Free</span>
                   </div>
@@ -275,7 +201,7 @@ const Cart = () => {
                   <Button
                     onClick={proceedToCheckout}
                     className="w-full"
-                    disabled={cartItems.some(item => !item.products.in_stock)}
+                    disabled={cartItems.some(item => !item.products.in_stock) || isLoading}
                   >
                     Proceed to Checkout
                   </Button>

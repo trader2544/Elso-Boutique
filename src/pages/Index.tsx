@@ -2,13 +2,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, User, Menu, Settings } from "lucide-react";
+import { ShoppingCart, Heart, User, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
-import ProductCard from "@/components/ProductCard";
+import MobileProductCard from "@/components/MobileProductCard";
 import { useCart } from "@/hooks/useCart";
 
 interface Product {
@@ -42,7 +42,9 @@ const Index = () => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          fetchUserRole(session.user.id);
+          setTimeout(() => {
+            fetchUserRole(session.user.id);
+          }, 0);
         }
       }
     );
@@ -123,14 +125,14 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm md:text-lg">E</span>
               </div>
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
                 ELSO
               </h1>
             </div>
@@ -141,26 +143,26 @@ const Index = () => {
             </div>
 
             {/* Navigation */}
-            <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="flex items-center space-x-1 md:space-x-4">
               {user ? (
                 <>
                   {userRole === 'admin' && (
                     <Link to="/admin">
-                      <Button variant="ghost" size="sm" className="rounded-full">
-                        <Settings className="w-4 h-4 mr-1 md:mr-2" />
+                      <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3">
+                        <Settings className="w-4 h-4 md:mr-2" />
                         <span className="hidden md:inline">Admin</span>
                       </Button>
                     </Link>
                   )}
                   <Link to="/wishlist">
-                    <Button variant="ghost" size="sm" className="rounded-full">
-                      <Heart className="w-4 h-4 mr-1 md:mr-2" />
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3">
+                      <Heart className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Wishlist</span>
                     </Button>
                   </Link>
                   <Link to="/cart">
-                    <Button variant="ghost" size="sm" className="rounded-full relative">
-                      <ShoppingCart className="w-4 h-4 mr-1 md:mr-2" />
+                    <Button variant="ghost" size="sm" className="rounded-full relative p-2 md:px-3">
+                      <ShoppingCart className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Cart</span>
                       {cartCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -170,8 +172,8 @@ const Index = () => {
                     </Button>
                   </Link>
                   <Link to="/profile">
-                    <Button variant="ghost" size="sm" className="rounded-full">
-                      <User className="w-4 h-4 mr-1 md:mr-2" />
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3">
+                      <User className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Profile</span>
                     </Button>
                   </Link>
@@ -181,8 +183,8 @@ const Index = () => {
                 </>
               ) : (
                 <Link to="/auth">
-                  <Button className="rounded-full">
-                    <User className="w-4 h-4 mr-2" />
+                  <Button className="rounded-full text-sm">
+                    <User className="w-4 h-4 mr-1 md:mr-2" />
                     Sign In
                   </Button>
                 </Link>
@@ -191,7 +193,7 @@ const Index = () => {
           </div>
           
           {/* Mobile Search Bar */}
-          <div className="md:hidden mt-4">
+          <div className="md:hidden mt-3">
             <SearchBar onSearch={setSearchTerm} />
           </div>
         </div>
@@ -201,14 +203,14 @@ const Index = () => {
       <HeroSection />
 
       {/* Category Filter */}
-      <section className="container mx-auto px-4 py-6 md:py-8">
+      <section className="container mx-auto px-4 py-4 md:py-8">
         <div className="flex flex-wrap gap-2 justify-center">
           {categories.map((category) => (
             <Button
               key={category}
               variant={selectedCategory === category ? "default" : "outline"}
               onClick={() => setSelectedCategory(category)}
-              className="mb-2 rounded-full text-sm"
+              className="mb-2 rounded-full text-xs md:text-sm px-3 py-1 md:px-4 md:py-2"
               size="sm"
             >
               {category}
@@ -218,16 +220,16 @@ const Index = () => {
       </section>
 
       {/* Products Grid */}
-      <section className="container mx-auto px-4 pb-16">
+      <section className="container mx-auto px-4 pb-12 md:pb-16">
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
             <p className="mt-2 text-gray-600">Loading products...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <MobileProductCard key={product.id} product={product} />
             ))}
           </div>
         )}

@@ -23,6 +23,7 @@ interface CartContextType {
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   refreshCart: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -30,20 +31,42 @@ const CartContext = createContext<CartContextType | null>(null);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          // Defer cart refresh to prevent deadlocks
+          setTimeout(() => {
+            refreshCart();
+          }, 0);
+        } else {
+          setCartItems([]);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
         refreshCart();
       }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const refreshCart = async () => {
-    if (!user) return;
+    if (!user) {
+      setCartItems([]);
+      return;
+    }
 
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from("cart_items")
@@ -63,6 +86,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setCartItems(data || []);
     } catch (error) {
       console.error("Error fetching cart items:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -76,18 +101,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .upsert({
-          user_id: user.id,
-          product_id: productId,
-          quantity: 1,
-        }, {
-          onConflict: 'user_id,product_id'
-        });
+      // Check if item already exists in cart
+      const existingItem = cartItems.find(item => item.products.id === productId);
+      
+      if (existingItem) {
+        // Update quantity
+        const { error } = await supabase
+          .from("cart_items")
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq("id", existingItem.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Insert new item
+        const { error } = await supabase
+          .from("cart_items")
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+            quantity: 1,
+          });
+
+        if (error) throw error;
+      }
 
       await refreshCart();
       toast({
@@ -101,10 +139,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         description: "Failed to add item to cart",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const removeFromCart = async (itemId: string) => {
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from("cart_items")
@@ -115,12 +156,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       await refreshCart();
     } catch (error) {
       console.error("Error removing from cart:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
 
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from("cart_items")
@@ -131,6 +175,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       await refreshCart();
     } catch (error) {
       console.error("Error updating quantity:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -143,7 +189,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       addToCart,
       removeFromCart,
       updateQuantity,
-      refreshCart
+      refreshCart,
+      isLoading
     }}>
       {children}
     </CartContext.Provider>
