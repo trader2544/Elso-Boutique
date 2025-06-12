@@ -11,19 +11,12 @@ import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { Order } from "@/types/order";
 
 interface UserProfile {
   full_name: string;
   phone: string;
   email: string;
-}
-
-interface Order {
-  id: string;
-  total_price: number;
-  status: string;
-  created_at: string;
-  products: any[];
 }
 
 const Profile = () => {
@@ -91,7 +84,13 @@ const Profile = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      const formattedOrders = (data || []).map(order => ({
+        ...order,
+        products: Array.isArray(order.products) ? order.products : []
+      }));
+      
+      setOrders(formattedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
     }
@@ -150,7 +149,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
@@ -160,10 +159,10 @@ const Profile = () => {
           Back to Home
         </Button>
 
-        <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">My Profile</h1>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
           </TabsList>
@@ -235,7 +234,7 @@ const Profile = () => {
                   <div className="space-y-4">
                     {orders.map((order) => (
                       <div key={order.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between mb-4">
                           <div>
                             <p className="font-semibold">Order #{order.id.slice(-8)}</p>
                             <p className="text-sm text-gray-600">

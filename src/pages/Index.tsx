@@ -1,11 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, ShoppingCart, Heart, User, Menu } from "lucide-react";
+import { ShoppingCart, Heart, User, Menu, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { User as SupabaseUser, Session } from "@supabase/supabase-js";
+import HeroSection from "@/components/HeroSection";
+import SearchBar from "@/components/SearchBar";
+import ProductCard from "@/components/ProductCard";
+import { useCart } from "@/hooks/useCart";
 
 interface Product {
   id: string;
@@ -27,22 +31,28 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { cartCount } = useCart();
 
   useEffect(() => {
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchUserRole(session.user.id);
+        }
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -51,6 +61,21 @@ const Index = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (error) throw error;
+      setUserRole(data?.role || 'user');
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -102,56 +127,61 @@ const Index = () => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">E</span>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm md:text-lg">E</span>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
                 ELSO
               </h1>
             </div>
 
-            {/* Search Bar */}
-            <div className="flex-1 max-w-md mx-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search for products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            {/* Search Bar - Hidden on mobile */}
+            <div className="hidden md:block flex-1 max-w-md mx-8">
+              <SearchBar onSearch={setSearchTerm} />
             </div>
 
             {/* Navigation */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
               {user ? (
                 <>
+                  {userRole === 'admin' && (
+                    <Link to="/admin">
+                      <Button variant="ghost" size="sm" className="rounded-full">
+                        <Settings className="w-4 h-4 mr-1 md:mr-2" />
+                        <span className="hidden md:inline">Admin</span>
+                      </Button>
+                    </Link>
+                  )}
                   <Link to="/wishlist">
-                    <Button variant="ghost" size="sm">
-                      <Heart className="w-4 h-4 mr-2" />
-                      Wishlist
+                    <Button variant="ghost" size="sm" className="rounded-full">
+                      <Heart className="w-4 h-4 mr-1 md:mr-2" />
+                      <span className="hidden md:inline">Wishlist</span>
                     </Button>
                   </Link>
                   <Link to="/cart">
-                    <Button variant="ghost" size="sm">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Cart
+                    <Button variant="ghost" size="sm" className="rounded-full relative">
+                      <ShoppingCart className="w-4 h-4 mr-1 md:mr-2" />
+                      <span className="hidden md:inline">Cart</span>
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {cartCount}
+                        </span>
+                      )}
                     </Button>
                   </Link>
                   <Link to="/profile">
-                    <Button variant="ghost" size="sm">
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
+                    <Button variant="ghost" size="sm" className="rounded-full">
+                      <User className="w-4 h-4 mr-1 md:mr-2" />
+                      <span className="hidden md:inline">Profile</span>
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex rounded-full">
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <Link to="/auth">
-                  <Button>
+                  <Button className="rounded-full">
                     <User className="w-4 h-4 mr-2" />
                     Sign In
                   </Button>
@@ -159,29 +189,27 @@ const Index = () => {
               )}
             </div>
           </div>
+          
+          {/* Mobile Search Bar */}
+          <div className="md:hidden mt-4">
+            <SearchBar onSearch={setSearchTerm} />
+          </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-pink-600 to-purple-600 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold mb-4">Welcome to ELSO</h2>
-          <p className="text-xl mb-8 opacity-90">Discover the latest trends in women's fashion and beauty</p>
-          <Button size="lg" variant="secondary">
-            Shop Now
-          </Button>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* Category Filter */}
-      <section className="container mx-auto px-4 py-8">
+      <section className="container mx-auto px-4 py-6 md:py-8">
         <div className="flex flex-wrap gap-2 justify-center">
           {categories.map((category) => (
             <Button
               key={category}
               variant={selectedCategory === category ? "default" : "outline"}
               onClick={() => setSelectedCategory(category)}
-              className="mb-2"
+              className="mb-2 rounded-full text-sm"
+              size="sm"
             >
               {category}
             </Button>
@@ -197,55 +225,9 @@ const Index = () => {
             <p className="mt-2 text-gray-600">Loading products...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {filteredProducts.map((product) => (
-              <div 
-                key={product.id} 
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => navigate(`/product/${product.id}`)}
-              >
-                <div className="aspect-square bg-gray-200 flex items-center justify-center">
-                  {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-gray-400 text-6xl">📷</div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-pink-600">
-                        KSh {product.price.toLocaleString()}
-                      </span>
-                      {product.previous_price && (
-                        <span className="text-sm text-gray-500 line-through">
-                          KSh {product.previous_price.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                    {product.rating && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span>⭐ {product.rating}</span>
-                        <span className="ml-1">({product.review_count})</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                    <Button className="flex-1" size="sm">
-                      Add to Cart
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Heart className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
@@ -258,16 +240,16 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-12">
+      <footer className="bg-gray-800 text-white py-8 md:py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4">ELSO</h3>
-              <p className="text-gray-400">Your premier destination for women's fashion and beauty.</p>
+              <h3 className="text-lg md:text-xl font-bold mb-4">ELSO</h3>
+              <p className="text-gray-400 text-sm md:text-base">Your premier destination for women's fashion and beauty.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="font-semibold mb-4 text-sm md:text-base">Quick Links</h4>
+              <ul className="space-y-2 text-gray-400 text-sm md:text-base">
                 <li><Link to="/" className="hover:text-white">Home</Link></li>
                 <li><Link to="/cart" className="hover:text-white">Cart</Link></li>
                 <li><Link to="/wishlist" className="hover:text-white">Wishlist</Link></li>
@@ -275,8 +257,8 @@ const Index = () => {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Categories</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="font-semibold mb-4 text-sm md:text-base">Categories</h4>
+              <ul className="space-y-2 text-gray-400 text-sm md:text-base">
                 <li><a href="#" className="hover:text-white">Jewelry</a></li>
                 <li><a href="#" className="hover:text-white">Accessories</a></li>
                 <li><a href="#" className="hover:text-white">Beauty</a></li>
@@ -284,16 +266,22 @@ const Index = () => {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Contact Info</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>📧 info@elso.com</li>
-                <li>📱 +254 700 000 000</li>
-                <li>📍 Nairobi, Kenya</li>
+              <h4 className="font-semibold mb-4 text-sm md:text-base">Contact Info</h4>
+              <ul className="space-y-2 text-gray-400 text-sm md:text-base">
+                <li>📧 elsokisumu@gmail.com</li>
+                <li>📱 +254 745 242174</li>
+                <li>📍 Kisumu, Kenya</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 ELSO. All rights reserved.</p>
+          <div className="border-t border-gray-700 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-gray-400">
+            <p className="text-xs md:text-sm">&copy; 2024 ELSO. All rights reserved.</p>
+            <p className="text-xs mt-2">
+              <span className="md:hidden">Powered by </span>
+              <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                <span className="hidden md:inline">Powered by </span>Telvix
+              </a>
+            </p>
           </div>
         </div>
       </footer>
