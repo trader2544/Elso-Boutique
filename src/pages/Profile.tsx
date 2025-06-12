@@ -11,7 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { Order } from "@/types/order";
+import { Order, convertJsonToOrderProducts } from "@/types/order";
 
 interface UserProfile {
   full_name: string;
@@ -33,66 +33,115 @@ const Profile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) {
-        fetchProfile();
-        fetchOrders();
-      } else {
-        navigate("/auth");
+    const initializeUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log("User from auth:", user);
+        
+        if (!user) {
+          console.log("No user found, redirecting to auth");
+          navigate("/auth");
+          return;
+        }
+        
+        setUser(user);
+        await Promise.all([fetchProfile(user), fetchOrders(user.id)]);
+      } catch (error) {
+        console.error("Error initializing user:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load user data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-    });
-  }, [navigate]);
+    };
 
-  const fetchProfile = async () => {
-    if (!user) return;
+    initializeUser();
+  }, [navigate, toast]);
 
+  const fetchProfile = async (currentUser: SupabaseUser) => {
     try {
+      console.log("Fetching profile for user:", currentUser.id);
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", currentUser.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Profile fetch error:", error);
+        // If profile doesn't exist, create it
+        if (error.code === 'PGRST116') {
+          console.log("Profile not found, creating new profile");
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: currentUser.id,
+              email: currentUser.email || "",
+              full_name: "",
+              phone: "",
+              role: "user"
+            });
+          
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+            throw insertError;
+          }
+          
+          // Set default profile data
+          setProfile({
+            full_name: "",
+            phone: "",
+            email: currentUser.email || "",
+          });
+          return;
+        }
+        throw error;
+      }
       
+      console.log("Profile data:", data);
       setProfile({
         full_name: data.full_name || "",
         phone: data.phone || "",
-        email: data.email || user.email || "",
+        email: data.email || currentUser.email || "",
       });
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("Error in fetchProfile:", error);
       toast({
         title: "Error",
         description: "Failed to load profile",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchOrders = async () => {
-    if (!user) return;
-
+  const fetchOrders = async (userId: string) => {
     try {
+      console.log("Fetching orders for user:", userId);
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Orders fetch error:", error);
+        throw error;
+      }
       
+      console.log("Raw orders data:", data);
       const formattedOrders = (data || []).map(order => ({
         ...order,
-        products: Array.isArray(order.products) ? order.products : []
+        products: convertJsonToOrderProducts(order.products)
       }));
       
+      console.log("Formatted orders:", formattedOrders);
       setOrders(formattedOrders);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("Error in fetchOrders:", error);
+      // Don't show error toast for orders as it's not critical
     }
   };
 
@@ -143,6 +192,24 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Sign In Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">Please sign in to view your profile.</p>
+            <Button onClick={() => navigate("/auth")} className="w-full">
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -247,7 +314,7 @@ const Profile = () => {
                         </div>
                         
                         <div className="space-y-2 mb-4">
-                          {order.products.map((product: any, index: number) => (
+                          {order.products.map((product, index) => (
                             <div key={index} className="flex justify-between text-sm">
                               <span>{product.name} x {product.quantity}</span>
                               <span>KSh {(product.price * product.quantity).toLocaleString()}</span>

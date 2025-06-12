@@ -24,6 +24,28 @@ interface Product {
   in_stock: boolean;
 }
 
+const FloatingHearts = () => {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {[...Array(20)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute text-pink-200 opacity-10 animate-float"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 5}s`,
+            animationDuration: `${4 + Math.random() * 3}s`,
+            fontSize: `${8 + Math.random() * 12}px`,
+          }}
+        >
+          💖
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const Index = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -122,15 +144,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 relative">
+      <FloatingHearts />
+      
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50">
+      <header className="bg-white shadow-md sticky top-0 z-50 relative">
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm md:text-lg">E</span>
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden">
+                <img
+                  src="/lovable-uploads/3942f446-3594-43a8-b602-0e80b80bdd8c.png"
+                  alt="ELSO Boutique"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
                 ELSO
@@ -200,10 +228,12 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <HeroSection />
+      <div className="relative z-10">
+        <HeroSection />
+      </div>
 
       {/* Category Filter */}
-      <section className="container mx-auto px-4 py-4 md:py-8">
+      <section className="container mx-auto px-4 py-4 md:py-8 relative z-10">
         <div className="flex flex-wrap gap-2 justify-center">
           {categories.map((category) => (
             <Button
@@ -220,7 +250,7 @@ const Index = () => {
       </section>
 
       {/* Products Grid */}
-      <section className="container mx-auto px-4 pb-12 md:pb-16">
+      <section className="container mx-auto px-4 pb-12 md:pb-16 relative z-10">
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
@@ -242,12 +272,12 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8 md:py-12">
+      <footer className="bg-gray-800 text-white py-8 md:py-12 relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
             <div>
-              <h3 className="text-lg md:text-xl font-bold mb-4">ELSO</h3>
-              <p className="text-gray-400 text-sm md:text-base">Your premier destination for women's fashion and beauty.</p>
+              <h3 className="text-lg md:text-xl font-bold mb-4">ELSO BOUTIQUE</h3>
+              <p className="text-gray-400 text-sm md:text-base">Your premier destination for women's fashion and beauty in Kenya.</p>
             </div>
             <div>
               <h4 className="font-semibold mb-4 text-sm md:text-base">Quick Links</h4>
@@ -277,7 +307,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-gray-400">
-            <p className="text-xs md:text-sm">&copy; 2024 ELSO. All rights reserved.</p>
+            <p className="text-xs md:text-sm">&copy; 2024 ELSO BOUTIQUE. All rights reserved.</p>
             <p className="text-xs mt-2">
               <span className="md:hidden">Powered by </span>
               <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="hover:text-white">

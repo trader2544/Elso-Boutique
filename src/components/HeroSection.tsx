@@ -1,9 +1,33 @@
 
 import { Button } from "@/components/ui/button";
 
+const FloatingHearts = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Animated floating hearts */}
+      {[...Array(15)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute text-pink-300 opacity-20 animate-float"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 3}s`,
+            animationDuration: `${3 + Math.random() * 2}s`,
+            fontSize: `${12 + Math.random() * 8}px`,
+          }}
+        >
+          💖
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const HeroSection = () => {
   return (
-    <section className="relative bg-gradient-to-r from-pink-600 to-purple-600 text-white py-16 md:py-24">
+    <section className="relative bg-gradient-to-r from-pink-600 to-purple-600 text-white py-16 md:py-24 overflow-hidden">
+      <FloatingHearts />
       <div className="absolute inset-0 bg-black opacity-20"></div>
       <div className="container mx-auto px-4 relative z-10">
         <div className="flex flex-col md:flex-row items-center justify-between">
@@ -23,8 +47,12 @@ const HeroSection = () => {
             </Button>
           </div>
           <div className="md:w-1/2 flex justify-center">
-            <div className="w-64 h-64 md:w-80 md:h-80 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <div className="text-6xl md:text-8xl">💍</div>
+            <div className="w-64 h-64 md:w-80 md:h-80 rounded-full overflow-hidden shadow-2xl backdrop-blur-sm border-4 border-white/30">
+              <img
+                src="/lovable-uploads/92c3d4c5-4569-4d72-8532-d44c1811935a.png"
+                alt="ELSO Boutique Fashion"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>

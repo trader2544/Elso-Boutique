@@ -1,0 +1,27 @@
+
+{
+  "name": "ELSO Boutique",
+  "short_name": "ELSO",
+  "description": "Premium women's fashion, jewelry, accessories, and beauty products in Kenya",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf2f8",
+  "theme_color": "#ec4899",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/lovable-uploads/3942f446-3594-43a8-b602-0e80b80bdd8c.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/lovable-uploads/3942f446-3594-43a8-b602-0e80b80bdd8c.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "lifestyle"],
+  "lang": "en-KE"
+}

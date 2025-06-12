@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// M-Pesa API endpoints
+const MPESA_BASE_URL = "https://sandbox.safaricom.co.ke"; // Use https://api.safaricom.co.ke for production
+const TOKEN_URL = `${MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`;
+const STK_PUSH_URL = `${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +29,24 @@ serve(async (req) => {
       );
     }
 
+    // Get M-Pesa credentials from Supabase secrets
+    const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY');
+    const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET');
+    const shortcode = Deno.env.get('MPESA_SHORTCODE');
+    const passkey = Deno.env.get('MPESA_PASSKEY');
+    const tillNumber = Deno.env.get('MPESA_TILL_NUMBER');
+
+    if (!consumerKey || !consumerSecret || !shortcode || !passkey || !tillNumber) {
+      console.error('Missing M-Pesa configuration');
+      return new Response(
+        JSON.stringify({ error: 'M-Pesa configuration missing' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Format phone number (remove + and country code if present)
     let formattedPhone = phoneNumber.replace(/\D/g, '');
     if (formattedPhone.startsWith('254')) {
@@ -37,30 +60,101 @@ serve(async (req) => {
     console.log('Processing STK Push for:', {
       amount,
       phoneNumber: formattedPhone,
-      orderId
+      orderId,
+      shortcode,
+      tillNumber
     });
 
-    // For demo purposes, we'll simulate a successful payment
-    // In a real implementation, you would:
-    // 1. Get M-Pesa credentials from Supabase secrets
-    // 2. Generate access token from M-Pesa API
-    // 3. Make STK Push request to M-Pesa
-    // 4. Return the response
+    // Step 1: Get OAuth token
+    const auth = btoa(`${consumerKey}:${consumerSecret}`);
+    
+    const tokenResponse = await fetch(TOKEN_URL, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (!tokenResponse.ok) {
+      const tokenError = await tokenResponse.text();
+      console.error('Token request failed:', tokenError);
+      throw new Error(`Failed to get OAuth token: ${tokenResponse.status}`);
+    }
 
-    // Simulate successful response
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    if (!accessToken) {
+      console.error('No access token received:', tokenData);
+      throw new Error('Failed to obtain access token');
+    }
+
+    console.log('OAuth token obtained successfully');
+
+    // Step 2: Generate password and timestamp
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
+    const password = btoa(`${shortcode}${passkey}${timestamp}`);
+
+    // Step 3: Make STK Push request
+    const stkPushPayload = {
+      BusinessShortCode: shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: "CustomerBuyGoodsOnline", // For Till Number
+      Amount: Math.ceil(amount), // Ensure it's an integer
+      PartyA: formattedPhone,
+      PartyB: tillNumber, // Use Till Number instead of shortcode
+      PhoneNumber: formattedPhone,
+      CallBackURL: "https://your-callback-url.com/callback", // You should implement this
+      AccountReference: `ORDER_${orderId}`,
+      TransactionDesc: `Payment for order ${orderId.slice(-8)}`
+    };
+
+    console.log('STK Push payload:', {
+      ...stkPushPayload,
+      Password: '[HIDDEN]'
+    });
+
+    const stkResponse = await fetch(STK_PUSH_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(stkPushPayload),
+    });
+
+    const stkData = await stkResponse.json();
+    
+    console.log('M-Pesa STK Push response:', stkData);
+
+    if (!stkResponse.ok || stkData.errorCode) {
+      console.error('STK Push failed:', stkData);
+      return new Response(
+        JSON.stringify({ 
+          error: 'STK Push failed',
+          details: stkData.errorMessage || stkData.ResponseDescription || 'Unknown error'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Success response
     const response = {
       success: true,
       message: 'STK Push sent successfully',
-      checkoutRequestID: `ws_CO_${Date.now()}`,
-      responseCode: '0',
-      responseDescription: 'Success. Request accepted for processing',
-      customerMessage: 'Success. Request accepted for processing'
+      checkoutRequestID: stkData.CheckoutRequestID,
+      merchantRequestID: stkData.MerchantRequestID,
+      responseCode: stkData.ResponseCode,
+      responseDescription: stkData.ResponseDescription,
+      customerMessage: stkData.CustomerMessage
     };
 
-    console.log('STK Push response:', response);
+    console.log('STK Push successful:', response);
 
     return new Response(
       JSON.stringify(response),

@@ -28,48 +28,97 @@ const Wishlist = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) {
-        fetchWishlistItems();
-      } else {
+    const initializeWishlist = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log("Wishlist - User from auth:", user);
+        
+        if (!user) {
+          console.log("No user found, redirecting to auth");
+          setLoading(false);
+          return;
+        }
+        
+        setUser(user);
+        await fetchWishlistItems(user.id);
+      } catch (error) {
+        console.error("Error initializing wishlist:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load wishlist",
+          variant: "destructive",
+        });
+      } finally {
         setLoading(false);
       }
-    });
-  }, []);
+    };
 
-  const fetchWishlistItems = async () => {
-    if (!user) return;
+    initializeWishlist();
+  }, [toast]);
 
+  const fetchWishlistItems = async (userId: string) => {
     try {
+      console.log("Fetching wishlist for user:", userId);
+      
+      // First get the user's profile with wishlist
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("wishlist")
-        .eq("id", user.id)
+        .eq("id", userId)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile error:", profileError);
+        if (profileError.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              email: "",
+              full_name: "",
+              phone: "",
+              role: "user",
+              wishlist: []
+            });
+          
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+          }
+          setWishlistItems([]);
+          return;
+        }
+        throw profileError;
+      }
 
-      if (profile.wishlist && profile.wishlist.length > 0) {
+      console.log("Profile wishlist:", profile?.wishlist);
+
+      if (profile?.wishlist && profile.wishlist.length > 0) {
+        // Get products that are in the wishlist
         const { data: products, error: productsError } = await supabase
           .from("products")
           .select("*")
           .in("id", profile.wishlist);
 
-        if (productsError) throw productsError;
+        if (productsError) {
+          console.error("Products error:", productsError);
+          throw productsError;
+        }
+        
+        console.log("Wishlist products:", products);
         setWishlistItems(products || []);
       } else {
+        console.log("No items in wishlist");
         setWishlistItems([]);
       }
     } catch (error) {
-      console.error("Error fetching wishlist:", error);
+      console.error("Error fetching wishlist items:", error);
       toast({
         title: "Error",
         description: "Failed to load wishlist",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      setWishlistItems([]);
     }
   };
 
@@ -115,15 +164,38 @@ const Wishlist = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      // Check if item already exists in cart
+      const { data: existingItem, error: checkError } = await supabase
         .from("cart_items")
-        .upsert({
-          user_id: user.id,
-          product_id: productId,
-          quantity: 1,
-        });
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .single();
 
-      if (error) throw error;
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingItem) {
+        // Update quantity
+        const { error } = await supabase
+          .from("cart_items")
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq("id", existingItem.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new item
+        const { error } = await supabase
+          .from("cart_items")
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+            quantity: 1,
+          });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Success",
@@ -139,6 +211,14 @@ const Wishlist = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
@@ -153,14 +233,6 @@ const Wishlist = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
       </div>
     );
   }

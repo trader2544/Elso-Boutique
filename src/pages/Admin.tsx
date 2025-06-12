@@ -4,14 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Trash2, Package, DollarSign, Users, ShoppingBag } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Order } from "@/types/order";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { Order, convertJsonToOrderProducts } from "@/types/order";
 
 interface Product {
   id: string;
@@ -24,58 +25,65 @@ interface Product {
   in_stock: boolean;
 }
 
+interface NewProduct {
+  name: string;
+  description: string;
+  price: string;
+  previous_price: string;
+  category: string;
+  image_url: string;
+}
+
 const Admin = () => {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [productForm, setProductForm] = useState({
+  const [newProduct, setNewProduct] = useState<NewProduct>({
     name: "",
     description: "",
-    price: 0,
-    previous_price: 0,
+    price: "",
+    previous_price: "",
     category: "",
     image_url: "",
   });
-  const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Dashboard stats
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalOrders: 0,
-    totalRevenue: 0,
-    totalUsers: 0,
-  });
-
   useEffect(() => {
-    checkAdminAccess();
-    fetchProducts();
-    fetchOrders();
-    fetchStats();
-  }, []);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        checkUserRole(user.id);
+      } else {
+        navigate("/auth");
+      }
+    });
+  }, [navigate]);
 
-  const checkAdminAccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+  const checkUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
+      if (error) throw error;
+      
+      if (data.role !== "admin") {
+        navigate("/");
+        return;
+      }
+      
+      setUserRole(data.role);
+      await Promise.all([fetchProducts(), fetchOrders()]);
+    } catch (error) {
+      console.error("Error checking user role:", error);
       navigate("/");
-      toast({
-        title: "Access Denied",
-        description: "You don't have admin privileges",
-        variant: "destructive",
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,148 +113,64 @@ const Admin = () => {
             phone
           )
         `)
-        .eq("status", "paid")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       
       const formattedOrders = (data || []).map(order => ({
         ...order,
-        products: Array.isArray(order.products) ? order.products : []
+        products: convertJsonToOrderProducts(order.products)
       }));
       
       setOrders(formattedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const [productsRes, ordersRes, usersRes] = await Promise.all([
-        supabase.from("products").select("*", { count: "exact" }),
-        supabase.from("orders").select("total_price", { count: "exact" }),
-        supabase.from("profiles").select("*", { count: "exact" }),
-      ]);
-
-      const totalRevenue = ordersRes.data?.reduce((sum, order) => sum + order.total_price, 0) || 0;
-
-      setStats({
-        totalProducts: productsRes.count || 0,
-        totalOrders: ordersRes.count || 0,
-        totalRevenue,
-        totalUsers: usersRes.count || 0,
-      });
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `products/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      setProductForm(prev => ({ ...prev, image_url: data.publicUrl }));
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast({
-        title: "Error",
-        description: "Failed to upload image",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmitProduct = async (e: React.FormEvent) => {
+  const addProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      if (editingProduct) {
-        const { error } = await supabase
-          .from("products")
-          .update({
-            ...productForm,
-            previous_price: productForm.previous_price || null,
-          })
-          .eq("id", editingProduct);
+      const { error } = await supabase
+        .from("products")
+        .insert({
+          name: newProduct.name,
+          description: newProduct.description,
+          price: parseFloat(newProduct.price),
+          previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
+          category: newProduct.category,
+          image_url: newProduct.image_url || null,
+        });
 
-        if (error) throw error;
-        setEditingProduct(null);
-      } else {
-        const { error } = await supabase
-          .from("products")
-          .insert([{
-            ...productForm,
-            previous_price: productForm.previous_price || null,
-          }]);
+      if (error) throw error;
 
-        if (error) throw error;
-      }
+      toast({
+        title: "Success",
+        description: "Product added successfully",
+      });
 
-      setProductForm({
+      setNewProduct({
         name: "",
         description: "",
-        price: 0,
-        previous_price: 0,
+        price: "",
+        previous_price: "",
         category: "",
         image_url: "",
       });
-      
-      fetchProducts();
-      fetchStats();
-      toast({
-        title: "Success",
-        description: editingProduct ? "Product updated" : "Product created",
-      });
+
+      await fetchProducts();
     } catch (error) {
-      console.error("Error saving product:", error);
+      console.error("Error adding product:", error);
       toast({
         title: "Error",
-        description: "Failed to save product",
+        description: "Failed to add product",
         variant: "destructive",
       });
     }
   };
 
-  const handleEditProduct = (product: Product) => {
-    setProductForm({
-      name: product.name,
-      description: product.description || "",
-      price: product.price,
-      previous_price: product.previous_price || 0,
-      category: product.category,
-      image_url: product.image_url || "",
-    });
-    setEditingProduct(product.id);
-  };
-
-  const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
+  const deleteProduct = async (productId: string) => {
     try {
       const { error } = await supabase
         .from("products")
@@ -254,13 +178,13 @@ const Admin = () => {
         .eq("id", productId);
 
       if (error) throw error;
-      
-      fetchProducts();
-      fetchStats();
+
       toast({
         title: "Success",
-        description: "Product deleted",
+        description: "Product deleted successfully",
       });
+
+      await fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
       toast({
@@ -279,12 +203,13 @@ const Admin = () => {
         .eq("id", orderId);
 
       if (error) throw error;
-      
-      fetchOrders();
+
       toast({
         title: "Success",
-        description: "Order status updated",
+        description: "Order status updated successfully",
       });
+
+      await fetchOrders();
     } catch (error) {
       console.error("Error updating order status:", error);
       toast({
@@ -292,6 +217,17 @@ const Admin = () => {
         description: "Failed to update order status",
         variant: "destructive",
       });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return "bg-yellow-100 text-yellow-800";
+      case "paid": return "bg-blue-100 text-blue-800";
+      case "shipped": return "bg-purple-100 text-purple-800";
+      case "delivered": return "bg-green-100 text-green-800";
+      case "cancelled": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -303,310 +239,207 @@ const Admin = () => {
     );
   }
 
+  if (!user || userRole !== "admin") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
+            <Button onClick={() => navigate("/")} className="w-full">
+              Go Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-4 py-6 md:py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="mb-4 md:mb-0 self-start"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Homepage
-          </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-6"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Button>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
-            <TabsTrigger value="dashboard" className="text-xs md:text-sm">Dashboard</TabsTrigger>
-            <TabsTrigger value="products" className="text-xs md:text-sm">Products</TabsTrigger>
-            <TabsTrigger value="orders" className="text-xs md:text-sm">Orders</TabsTrigger>
+        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+
+        <Tabs defaultValue="products" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-              <Card>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center space-x-2">
-                    <Package className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-600">Products</p>
-                      <p className="text-lg md:text-2xl font-bold">{stats.totalProducts}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center space-x-2">
-                    <ShoppingBag className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-600">Orders</p>
-                      <p className="text-lg md:text-2xl font-bold">{stats.totalOrders}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center space-x-2">
-                    <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-pink-600" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-600">Revenue</p>
-                      <p className="text-sm md:text-2xl font-bold">KSh {stats.totalRevenue.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-6 h-6 md:w-8 md:h-8 text-purple-600" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-600">Users</p>
-                      <p className="text-lg md:text-2xl font-bold">{stats.totalUsers}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="products">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{editingProduct ? "Edit Product" : "Add New Product"}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmitProduct} className="space-y-4">
+          <TabsContent value="products" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Product</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={addProduct} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Product Name</Label>
                       <Input
                         id="name"
-                        value={productForm.name}
-                        onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                         required
                       />
                     </div>
-                    
-                    <div>
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={productForm.description}
-                        onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="price">Price (KSh)</Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          value={productForm.price}
-                          onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="previous_price">Previous Price (KSh)</Label>
-                        <Input
-                          id="previous_price"
-                          type="number"
-                          value={productForm.previous_price}
-                          onChange={(e) => setProductForm({ ...productForm, previous_price: Number(e.target.value) })}
-                        />
-                      </div>
-                    </div>
-                    
                     <div>
                       <Label htmlFor="category">Category</Label>
                       <Input
                         id="category"
-                        value={productForm.category}
-                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                        value={newProduct.category}
+                        onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                         required
                       />
                     </div>
-                    
                     <div>
-                      <Label htmlFor="image">Product Image</Label>
-                      <div className="space-y-2">
-                        <Input
-                          id="image"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          disabled={uploading}
-                        />
-                        {uploading && <p className="text-sm text-gray-600">Uploading...</p>}
-                        {productForm.image_url && (
-                          <div className="w-20 h-20 border rounded overflow-hidden">
-                            <img 
-                              src={productForm.image_url} 
-                              alt="Preview" 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      <Label htmlFor="price">Price (KSh)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        value={newProduct.price}
+                        onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                        required
+                      />
                     </div>
-
-                    <div className="flex space-x-2">
-                      <Button type="submit" disabled={uploading}>
-                        {editingProduct ? "Update Product" : "Add Product"}
-                      </Button>
-                      {editingProduct && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingProduct(null);
-                            setProductForm({
-                              name: "",
-                              description: "",
-                              price: 0,
-                              previous_price: 0,
-                              category: "",
-                              image_url: "",
-                            });
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      )}
+                    <div>
+                      <Label htmlFor="previous_price">Previous Price (KSh)</Label>
+                      <Input
+                        id="previous_price"
+                        type="number"
+                        step="0.01"
+                        value={newProduct.previous_price}
+                        onChange={(e) => setNewProduct({ ...newProduct, previous_price: e.target.value })}
+                      />
                     </div>
-                  </form>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Products List</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-96 md:max-h-[600px] overflow-y-auto">
-                    {products.map((product) => (
-                      <div key={product.id} className="border rounded-lg p-4">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between space-y-2 md:space-y-0">
-                          <div className="flex-1">
-                            <h4 className="font-semibold">{product.name}</h4>
-                            <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
-                            <p className="text-pink-600 font-bold">KSh {product.price.toLocaleString()}</p>
-                            <Badge variant="outline" className="text-xs">{product.category}</Badge>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditProduct(product)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteProduct(product.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="image_url">Image URL</Label>
+                    <Input
+                      id="image_url"
+                      type="url"
+                      value={newProduct.image_url}
+                      onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
+                    />
+                  </div>
+                  <Button type="submit">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Product
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Existing Products</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {products.map((product) => (
+                    <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{product.name}</h3>
+                        <p className="text-sm text-gray-600">{product.category}</p>
+                        <p className="text-sm font-medium text-pink-600">
+                          KSh {product.price.toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteProduct(product.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="orders">
             <Card>
               <CardHeader>
-                <CardTitle>Paid Orders</CardTitle>
+                <CardTitle>Order Management</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {orders.map((order) => (
                     <div key={order.id} className="border rounded-lg p-4">
-                      <div className="flex flex-col md:flex-row md:items-start justify-between space-y-4 md:space-y-0 md:space-x-4">
-                        <div className="flex-1">
-                          <div className="flex flex-col md:flex-row md:items-center md:space-x-4 mb-2">
-                            <p className="font-semibold">Order #{order.id.slice(-8)}</p>
-                            <p className="text-sm text-gray-600">
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </p>
-                            <Badge className="self-start md:self-center">
-                              {order.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <p className="text-sm">
-                              <strong>Customer:</strong> {order.profiles?.full_name || 'N/A'}
-                            </p>
-                            <p className="text-sm">
-                              <strong>Email:</strong> {order.profiles?.email || 'N/A'}
-                            </p>
-                            <p className="text-sm">
-                              <strong>Phone:</strong> {order.customer_phone || order.profiles?.phone || 'N/A'}
-                            </p>
-                            
-                            <div className="text-sm">
-                              <strong>Products:</strong>
-                              <ul className="ml-4 mt-1">
-                                {order.products.map((product: any, index: number) => (
-                                  <li key={index}>
-                                    {product.name} x {product.quantity} - KSh {(product.price * product.quantity).toLocaleString()}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <p className="font-bold text-lg text-pink-600">
-                            KSh {order.total_price.toLocaleString()}
+                      <div className="flex flex-col md:flex-row md:items-start justify-between mb-4">
+                        <div>
+                          <p className="font-semibold">Order #{order.id.slice(-8)}</p>
+                          <p className="text-sm text-gray-600">
+                            {new Date(order.created_at).toLocaleDateString()}
                           </p>
-                          <div className="mt-2 space-y-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateOrderStatus(order.id, "shipped")}
-                              disabled={order.status === "shipped" || order.status === "delivered"}
-                              className="w-full text-xs"
-                            >
-                              Mark Shipped
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateOrderStatus(order.id, "delivered")}
-                              disabled={order.status === "delivered"}
-                              className="w-full text-xs"
-                            >
-                              Mark Delivered
-                            </Button>
+                          {order.profiles && (
+                            <div className="text-sm text-gray-600 mt-1">
+                              <p>Customer: {order.profiles.full_name}</p>
+                              <p>Email: {order.profiles.email}</p>
+                              <p>Phone: {order.customer_phone || order.profiles.phone}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getStatusColor(order.status)}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </Badge>
+                          <select
+                            value={order.status}
+                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                            className="text-sm border rounded px-2 py-1"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        {order.products.map((product, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span>{product.name} x {product.quantity}</span>
+                            <span>KSh {(product.price * product.quantity).toLocaleString()}</span>
                           </div>
+                        ))}
+                      </div>
+                      
+                      <div className="border-t pt-2">
+                        <div className="flex justify-between font-semibold">
+                          <span>Total:</span>
+                          <span className="text-pink-600">
+                            KSh {order.total_price.toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     </div>
                   ))}
-                  
-                  {orders.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-600">No paid orders found</p>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
