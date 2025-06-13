@@ -17,6 +17,7 @@ export interface Order {
   customer_phone: string | null;
   payment_method: string | null;
   transaction_id: string | null;
+  delivery_location: string | null;
   created_at: string;
   profiles?: {
     full_name: string | null;
