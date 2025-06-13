@@ -130,7 +130,7 @@ const Admin = () => {
 
   if (!user || userRole !== "admin") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-lg border-pink-200">
           <CardHeader>
             <CardTitle className="text-pink-700">Access Denied</CardTitle>
@@ -158,20 +158,29 @@ const Admin = () => {
           Back to Home
         </Button>
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-8 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
           Admin Dashboard
         </h1>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white shadow-md border border-pink-200">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700">
+          <TabsList className="grid w-full grid-cols-3 bg-white shadow-md border border-pink-200 h-auto">
+            <TabsTrigger 
+              value="dashboard" 
+              className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700 py-3 text-xs sm:text-sm"
+            >
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="products" className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700">
+            <TabsTrigger 
+              value="products" 
+              className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700 py-3 text-xs sm:text-sm"
+            >
               Products
             </TabsTrigger>
-            <TabsTrigger value="orders" className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700">
-              Orders
+            <TabsTrigger 
+              value="orders" 
+              className="data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700 py-3 text-xs sm:text-sm"
+            >
+              Orders ({orders.length})
             </TabsTrigger>
           </TabsList>
 
@@ -186,64 +195,107 @@ const Admin = () => {
           <TabsContent value="orders">
             <Card className="shadow-lg border-pink-200">
               <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
-                <CardTitle className="text-pink-700">Order Management</CardTitle>
+                <CardTitle className="text-pink-700">Order Management ({orders.length})</CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="space-y-4">
                   {orders.map((order) => (
                     <div key={order.id} className="border border-pink-200 rounded-lg p-4 bg-white shadow-sm">
-                      <div className="flex flex-col md:flex-row md:items-start justify-between mb-4">
-                        <div>
-                          <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
-                          <p className="text-sm text-gray-600">
-                            {new Date(order.created_at).toLocaleDateString()}
-                          </p>
-                          {order.profiles && (
-                            <div className="text-sm text-gray-600 mt-1 space-y-1">
-                              <p className="text-pink-700">👤 Customer: {order.profiles.full_name}</p>
-                              <p className="text-purple-700">📧 Email: {order.profiles.email}</p>
-                              <p className="text-pink-700">📱 Phone: {order.customer_phone || order.profiles.phone}</p>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 mt-4 md:mt-0">
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          </Badge>
-                          <select
-                            value={order.status}
-                            onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                            className="text-sm border border-pink-200 rounded px-2 py-1 focus:border-pink-400"
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4 bg-pink-50 p-3 rounded-lg">
-                        <h4 className="font-medium text-pink-700">📦 Order Items:</h4>
-                        {order.products.map((product, index) => (
-                          <div key={index} className="flex justify-between text-sm">
-                            <span className="text-gray-700">{product.name} x {product.quantity}</span>
-                            <span className="text-pink-600 font-medium">KSh {(product.price * product.quantity).toLocaleString()}</span>
+                      <div className="flex flex-col space-y-4">
+                        {/* Order Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between space-y-3 sm:space-y-0">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
+                            <p className="text-sm text-gray-600">
+                              {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString()}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                      
-                      <div className="border-t border-pink-200 pt-2">
-                        <div className="flex justify-between font-semibold">
-                          <span className="text-gray-700">Total:</span>
-                          <span className="text-pink-600 text-lg">
-                            KSh {order.total_price.toLocaleString()}
-                          </span>
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                            <Badge className={getStatusColor(order.status)}>
+                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </Badge>
+                            <select
+                              value={order.status}
+                              onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                              className="text-sm border border-pink-200 rounded px-2 py-1 focus:border-pink-400 w-full sm:w-auto"
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="paid">Paid</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Customer Info */}
+                        {order.profiles && (
+                          <div className="bg-pink-50 p-3 rounded-lg">
+                            <h4 className="font-medium text-pink-700 mb-2">👤 Customer Information:</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-gray-600">Name: </span>
+                                <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Email: </span>
+                                <span className="text-gray-900">{order.profiles.email}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Phone: </span>
+                                <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
+                              </div>
+                              {order.delivery_location && (
+                                <div className="sm:col-span-2">
+                                  <span className="text-gray-600">Delivery: </span>
+                                  <span className="text-gray-900">{order.delivery_location}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Order Items */}
+                        <div className="bg-purple-50 p-3 rounded-lg">
+                          <h4 className="font-medium text-purple-700 mb-2">📦 Order Items:</h4>
+                          <div className="space-y-2">
+                            {order.products.map((product, index) => (
+                              <div key={index} className="flex justify-between items-center text-sm">
+                                <span className="text-gray-700 flex-1">
+                                  {product.name} 
+                                  <span className="text-purple-600 ml-1">×{product.quantity}</span>
+                                </span>
+                                <span className="text-purple-600 font-medium">
+                                  KSh {(product.price * product.quantity).toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Total */}
+                        <div className="border-t border-pink-200 pt-3">
+                          <div className="flex justify-between items-center font-semibold">
+                            <span className="text-gray-700">Total Amount:</span>
+                            <span className="text-pink-600 text-lg">
+                              KSh {order.total_price.toLocaleString()}
+                            </span>
+                          </div>
+                          {order.transaction_id && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Transaction ID: {order.transaction_id}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
+                  
+                  {orders.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No orders found yet.</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

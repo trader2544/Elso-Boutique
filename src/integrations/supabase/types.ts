@@ -48,10 +48,53 @@ export type Database = {
           },
         ]
       }
+      mpesa_transactions: {
+        Row: {
+          amount: number
+          checkout_request_id: string | null
+          created_at: string | null
+          customer_message: string | null
+          id: string
+          merchant_request_id: string | null
+          order_id: string
+          phone_number: string
+          response_code: string | null
+          response_description: string | null
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          checkout_request_id?: string | null
+          created_at?: string | null
+          customer_message?: string | null
+          id?: string
+          merchant_request_id?: string | null
+          order_id: string
+          phone_number: string
+          response_code?: string | null
+          response_description?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          checkout_request_id?: string | null
+          created_at?: string | null
+          customer_message?: string | null
+          id?: string
+          merchant_request_id?: string | null
+          order_id?: string
+          phone_number?: string
+          response_code?: string | null
+          response_description?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string | null
           customer_phone: string | null
+          delivery_location: string | null
           id: string
           payment_method: string | null
           products: Json
@@ -63,6 +106,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           customer_phone?: string | null
+          delivery_location?: string | null
           id?: string
           payment_method?: string | null
           products: Json
@@ -74,6 +118,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           customer_phone?: string | null
+          delivery_location?: string | null
           id?: string
           payment_method?: string | null
           products?: Json

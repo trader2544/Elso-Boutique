@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,8 @@ const Checkout = () => {
         quantity: item.quantity,
       }));
 
+      const deliveryLocation = `${customerInfo.address}, ${customerInfo.city}`;
+
       // Create order first
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -89,6 +92,7 @@ const Checkout = () => {
           products: orderProducts,
           total_price: getTotalPrice(),
           customer_phone: customerInfo.phone,
+          delivery_location: deliveryLocation,
           status: "pending",
         })
         .select()
@@ -174,7 +178,7 @@ const Checkout = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-lg border-pink-200">
           <CardHeader>
             <CardTitle className="text-pink-700">Cart is Empty</CardTitle>
@@ -206,12 +210,12 @@ const Checkout = () => {
           Checkout
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
           <Card className="shadow-lg border-pink-200">
             <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
               <CardTitle className="text-pink-700">Delivery Information</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <form onSubmit={handleCheckout} className="space-y-4">
                 <div>
                   <Label htmlFor="phone" className="text-pink-700 font-medium">M-Pesa Phone Number *</Label>
@@ -235,19 +239,22 @@ const Checkout = () => {
                     id="address"
                     value={customerInfo.address}
                     onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-                    placeholder="Enter your delivery address"
+                    placeholder="Street address, building, apartment number"
                     required
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Include detailed address for accurate delivery
+                  </p>
                 </div>
                 
                 <div>
-                  <Label htmlFor="city" className="text-pink-700 font-medium">City *</Label>
+                  <Label htmlFor="city" className="text-pink-700 font-medium">City/Town *</Label>
                   <Input
                     id="city"
                     value={customerInfo.city}
                     onChange={(e) => setCustomerInfo({ ...customerInfo, city: e.target.value })}
-                    placeholder="Enter your city"
+                    placeholder="Nairobi, Mombasa, Kisumu, etc."
                     required
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
@@ -255,10 +262,17 @@ const Checkout = () => {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md"
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md py-3"
                   disabled={processing}
                 >
-                  {processing ? "Processing Payment..." : "💳 Pay with M-Pesa"}
+                  {processing ? (
+                    <>
+                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing Payment...
+                    </>
+                  ) : (
+                    "💳 Pay with M-Pesa"
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -268,26 +282,27 @@ const Checkout = () => {
             <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
               <CardTitle className="text-pink-700">Order Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 p-6">
-              <div className="space-y-2">
+            <CardContent className="space-y-4 p-4 md:p-6">
+              <div className="space-y-3">
                 {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between">
-                    <span>
-                      {item.products.name} x {item.quantity}
-                    </span>
-                    <span>
+                  <div key={item.id} className="flex justify-between items-center py-2 border-b border-pink-100">
+                    <div className="flex-1">
+                      <span className="text-sm font-medium">{item.products.name}</span>
+                      <div className="text-xs text-gray-500">Qty: {item.quantity}</div>
+                    </div>
+                    <span className="font-medium">
                       KSh {(item.products.price * item.quantity).toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
               
-              <div className="border-t pt-4">
-                <div className="flex justify-between">
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
                   <span>KSh {getTotalPrice().toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm text-green-600">
                   <span>Delivery:</span>
                   <span>Free</span>
                 </div>
@@ -307,9 +322,9 @@ const Checkout = () => {
               </div>
 
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <h4 className="font-medium mb-2 text-purple-700">📝 Important Notice</h4>
+                <h4 className="font-medium mb-2 text-purple-700">🚚 Delivery Info</h4>
                 <p className="text-sm text-purple-600">
-                  Orders must be placed through the website. No cash payments accepted. 
+                  Free delivery within Nairobi (1-2 days). Other locations may have additional charges. 
                   You will receive a confirmation call after successful payment.
                 </p>
               </div>
