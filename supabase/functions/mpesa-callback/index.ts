@@ -54,39 +54,52 @@ serve(async (req) => {
       phoneNumber = phoneItem?.Value;
     }
 
-    // Determine order status based on result code
-    let orderStatus = 'pending';
-    if (ResultCode === 0) {
-      orderStatus = 'paid';
-    } else {
-      orderStatus = 'cancelled';
-    }
-
     console.log('Processing payment callback:', {
       orderId,
       ResultCode,
       ResultDesc,
       transactionId,
       amount,
-      phoneNumber,
-      orderStatus
+      phoneNumber
     });
 
     if (orderId) {
-      // Update order status in database
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          status: orderStatus,
-          transaction_id: transactionId,
-          customer_phone: phoneNumber || undefined
-        })
-        .eq('id', orderId);
+      if (ResultCode === 0) {
+        // Payment successful - update order to paid status
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            status: 'paid',
+            transaction_id: transactionId,
+            customer_phone: phoneNumber || undefined
+          })
+          .eq('id', orderId);
 
-      if (error) {
-        console.error('Error updating order:', error);
+        if (updateError) {
+          console.error('Error updating order to paid:', updateError);
+        } else {
+          console.log(`Order ${orderId} successfully updated to paid status`);
+        }
       } else {
-        console.log(`Order ${orderId} updated with status: ${orderStatus}`);
+        // Payment failed - delete the order as we only store successful payments
+        console.log(`Payment failed for order ${orderId} with result code: ${ResultCode}`);
+        
+        const { error: deleteError } = await supabase
+          .from('orders')
+          .delete()
+          .eq('id', orderId);
+
+        if (deleteError) {
+          console.error('Error deleting failed order:', deleteError);
+        } else {
+          console.log(`Failed order ${orderId} deleted successfully`);
+        }
+
+        // Also update status to cancelled for any realtime listeners before deletion
+        await supabase
+          .from('orders')
+          .update({ status: 'cancelled' })
+          .eq('id', orderId);
       }
     }
 
