@@ -9,7 +9,7 @@ const AboutUs = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100">
-      <div className="container mx-auto px-4 py-6 md:py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
@@ -18,145 +18,106 @@ const AboutUs = () => {
           ← Back to Home
         </Button>
 
-        <div className="text-center mb-8 md:mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-            About ELSO Atelier
-          </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Luxury fashion crafted with passion, designed for the modern woman
-          </p>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent text-center">
+          About ELSO Atelier
+        </h1>
 
-        <div className="space-y-8">
+        <div className="max-w-4xl mx-auto space-y-6">
           {/* About Section */}
-          <Card className="shadow-lg border-pink-200 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 text-center">
-              <CardTitle className="text-pink-700 text-xl md:text-2xl">Our Story</CardTitle>
+          <Card className="shadow-lg border-pink-200">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+              <CardTitle className="text-pink-700">Our Story</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 md:p-8">
-              <div className="grid md:grid-cols-2 gap-6 items-center">
-                <div>
-                  <p className="text-gray-700 leading-relaxed mb-4">
-                    ELSO Atelier is a luxury fashion house based in Kisumu, Kenya, dedicated to crafting timeless, elegant designs for the modern woman. We specialize in bespoke bridal gowns, evening wear, red-carpet looks, and ready-to-wear outfits.
-                  </p>
-                  <p className="text-gray-700 leading-relaxed">
-                    Every piece is custom-made with precision, creativity, and quality craftsmanship to ensure you not only look stunning but feel confident and empowered.
-                  </p>
-                </div>
-                <div className="flex justify-center">
-                  <div className="w-32 h-32 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full flex items-center justify-center">
-                    <span className="text-4xl">✨</span>
-                  </div>
-                </div>
-              </div>
+            <CardContent className="p-6">
+              <p className="text-gray-700 leading-relaxed">
+                ELSO Atelier is a luxury fashion house based in Kisumu, Kenya, dedicated to crafting timeless, elegant designs for the modern woman. We specialize in bespoke bridal gowns, evening wear, red-carpet looks, and ready-to-wear outfits. Every piece is custom-made with precision, creativity, and quality craftsmanship to ensure you not only look stunning but feel confident and empowered.
+              </p>
+              <br />
+              <p className="text-gray-700 leading-relaxed">
+                We pride ourselves on excellent customer service, premium fabrics, and attention to detail that ensures every order meets our high standards. Whether you're shopping for your big day or your next standout event, ELSO Atelier is your trusted fashion partner.
+              </p>
             </CardContent>
           </Card>
 
           {/* Deliveries Section */}
-          <Card className="shadow-lg border-pink-200 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 text-center">
-              <CardTitle className="text-pink-700 text-xl md:text-2xl flex items-center justify-center">
-                <span className="mr-2">🚚</span> Deliveries
-              </CardTitle>
+          <Card className="shadow-lg border-pink-200">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+              <CardTitle className="text-pink-700">🚚 Deliveries</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 md:p-8">
-              <p className="text-gray-700 mb-6 text-center">We offer reliable and affordable delivery options across Kenya:</p>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="w-12 h-12 bg-green-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <span className="text-white font-bold">FREE</span>
-                  </div>
-                  <h3 className="font-semibold text-green-700 mb-2">Kisumu CBD</h3>
-                  <p className="text-sm text-gray-600">Free delivery within Kisumu Central Business District</p>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">100</span>
-                  </div>
-                  <h3 className="font-semibold text-blue-700 mb-2">Kisumu Town</h3>
-                  <p className="text-sm text-gray-600">KES 100 for other locations in Kisumu</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <div className="w-12 h-12 bg-purple-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">300</span>
-                  </div>
-                  <h3 className="font-semibold text-purple-700 mb-2">Kenya Wide</h3>
-                  <p className="text-sm text-gray-600">KES 300 to all other regions in Kenya</p>
-                </div>
-              </div>
-              <div className="mt-6 p-4 bg-pink-50 rounded-lg border border-pink-200 text-center">
-                <p className="text-pink-700 font-medium mb-2">📦 Shipping Partners</p>
-                <p className="text-gray-700 text-sm">
-                  We ship via EasyCoach parcel stations and can also work with your preferred delivery carrier for convenience.
-                </p>
-              </div>
+            <CardContent className="p-6">
+              <p className="text-gray-700 mb-4">We offer reliable and affordable delivery options across Kenya:</p>
+              <ul className="space-y-2 text-gray-700">
+                <li className="flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                  <strong>Free delivery</strong> within Kisumu CBD
+                </li>
+                <li className="flex items-center">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                  <strong>KES 100</strong> for other locations in Kisumu town
+                </li>
+                <li className="flex items-center">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                  <strong>KES 300</strong> to all other regions in Kenya
+                </li>
+              </ul>
+              <p className="text-gray-700 mt-4">
+                We ship via EasyCoach parcel stations and can also work with your preferred delivery carrier for convenience. Our team ensures timely dispatch and real-time communication for every delivery.
+              </p>
             </CardContent>
           </Card>
 
           {/* Contact Section */}
-          <Card className="shadow-lg border-pink-200 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 text-center">
-              <CardTitle className="text-pink-700 text-xl md:text-2xl flex items-center justify-center">
-                <span className="mr-2">📞</span> Contact Us
-              </CardTitle>
+          <Card className="shadow-lg border-pink-200">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+              <CardTitle className="text-pink-700">📞 Contact Us</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 md:p-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-pink-100 p-2 rounded-full">
-                      <MapPin className="w-5 h-5 text-pink-600" />
-                    </div>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="w-5 h-5 text-pink-600" />
                     <div>
-                      <p className="font-medium text-gray-900 mb-1">Location</p>
+                      <p className="font-medium text-gray-900">Location</p>
                       <p className="text-gray-700">Kisumu, Kenya</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-pink-100 p-2 rounded-full">
-                      <Phone className="w-5 h-5 text-pink-600" />
-                    </div>
+                  <div className="flex items-center space-x-3">
+                    <Phone className="w-5 h-5 text-pink-600" />
                     <div>
-                      <p className="font-medium text-gray-900 mb-1">Phone</p>
+                      <p className="font-medium text-gray-900">Phone</p>
                       <p className="text-gray-700">+254 745 242 174</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-pink-100 p-2 rounded-full">
-                      <Mail className="w-5 h-5 text-pink-600" />
-                    </div>
+                  <div className="flex items-center space-x-3">
+                    <Mail className="w-5 h-5 text-pink-600" />
                     <div>
-                      <p className="font-medium text-gray-900 mb-1">Email</p>
+                      <p className="font-medium text-gray-900">Email</p>
                       <p className="text-gray-700">elsokisumu@gmail.com</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-pink-100 p-2 rounded-full">
-                      <Clock className="w-5 h-5 text-pink-600" />
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <Clock className="w-5 h-5 text-pink-600 mt-1" />
                     <div>
-                      <p className="font-medium text-gray-900 mb-1">Opening Hours</p>
-                      <p className="text-gray-700 text-sm">Monday to Saturday: 9:00 AM – 6:00 PM</p>
-                      <p className="text-gray-700 text-sm">Sunday: 10:00 AM – 4:00 PM</p>
+                      <p className="font-medium text-gray-900">Opening Hours</p>
+                      <p className="text-gray-700">Monday to Saturday: 9:00 AM – 6:00 PM</p>
+                      <p className="text-gray-700">Sunday: 10:00 AM – 4:00 PM</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-pink-100 p-2 rounded-full">
-                      <Instagram className="w-5 h-5 text-pink-600" />
-                    </div>
+                  <div className="flex items-center space-x-3">
+                    <Instagram className="w-5 h-5 text-pink-600" />
                     <div>
-                      <p className="font-medium text-gray-900 mb-1">Instagram</p>
+                      <p className="font-medium text-gray-900">Instagram</p>
                       <a 
                         href="https://instagram.com/elsoatelier" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-pink-600 hover:text-pink-700 font-medium"
+                        className="text-pink-600 hover:text-pink-700"
                       >
                         @elsoatelier
                       </a>
@@ -165,12 +126,66 @@ const AboutUs = () => {
                 </div>
               </div>
 
-              <div className="mt-8 p-6 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl border border-pink-200 text-center">
-                <p className="text-pink-700 font-semibold mb-3 text-lg">💬 Customer Support</p>
+              <div className="mt-6 p-4 bg-pink-50 rounded-lg border border-pink-200">
+                <p className="text-pink-700 font-medium mb-2">💬 Customer Support</p>
                 <p className="text-gray-700">
                   Need help with sizing, custom orders, or tracking your delivery? Our full-time customer support is here to assist you every step of the way.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Integration Updates Section */}
+          <Card className="shadow-lg border-purple-200">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+              <CardTitle className="text-purple-700">💳 M-Pesa STK Push Integration</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="space-y-2 text-gray-700">
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-3 mt-2"></span>
+                  When an STK push is initiated, Supabase Realtime listener monitors transaction status.
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-3 mt-2"></span>
+                  If payment is successful, user is redirected to Profile &gt; Order History.
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-3 mt-2"></span>
+                  If payment fails, user stays on the same page and is prompted to retry.
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 mt-2"></span>
+                  Only successful paid orders are recorded.
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Admin Panel Updates Section */}
+          <Card className="shadow-lg border-green-200">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-pink-50">
+              <CardTitle className="text-green-700">⚙️ Admin Panel Updates</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="space-y-2 text-gray-700">
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-3 mt-2"></span>
+                  Orders now record full customer info: name, email, phone number, and delivery address.
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 mt-2"></span>
+                  Orders also list all ordered products to ensure smooth delivery.
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-3 mt-2"></span>
+                  Only successful payments are stored, failed ones are ignored.
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-pink-500 rounded-full mr-3 mt-2"></span>
+                  Admin dashboard is optimized for mobile and desktop.
+                </li>
+              </ul>
             </CardContent>
           </Card>
         </div>

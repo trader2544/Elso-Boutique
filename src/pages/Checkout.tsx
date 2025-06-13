@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,8 @@ const Checkout = () => {
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
-    deliveryLocation: "",
+    city: "",
+    exactLocation: "",
   });
   const [deliveryFee, setDeliveryFee] = useState(0);
   const { cartItems, refreshCart } = useCart();
@@ -45,7 +47,7 @@ const Checkout = () => {
 
   useEffect(() => {
     calculateDeliveryFee();
-  }, [customerInfo.deliveryLocation]);
+  }, [customerInfo.city, customerInfo.exactLocation]);
 
   // M-Pesa realtime listener for transaction status
   useEffect(() => {
@@ -119,16 +121,15 @@ const Checkout = () => {
   };
 
   const calculateDeliveryFee = () => {
-    const location = customerInfo.deliveryLocation.toLowerCase();
+    const city = customerInfo.city.toLowerCase();
+    const exactLocation = customerInfo.exactLocation.toLowerCase();
     
-    if (location.includes('kisumu cbd') || (location.includes('kisumu') && location.includes('cbd'))) {
-      setDeliveryFee(0); // Free delivery for Kisumu CBD
-    } else if (location.includes('kisumu')) {
-      setDeliveryFee(100); // KES 100 for other locations in Kisumu
-    } else if (location.trim()) {
-      setDeliveryFee(300); // KES 300 for all other regions in Kenya
+    if (city.includes('kisumu') && (exactLocation.includes('cbd') || exactLocation.includes('town center'))) {
+      setDeliveryFee(0); // Free delivery within Kisumu CBD
+    } else if (city.includes('kisumu')) {
+      setDeliveryFee(100); // KES 100 for other locations in Kisumu town
     } else {
-      setDeliveryFee(0); // No fee if no location specified yet
+      setDeliveryFee(300); // KES 300 for all other regions in Kenya
     }
   };
 
@@ -147,8 +148,8 @@ const Checkout = () => {
     setProcessing(true);
 
     try {
-      if (!customerInfo.phone || !customerInfo.address || !customerInfo.deliveryLocation) {
-        throw new Error("Please fill in all required fields including delivery location");
+      if (!customerInfo.phone || !customerInfo.address || !customerInfo.city || !customerInfo.exactLocation) {
+        throw new Error("Please fill in all required fields including exact location");
       }
 
       const orderProducts = cartItems.map(item => ({
@@ -158,7 +159,7 @@ const Checkout = () => {
         quantity: item.quantity,
       }));
 
-      const fullDeliveryLocation = `${customerInfo.address}, ${customerInfo.deliveryLocation}`;
+      const deliveryLocation = `${customerInfo.address}, ${customerInfo.exactLocation}, ${customerInfo.city}`;
 
       // Create order first - only set to pending, not paid yet
       const { data: orderData, error: orderError } = await supabase
@@ -168,7 +169,7 @@ const Checkout = () => {
           products: orderProducts,
           total_price: getFinalTotal(),
           customer_phone: customerInfo.phone,
-          delivery_location: fullDeliveryLocation,
+          delivery_location: deliveryLocation,
           status: "pending",
         })
         .select()
@@ -289,16 +290,10 @@ const Checkout = () => {
     return `KSh ${deliveryFee.toLocaleString()}`;
   };
 
-  const getDeliveryInfo = () => {
-    const location = customerInfo.deliveryLocation.toLowerCase();
-    if (location.includes('kisumu cbd') || (location.includes('kisumu') && location.includes('cbd'))) {
-      return "📍 Kisumu CBD - Free Delivery";
-    } else if (location.includes('kisumu')) {
-      return "📍 Kisumu (Other areas) - KSh 100";
-    } else if (location.trim()) {
-      return "📍 Other regions in Kenya - KSh 300";
-    }
-    return "📍 Enter location to calculate delivery fee";
+  const getDeliveryZoneInfo = () => {
+    if (deliveryFee === 0) return "Kisumu CBD - Free Delivery";
+    if (deliveryFee === 100) return "Kisumu Town - KSh 100";
+    return "Other Regions - KSh 300";
   };
 
   if (loading) {
@@ -403,27 +398,43 @@ const Checkout = () => {
                     disabled={paymentInProgress}
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Include detailed address for accurate delivery
+                  </p>
                 </div>
                 
                 <div>
-                  <Label htmlFor="deliveryLocation" className="text-pink-700 font-medium">Where should we deliver your order? (Be specific) *</Label>
+                  <Label htmlFor="city" className="text-pink-700 font-medium">City/Town *</Label>
                   <Input
-                    id="deliveryLocation"
-                    value={customerInfo.deliveryLocation}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, deliveryLocation: e.target.value })}
-                    placeholder="e.g., Kisumu CBD, Kisumu Kondele, Nairobi Westlands, Mombasa..."
+                    id="city"
+                    value={customerInfo.city}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, city: e.target.value })}
+                    placeholder="Kisumu, Nairobi, Mombasa, etc."
+                    required
+                    disabled={paymentInProgress}
+                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="exactLocation" className="text-pink-700 font-medium">Exact Location *</Label>
+                  <Input
+                    id="exactLocation"
+                    value={customerInfo.exactLocation}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, exactLocation: e.target.value })}
+                    placeholder="CBD, town center, specific area/landmark"
                     required
                     disabled={paymentInProgress}
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Include "Kisumu CBD" for free delivery, or be specific about your location for accurate delivery fee calculation
+                    Be specific (e.g., "CBD", "town center", or exact area) for accurate delivery fee calculation
                   </p>
                 </div>
 
-                {customerInfo.deliveryLocation && (
+                {customerInfo.city && customerInfo.exactLocation && (
                   <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-700 font-medium">{getDeliveryInfo()}</p>
+                    <p className="text-sm text-blue-700 font-medium">📍 Delivery Zone: {getDeliveryZoneInfo()}</p>
                   </div>
                 )}
 
@@ -495,9 +506,9 @@ const Checkout = () => {
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <h4 className="font-medium mb-2 text-purple-700">🚚 Delivery Info</h4>
                 <div className="text-sm text-purple-600 space-y-1">
-                  <p>• Free delivery for Kisumu CBD</p>
-                  <p>• KSh 100 for other locations in Kisumu</p>
-                  <p>• KSh 300 for all other regions in Kenya</p>
+                  <p>• Free delivery within Kisumu CBD</p>
+                  <p>• KES 100 for other locations in Kisumu town</p>
+                  <p>• KES 300 to all other regions in Kenya</p>
                   <p className="mt-2">You will receive a confirmation call after successful payment.</p>
                 </div>
               </div>

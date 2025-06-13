@@ -42,7 +42,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   return (
     <div 
-      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1 h-full"
+      className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
       onClick={() => navigate(`/product/${product.id}`)}
     >
       <div className="aspect-square bg-gray-100 flex items-center justify-center relative overflow-hidden">
@@ -53,49 +53,51 @@ const ProductCard = ({ product }: ProductCardProps) => {
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="text-gray-400 text-2xl">📷</div>
+          <div className="text-gray-400 text-4xl md:text-6xl">📷</div>
         )}
         <Button
           variant="ghost"
           size="sm"
           onClick={handleWishlistToggle}
-          className={`absolute top-1 right-1 p-1.5 h-7 w-7 rounded-full bg-white/80 hover:bg-white ${
+          className={`absolute top-2 right-2 p-2 rounded-full bg-white/80 hover:bg-white ${
             isInWishlist(product.id) ? 'text-red-500' : 'text-gray-500'
           }`}
         >
-          <Heart className={`w-3 h-3 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+          <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
         </Button>
       </div>
       
-      <div className="p-2">
-        <h3 className="font-medium text-xs mb-1 line-clamp-2 leading-tight">{product.name}</h3>
+      <div className="p-4">
+        <h3 className="font-semibold text-lg mb-2 line-clamp-1">{product.name}</h3>
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
         
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-pink-600">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <span className="text-lg font-bold text-pink-600">
               KSh {product.price.toLocaleString()}
             </span>
             {product.previous_price && (
-              <span className="text-xs text-gray-500 line-through">
+              <span className="text-sm text-gray-500 line-through">
                 KSh {product.previous_price.toLocaleString()}
               </span>
             )}
           </div>
           {product.rating && (
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-sm text-gray-600">
               <span>⭐ {product.rating}</span>
+              <span className="ml-1">({product.review_count})</span>
             </div>
           )}
         </div>
         
         <Button 
           onClick={handleAddToCart}
-          className="w-full rounded-lg bg-pink-600 hover:bg-pink-700 h-7 text-xs" 
+          className="w-full rounded-full bg-pink-600 hover:bg-pink-700" 
           size="sm"
           disabled={!product.in_stock}
         >
-          <ShoppingCart className="w-3 h-3 mr-1" />
-          {product.in_stock ? "Add" : "Out of Stock"}
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          {product.in_stock ? "Add to Cart" : "Out of Stock"}
         </Button>
       </div>
     </div>
