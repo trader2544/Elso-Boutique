@@ -15,6 +15,8 @@ const Checkout = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [paymentInProgress, setPaymentInProgress] = useState(false);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -46,6 +48,58 @@ const Checkout = () => {
   useEffect(() => {
     calculateDeliveryFee();
   }, [customerInfo.city, customerInfo.exactLocation]);
+
+  // M-Pesa realtime listener for transaction status
+  useEffect(() => {
+    if (!currentOrderId) return;
+
+    console.log("Setting up realtime listener for order:", currentOrderId);
+    
+    const channel = supabase
+      .channel('order-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${currentOrderId}`,
+        },
+        (payload) => {
+          console.log('Order update received:', payload);
+          const updatedOrder = payload.new;
+          
+          if (updatedOrder.status === 'paid') {
+            setPaymentInProgress(false);
+            setProcessing(false);
+            toast({
+              title: "Payment Successful! 🎉",
+              description: "Your order has been confirmed. Redirecting to order history...",
+            });
+            
+            // Clear cart and redirect to profile
+            setTimeout(() => {
+              navigate("/profile");
+            }, 2000);
+          } else if (updatedOrder.status === 'cancelled') {
+            setPaymentInProgress(false);
+            setProcessing(false);
+            setCurrentOrderId(null);
+            toast({
+              title: "Payment Failed",
+              description: "Your payment was not successful. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log("Cleaning up realtime listener");
+      supabase.removeChannel(channel);
+    };
+  }, [currentOrderId, navigate, toast]);
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -107,7 +161,7 @@ const Checkout = () => {
 
       const deliveryLocation = `${customerInfo.address}, ${customerInfo.exactLocation}, ${customerInfo.city}`;
 
-      // Create order first
+      // Create order first - only set to pending, not paid yet
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -123,6 +177,10 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
+      console.log("Order created:", orderData);
+      setCurrentOrderId(orderData.id);
+      setPaymentInProgress(true);
+
       // Trigger STK Push
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
         body: {
@@ -135,37 +193,73 @@ const Checkout = () => {
       if (stkError) throw stkError;
 
       if (stkResponse.success) {
-        // Clear cart after successful STK push
+        toast({
+          title: "Payment Request Sent! 📱",
+          description: "Please check your phone for M-Pesa payment prompt and complete the payment.",
+        });
+
+        // Clear cart only after successful STK initiation
         const { error: clearCartError } = await supabase
           .from("cart_items")
           .delete()
           .eq("user_id", user!.id);
 
-        if (clearCartError) throw clearCartError;
-
-        await refreshCart();
-
-        toast({
-          title: "Payment Request Sent!",
-          description: "Please check your phone for M-Pesa payment prompt and complete the payment.",
-        });
-
-        // Redirect to profile after a short delay
-        setTimeout(() => {
-          navigate("/profile");
-        }, 3000);
+        if (clearCartError) {
+          console.error("Error clearing cart:", clearCartError);
+        } else {
+          await refreshCart();
+        }
       } else {
         throw new Error("Failed to initiate payment");
       }
     } catch (error: any) {
       console.error("Error processing order:", error);
+      setProcessing(false);
+      setPaymentInProgress(false);
+      setCurrentOrderId(null);
       toast({
         title: "Error",
         description: error.message || "Failed to process order",
         variant: "destructive",
       });
-    } finally {
+    }
+  };
+
+  const handleRetryPayment = async () => {
+    if (!currentOrderId) return;
+
+    setProcessing(true);
+    setPaymentInProgress(true);
+
+    try {
+      // Trigger STK Push again for the same order
+      const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
+        body: {
+          amount: getFinalTotal(),
+          phoneNumber: customerInfo.phone,
+          orderId: currentOrderId,
+        },
+      });
+
+      if (stkError) throw stkError;
+
+      if (stkResponse.success) {
+        toast({
+          title: "Payment Request Sent Again! 📱",
+          description: "Please check your phone for M-Pesa payment prompt and complete the payment.",
+        });
+      } else {
+        throw new Error("Failed to retry payment");
+      }
+    } catch (error: any) {
+      console.error("Error retrying payment:", error);
       setProcessing(false);
+      setPaymentInProgress(false);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to retry payment",
+        variant: "destructive",
+      });
     }
   };
 
@@ -210,7 +304,7 @@ const Checkout = () => {
     );
   }
 
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 && !paymentInProgress) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-lg border-pink-200">
@@ -235,6 +329,7 @@ const Checkout = () => {
           variant="ghost"
           onClick={() => navigate("/cart")}
           className="mb-6 hover:bg-pink-100"
+          disabled={paymentInProgress}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Cart
@@ -243,6 +338,30 @@ const Checkout = () => {
         <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
           Checkout
         </h1>
+
+        {paymentInProgress && (
+          <Card className="mb-6 shadow-lg border-yellow-200 bg-yellow-50">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                <div>
+                  <p className="font-medium text-yellow-800">Payment in Progress</p>
+                  <p className="text-sm text-yellow-700">
+                    Waiting for M-Pesa payment confirmation. Please complete the payment on your phone.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleRetryPayment}
+                disabled={processing}
+                className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
+                size="sm"
+              >
+                {processing ? "Retrying..." : "Retry Payment"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
           <Card className="shadow-lg border-pink-200">
@@ -260,6 +379,7 @@ const Checkout = () => {
                     onChange={handlePhoneChange}
                     placeholder="+254700000000"
                     required
+                    disabled={paymentInProgress}
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
                   <p className="text-sm text-pink-600 mt-1">
@@ -275,6 +395,7 @@ const Checkout = () => {
                     onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
                     placeholder="Street address, building, apartment number"
                     required
+                    disabled={paymentInProgress}
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -290,6 +411,7 @@ const Checkout = () => {
                     onChange={(e) => setCustomerInfo({ ...customerInfo, city: e.target.value })}
                     placeholder="Kisumu, Nairobi, Mombasa, etc."
                     required
+                    disabled={paymentInProgress}
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
                 </div>
@@ -302,6 +424,7 @@ const Checkout = () => {
                     onChange={(e) => setCustomerInfo({ ...customerInfo, exactLocation: e.target.value })}
                     placeholder="CBD, town center, specific area/landmark"
                     required
+                    disabled={paymentInProgress}
                     className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -315,20 +438,22 @@ const Checkout = () => {
                   </div>
                 )}
 
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md py-3"
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <>
-                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processing Payment...
-                    </>
-                  ) : (
-                    "💳 Pay with M-Pesa"
-                  )}
-                </Button>
+                {!paymentInProgress && (
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md py-3"
+                    disabled={processing}
+                  >
+                    {processing ? (
+                      <>
+                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing Payment...
+                      </>
+                    ) : (
+                      "💳 Pay with M-Pesa"
+                    )}
+                  </Button>
+                )}
               </form>
             </CardContent>
           </Card>
