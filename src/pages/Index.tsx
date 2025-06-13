@@ -8,6 +8,7 @@ import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
 import MobileProductCard from "@/components/MobileProductCard";
+import FloatingBackground from "@/components/FloatingBackground";
 import { useCart } from "@/hooks/useCart";
 
 interface Product {
