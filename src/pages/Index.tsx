@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/integrations/supabase/types";
 import ProductCard from "@/components/ProductCard";
 import MobileProductCard from "@/components/MobileProductCard";
 import SearchBar from "@/components/SearchBar";
@@ -9,6 +8,20 @@ import HeroSection from "@/components/HeroSection";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  previous_price: number | null;
+  category: string;
+  image_url: string | null;
+  rating: number | null;
+  review_count: number | null;
+  in_stock: boolean;
+  created_at: string;
+}
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -127,7 +140,7 @@ const Index = () => {
             <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
             {filteredProducts.map((product) =>
               isMobile ? (
                 <MobileProductCard key={product.id} product={product} />

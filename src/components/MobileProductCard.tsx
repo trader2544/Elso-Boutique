@@ -6,7 +6,6 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
-import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -30,7 +29,6 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const { toast } = useToast();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -57,7 +55,7 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
 
   return (
     <Card 
-      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full"
+      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full"
       onClick={handleCardClick}
     >
       <div className="aspect-square bg-gray-200 relative">
@@ -68,7 +66,7 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">
             📷
           </div>
         )}
@@ -76,24 +74,24 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
           variant="ghost"
           size="sm"
           onClick={handleWishlistToggle}
-          className={`absolute top-2 right-2 p-1 h-8 w-8 ${
+          className={`absolute top-1 right-1 p-1 h-6 w-6 ${
             isInWishlist(product.id) 
               ? "text-red-500 bg-white/80" 
               : "text-gray-500 bg-white/80"
           } hover:bg-white`}
         >
-          <Heart className="w-4 h-4" fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+          <Heart className="w-3 h-3" fill={isInWishlist(product.id) ? "currentColor" : "none"} />
         </Button>
       </div>
       
-      <CardContent className="p-3">
-        <h3 className="font-semibold text-sm mb-1 line-clamp-2 leading-tight">
+      <CardContent className="p-2">
+        <h3 className="font-medium text-xs mb-1 line-clamp-2 leading-tight">
           {product.name}
         </h3>
         
         <div className="flex items-center justify-between mb-2">
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-pink-600">
+            <span className="text-xs font-bold text-pink-600">
               KSh {product.price.toLocaleString()}
             </span>
             {product.previous_price && (
@@ -111,12 +109,12 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
         
         <Button
           onClick={handleAddToCart}
-          className="w-full h-8 text-xs"
+          className="w-full h-6 text-xs"
           size="sm"
           disabled={!product.in_stock || isAddingToCart}
         >
           <ShoppingCart className="w-3 h-3 mr-1" />
-          {isAddingToCart ? "Adding..." : product.in_stock ? "Add to Cart" : "Out of Stock"}
+          {isAddingToCart ? "Adding..." : product.in_stock ? "Add" : "Out of Stock"}
         </Button>
       </CardContent>
     </Card>
