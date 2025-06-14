@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -187,57 +186,57 @@ const AdminProducts = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-xl md:text-2xl font-bold text-pink-700">Product Management</h2>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-lg sm:text-xl font-bold text-pink-700">Product Management</h2>
         <Button
           onClick={() => setIsAddingProduct(true)}
-          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 w-full sm:w-auto"
+          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 w-full sm:w-auto text-sm h-9"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3 h-3 mr-1" />
           Add Product
         </Button>
       </div>
 
       {/* Add Product Form */}
       {isAddingProduct && (
-        <Card className="shadow-lg border-pink-200">
-          <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+        <Card className="shadow-sm border-pink-200">
+          <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-pink-700">Add New Product</CardTitle>
+              <CardTitle className="text-pink-700 text-base">Add New Product</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsAddingProduct(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 h-8 w-8 p-0"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <form onSubmit={addProduct} className="space-y-4">
+          <CardContent className="pt-3">
+            <form onSubmit={addProduct} className="space-y-3">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <Label htmlFor="name" className="text-pink-700">Product Name</Label>
+                    <Label htmlFor="name" className="text-pink-700 text-sm">Product Name</Label>
                     <Input
                       id="name"
                       value={newProduct.name}
                       onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                       required
-                      className="border-pink-200 focus:border-pink-400"
+                      className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="category" className="text-pink-700">Category</Label>
+                    <Label htmlFor="category" className="text-pink-700 text-sm">Category</Label>
                     <Input
                       id="category"
                       value={newProduct.category}
                       onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                       list="categories"
                       required
-                      className="border-pink-200 focus:border-pink-400"
+                      className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                     />
                     <datalist id="categories">
                       {categories.map((cat) => (
@@ -245,9 +244,9 @@ const AdminProducts = () => {
                       ))}
                     </datalist>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="price" className="text-pink-700">Price (KSh)</Label>
+                      <Label htmlFor="price" className="text-pink-700 text-sm">Price (KSh)</Label>
                       <Input
                         id="price"
                         type="number"
@@ -255,35 +254,35 @@ const AdminProducts = () => {
                         value={newProduct.price}
                         onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
                         required
-                        className="border-pink-200 focus:border-pink-400"
+                        className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="previous_price" className="text-pink-700">Previous Price (KSh)</Label>
+                      <Label htmlFor="previous_price" className="text-pink-700 text-sm">Previous Price (KSh)</Label>
                       <Input
                         id="previous_price"
                         type="number"
                         step="0.01"
                         value={newProduct.previous_price}
                         onChange={(e) => setNewProduct({ ...newProduct, previous_price: e.target.value })}
-                        className="border-pink-200 focus:border-pink-400"
+                        className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="description" className="text-pink-700">Description</Label>
+                    <Label htmlFor="description" className="text-pink-700 text-sm">Description</Label>
                     <Textarea
                       id="description"
                       value={newProduct.description}
                       onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                       required
                       rows={3}
-                      className="border-pink-200 focus:border-pink-400"
+                      className="border-pink-200 focus:border-pink-400 text-sm mt-1"
                     />
                   </div>
                 </div>
                 <div>
-                  <Label className="text-pink-700">Product Image</Label>
+                  <Label className="text-pink-700 text-sm">Product Image</Label>
                   <ImageUpload
                     onImageUploaded={(url) => setNewProduct({ ...newProduct, image_url: url })}
                     currentImage={newProduct.image_url}
@@ -294,16 +293,16 @@ const AdminProducts = () => {
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 flex-1 sm:flex-none"
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 flex-1 sm:flex-none text-sm h-9"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3 h-3 mr-1" />
                   Add Product
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsAddingProduct(false)}
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 sm:flex-none text-sm h-9"
                 >
                   Cancel
                 </Button>
@@ -314,41 +313,41 @@ const AdminProducts = () => {
       )}
 
       {/* Products Grid */}
-      <Card className="shadow-lg border-pink-200">
-        <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
-          <CardTitle className="text-pink-700">Products ({products.length})</CardTitle>
+      <Card className="shadow-sm border-pink-200">
+        <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 pb-3">
+          <CardTitle className="text-pink-700 text-base">Products ({products.length})</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 md:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <CardContent className="pt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {products.map((product) => (
               <div key={product.id} className="border border-pink-200 rounded-lg p-3 hover:shadow-md transition-shadow">
                 {editingProduct?.id === product.id ? (
                   // Edit Mode
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <ImageUpload
                       onImageUploaded={(url) => setEditingProduct({ ...editingProduct, image_url: url })}
                       currentImage={editingProduct.image_url}
-                      className="mb-3"
+                      className="mb-2"
                     />
                     <Input
                       value={editingProduct.name}
                       onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                      className="text-sm"
+                      className="text-xs h-8"
                       placeholder="Product name"
                     />
                     <Input
                       value={editingProduct.category}
                       onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
-                      className="text-sm"
+                      className="text-xs h-8"
                       placeholder="Category"
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1">
                       <Input
                         type="number"
                         step="0.01"
                         value={editingProduct.price}
                         onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) || 0 })}
-                        className="text-sm"
+                        className="text-xs h-8"
                         placeholder="Price"
                       />
                       <Input
@@ -356,22 +355,22 @@ const AdminProducts = () => {
                         step="0.01"
                         value={editingProduct.previous_price || ''}
                         onChange={(e) => setEditingProduct({ ...editingProduct, previous_price: e.target.value ? parseFloat(e.target.value) : null })}
-                        className="text-sm"
+                        className="text-xs h-8"
                         placeholder="Previous price"
                       />
                     </div>
                     <Textarea
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                      className="text-sm"
+                      className="text-xs"
                       rows={2}
                       placeholder="Description"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button
                         onClick={updateProduct}
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700 flex-1"
+                        className="bg-green-600 hover:bg-green-700 flex-1 text-xs h-8"
                       >
                         <Save className="w-3 h-3 mr-1" />
                         Save
@@ -380,7 +379,7 @@ const AdminProducts = () => {
                         onClick={() => setEditingProduct(null)}
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 text-xs h-8"
                       >
                         <X className="w-3 h-3 mr-1" />
                         Cancel
@@ -390,7 +389,7 @@ const AdminProducts = () => {
                 ) : (
                   // View Mode
                   <div>
-                    <div className="w-full h-32 mb-3 rounded-lg overflow-hidden bg-pink-50">
+                    <div className="w-full h-24 mb-2 rounded-lg overflow-hidden bg-pink-50">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -403,12 +402,12 @@ const AdminProducts = () => {
                         </div>
                       )}
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1 text-sm line-clamp-2">{product.name}</h3>
+                    <h3 className="font-medium text-gray-900 mb-1 text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-pink-600 mb-1">{product.category}</p>
-                    <p className="text-sm font-medium text-pink-600 mb-2">
+                    <p className="text-xs font-medium text-pink-600 mb-2">
                       KSh {product.price.toLocaleString()}
                       {product.previous_price && (
-                        <span className="ml-2 text-xs text-gray-400 line-through">
+                        <span className="ml-1 text-xs text-gray-400 line-through">
                           KSh {product.previous_price.toLocaleString()}
                         </span>
                       )}
@@ -418,7 +417,7 @@ const AdminProducts = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setEditingProduct(product)}
-                        className="flex-1 text-xs py-1"
+                        className="flex-1 text-xs h-7 py-1"
                       >
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
@@ -427,7 +426,7 @@ const AdminProducts = () => {
                         variant="destructive"
                         size="sm"
                         onClick={() => deleteProduct(product.id)}
-                        className="px-2"
+                        className="px-2 h-7"
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
@@ -439,8 +438,8 @@ const AdminProducts = () => {
           </div>
           
           {products.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No products found. Add your first product to get started!</p>
+            <div className="text-center py-6">
+              <p className="text-gray-500 text-sm">No products found. Add your first product to get started!</p>
             </div>
           )}
         </CardContent>

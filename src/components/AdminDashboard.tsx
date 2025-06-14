@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +37,6 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      // Fetch total sales and orders with customer details
       const { data: ordersData } = await supabase
         .from("orders")
         .select(`
@@ -57,12 +55,10 @@ const AdminDashboard = () => {
         `)
         .order("created_at", { ascending: false });
 
-      // Fetch total users
       const { data: usersData } = await supabase
         .from("profiles")
         .select("id");
 
-      // Fetch total products
       const { data: productsData } = await supabase
         .from("products")
         .select("id");
@@ -75,7 +71,6 @@ const AdminDashboard = () => {
       const totalProducts = productsData?.length || 0;
       const recentOrders = ordersData?.slice(0, 5) || [];
 
-      // Calculate sales by status
       const salesByStatus = {
         paid: ordersData?.filter(o => o.status === 'paid').length || 0,
         pending: ordersData?.filter(o => o.status === 'pending').length || 0,
@@ -137,8 +132,8 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+      <div className="flex items-center justify-center py-6">
+        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
       </div>
     );
   }
@@ -146,16 +141,16 @@ const AdminDashboard = () => {
   const conversionRate = stats.totalOrders > 0 ? (stats.salesByStatus.paid / stats.totalOrders * 100).toFixed(1) : "0";
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card className="border-pink-200 shadow-lg">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="border-pink-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-pink-700">Total Sales</CardTitle>
-            <DollarSign className="h-4 w-4 text-pink-600" />
+            <CardTitle className="text-xs font-medium text-pink-700">Total Sales</CardTitle>
+            <DollarSign className="h-3 w-3 text-pink-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-pink-600">
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-pink-600">
               KSh {stats.totalSales.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -164,39 +159,39 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200 shadow-lg">
+        <Card className="border-purple-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700">Total Orders</CardTitle>
-            <ShoppingBag className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-xs font-medium text-purple-700">Total Orders</CardTitle>
+            <ShoppingBag className="h-3 w-3 text-purple-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-purple-600">{stats.totalOrders}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-purple-600">{stats.totalOrders}</div>
             <p className="text-xs text-muted-foreground">
               {stats.salesByStatus.pending} pending
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-pink-200 shadow-lg">
+        <Card className="border-pink-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-pink-700">Customers</CardTitle>
-            <Users className="h-4 w-4 text-pink-600" />
+            <CardTitle className="text-xs font-medium text-pink-700">Customers</CardTitle>
+            <Users className="h-3 w-3 text-pink-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-pink-600">{stats.totalUsers}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-pink-600">{stats.totalUsers}</div>
             <p className="text-xs text-muted-foreground">
               Registered users
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 shadow-lg">
+        <Card className="border-green-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700">Conversion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-xs font-medium text-green-700">Conversion Rate</CardTitle>
+            <TrendingUp className="h-3 w-3 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-green-600">{conversionRate}%</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-green-600">{conversionRate}%</div>
             <p className="text-xs text-muted-foreground">
               Orders to payments
             </p>
@@ -205,35 +200,35 @@ const AdminDashboard = () => {
       </div>
 
       {/* Order Search */}
-      <Card className="shadow-lg border-pink-200">
-        <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-          <CardTitle className="text-pink-700">Search Order by ID</CardTitle>
+      <Card className="shadow-sm border-pink-200">
+        <CardHeader className="bg-gradient-to-r from-pink-50 to-white pb-3">
+          <CardTitle className="text-pink-700 text-base">Search Order by ID</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 md:p-6">
-          <div className="flex gap-2 mb-4">
+        <CardContent className="pt-3">
+          <div className="flex gap-2 mb-3">
             <Input
               placeholder="Enter order ID..."
               value={searchOrderId}
               onChange={(e) => setSearchOrderId(e.target.value)}
-              className="flex-1"
+              className="flex-1 h-9 text-sm"
               onKeyPress={(e) => e.key === 'Enter' && searchOrderById()}
             />
             <button
               onClick={searchOrderById}
               disabled={searching || !searchOrderId.trim()}
-              className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:bg-gray-300 flex items-center gap-2"
+              className="px-3 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:bg-gray-300 flex items-center gap-1 text-sm h-9"
             >
               {searching ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
               ) : (
-                <Search className="h-4 w-4" />
+                <Search className="h-3 w-3" />
               )}
               Search
             </button>
             {searchedOrder && (
               <button
                 onClick={clearSearch}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                className="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm h-9"
               >
                 Clear
               </button>
@@ -241,11 +236,11 @@ const AdminDashboard = () => {
           </div>
 
           {searchedOrder && (
-            <div className="bg-white rounded-lg border border-pink-200 p-4 space-y-4">
+            <div className="bg-white rounded-lg border border-pink-200 p-3 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-lg">Order #{searchedOrder.id.slice(-8)}</p>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                  <p className="font-medium text-gray-900 text-sm">Order #{searchedOrder.id.slice(-8)}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span>{new Date(searchedOrder.created_at).toLocaleDateString()}</span>
                     <span>• KSh {Number(searchedOrder.total_price).toLocaleString()}</span>
                     <span className={`inline-block px-2 py-1 text-xs rounded-full ${
@@ -263,9 +258,9 @@ const AdminDashboard = () => {
 
               {/* Customer Details */}
               {searchedOrder.profiles && (
-                <div className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-lg border border-blue-100">
-                  <h5 className="text-sm font-medium text-blue-700 mb-3">👤 Customer Details</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-lg border border-blue-100">
+                  <h5 className="text-xs font-medium text-blue-700 mb-2">👤 Customer Details</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className="text-gray-600 font-medium">Name: </span>
                       <span className="text-gray-900">{searchedOrder.profiles.full_name || 'N/A'}</span>
@@ -290,16 +285,16 @@ const AdminDashboard = () => {
 
               {/* Products List */}
               {searchedOrder.products && Array.isArray(searchedOrder.products) && (
-                <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-lg border border-purple-100">
-                  <h5 className="text-sm font-medium text-purple-700 mb-3">📦 Products ({searchedOrder.products.length})</h5>
-                  <div className="space-y-2">
+                <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-lg border border-purple-100">
+                  <h5 className="text-xs font-medium text-purple-700 mb-2">📦 Products ({searchedOrder.products.length})</h5>
+                  <div className="space-y-1">
                     {searchedOrder.products.map((product: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center text-sm bg-white p-2 rounded border">
-                        <span className="text-gray-700 flex-1">
+                      <div key={index} className="flex justify-between items-center text-xs bg-white p-2 rounded border">
+                        <span className="text-gray-700 flex-1 truncate mr-2">
                           {product.name} 
                           <span className="text-purple-600 ml-1">×{product.quantity}</span>
                         </span>
-                        <span className="text-purple-600 font-medium">
+                        <span className="text-purple-600 font-medium shrink-0">
                           KSh {(product.price * product.quantity).toLocaleString()}
                         </span>
                       </div>
@@ -311,31 +306,31 @@ const AdminDashboard = () => {
           )}
 
           {searchOrderId && !searchedOrder && !searching && (
-            <div className="text-center py-4">
-              <p className="text-gray-500">No order found with that ID</p>
+            <div className="text-center py-3">
+              <p className="text-gray-500 text-sm">No order found with that ID</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Recent Orders and Quick Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Orders */}
-        <Card className="lg:col-span-2 shadow-lg border-pink-200">
-          <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-            <CardTitle className="text-pink-700">Recent Orders</CardTitle>
+        <Card className="lg:col-span-2 shadow-sm border-pink-200">
+          <CardHeader className="bg-gradient-to-r from-pink-50 to-white pb-3">
+            <CardTitle className="text-pink-700 text-base">Recent Orders</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <div className="space-y-4">
+          <CardContent className="pt-3">
+            <div className="space-y-3">
               {stats.recentOrders.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No orders yet</p>
+                <p className="text-gray-500 text-center py-3 text-sm">No orders yet</p>
               ) : (
                 stats.recentOrders.map((order) => (
-                  <div key={order.id} className="bg-white rounded-lg border border-pink-100 p-4 space-y-3">
+                  <div key={order.id} className="bg-white rounded-lg border border-pink-100 p-3 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">Order #{order.id.slice(-8)}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        <p className="font-medium text-gray-900 text-xs">Order #{order.id.slice(-8)}</p>
+                        <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
                           <span>{new Date(order.created_at).toLocaleDateString()}</span>
                           <span>• KSh {Number(order.total_price).toLocaleString()}</span>
                         </div>
@@ -353,8 +348,8 @@ const AdminDashboard = () => {
 
                     {/* Customer Details */}
                     {order.profiles && (
-                      <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-lg border border-blue-100">
-                        <h5 className="text-xs font-medium text-blue-700 mb-2">👤 Customer Details</h5>
+                      <div className="bg-gradient-to-r from-blue-50 to-white p-2 rounded-lg border border-blue-100">
+                        <h5 className="text-xs font-medium text-blue-700 mb-1">👤 Customer Details</h5>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
                           <div>
                             <span className="text-gray-600">Name: </span>
@@ -362,7 +357,7 @@ const AdminDashboard = () => {
                           </div>
                           <div>
                             <span className="text-gray-600">Email: </span>
-                            <span className="text-gray-900">{order.profiles.email}</span>
+                            <span className="text-gray-900 truncate">{order.profiles.email}</span>
                           </div>
                           <div className="sm:col-span-2">
                             <span className="text-gray-600">Phone: </span>
@@ -380,16 +375,16 @@ const AdminDashboard = () => {
 
                     {/* Products List */}
                     {order.products && Array.isArray(order.products) && (
-                      <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-lg border border-purple-100">
-                        <h5 className="text-xs font-medium text-purple-700 mb-2">📦 Products ({order.products.length})</h5>
+                      <div className="bg-gradient-to-r from-purple-50 to-white p-2 rounded-lg border border-purple-100">
+                        <h5 className="text-xs font-medium text-purple-700 mb-1">📦 Products ({order.products.length})</h5>
                         <div className="space-y-1">
                           {order.products.slice(0, 3).map((product: any, index: number) => (
                             <div key={index} className="flex justify-between items-center text-xs">
-                              <span className="text-gray-700 flex-1">
+                              <span className="text-gray-700 flex-1 truncate mr-2">
                                 {product.name} 
                                 <span className="text-purple-600 ml-1">×{product.quantity}</span>
                               </span>
-                              <span className="text-purple-600 font-medium">
+                              <span className="text-purple-600 font-medium shrink-0">
                                 KSh {(product.price * product.quantity).toLocaleString()}
                               </span>
                             </div>
@@ -408,38 +403,38 @@ const AdminDashboard = () => {
         </Card>
 
         {/* Order Status Breakdown */}
-        <Card className="shadow-lg border-pink-200">
-          <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-            <CardTitle className="text-pink-700">Order Status</CardTitle>
+        <Card className="shadow-sm border-pink-200">
+          <CardHeader className="bg-gradient-to-r from-pink-50 to-white pb-3">
+            <CardTitle className="text-pink-700 text-base">Order Status</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <div className="space-y-4">
+          <CardContent className="pt-3">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                   <span className="text-sm">Paid</span>
                 </div>
-                <span className="font-medium">{stats.salesByStatus.paid}</span>
+                <span className="font-medium text-sm">{stats.salesByStatus.paid}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
                   <span className="text-sm">Pending</span>
                 </div>
-                <span className="font-medium">{stats.salesByStatus.pending}</span>
+                <span className="font-medium text-sm">{stats.salesByStatus.pending}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
                   <span className="text-sm">Cancelled</span>
                 </div>
-                <span className="font-medium">{stats.salesByStatus.cancelled}</span>
+                <span className="font-medium text-sm">{stats.salesByStatus.cancelled}</span>
               </div>
               
-              <div className="pt-4 border-t">
+              <div className="pt-3 border-t">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Total Products</span>
-                  <span className="font-bold text-pink-600">{stats.totalProducts}</span>
+                  <span className="font-bold text-pink-600 text-sm">{stats.totalProducts}</span>
                 </div>
               </div>
             </div>

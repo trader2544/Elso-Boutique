@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -72,7 +71,6 @@ const Profile = () => {
 
       if (error) {
         console.error("Profile fetch error:", error);
-        // If profile doesn't exist, create it
         if (error.code === 'PGRST116') {
           console.log("Profile not found, creating new profile");
           const { error: insertError } = await supabase
@@ -90,7 +88,6 @@ const Profile = () => {
             throw insertError;
           }
           
-          // Set default profile data
           setProfile({
             full_name: "",
             phone: "",
@@ -141,7 +138,6 @@ const Profile = () => {
       setOrders(formattedOrders);
     } catch (error) {
       console.error("Error in fetchOrders:", error);
-      // Don't show error toast for orders as it's not critical
     }
   };
 
@@ -191,21 +187,21 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Sign In Required</CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Sign In Required</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">Please sign in to view your profile.</p>
-            <Button onClick={() => navigate("/auth")} className="w-full">
+          <CardContent className="pt-0">
+            <p className="text-sm text-gray-600 mb-4">Please sign in to view your profile.</p>
+            <Button onClick={() => navigate("/auth")} className="w-full text-sm">
               Sign In
             </Button>
           </CardContent>
@@ -216,67 +212,69 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-6xl">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className="mb-6"
+          className="mb-4 text-sm h-8 px-2"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-3 h-3 mr-1" />
           Back to Home
         </Button>
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">My Profile</h1>
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">My Profile</h1>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsTrigger value="profile" className="text-sm">Profile</TabsTrigger>
+            <TabsTrigger value="orders" className="text-sm">Orders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
+            <Card className="shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Personal Information</CardTitle>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={updateProfile} className="space-y-4">
+              <CardContent className="pt-0">
+                <form onSubmit={updateProfile} className="space-y-3">
                   <div>
-                    <Label htmlFor="fullName">Full Name</Label>
+                    <Label htmlFor="fullName" className="text-sm">Full Name</Label>
                     <Input
                       id="fullName"
                       value={profile.full_name}
                       onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                       placeholder="Enter your full name"
+                      className="mt-1 h-9 text-sm"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-sm">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={profile.email}
                       disabled
-                      className="bg-gray-50"
+                      className="mt-1 h-9 text-sm bg-gray-50"
                     />
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       Email cannot be changed from here
                     </p>
                   </div>
                   
                   <div>
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-sm">Phone Number</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={profile.phone}
                       onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                       placeholder="Enter your phone number"
+                      className="mt-1 h-9 text-sm"
                     />
                   </div>
 
-                  <Button type="submit" disabled={updating}>
+                  <Button type="submit" disabled={updating} className="text-sm h-9 px-4">
                     {updating ? "Updating..." : "Update Profile"}
                   </Button>
                 </form>
@@ -285,45 +283,47 @@ const Profile = () => {
           </TabsContent>
 
           <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order History</CardTitle>
+            <Card className="shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Order History</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 {orders.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">No orders yet</p>
-                    <Button onClick={() => navigate("/")}>
+                  <div className="text-center py-6">
+                    <p className="text-sm text-gray-600 mb-3">No orders yet</p>
+                    <Button onClick={() => navigate("/")} className="text-sm h-9">
                       Start Shopping
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {orders.map((order) => (
-                      <div key={order.id} className="border rounded-lg p-4">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between mb-4">
-                          <div>
-                            <p className="font-semibold">Order #{order.id.slice(-8)}</p>
-                            <p className="text-sm text-gray-600">
+                      <div key={order.id} className="border rounded-lg p-3 bg-white">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-3 gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">Order #{order.id.slice(-8)}</p>
+                            <p className="text-xs text-gray-600">
                               {new Date(order.created_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <Badge className={getStatusColor(order.status)}>
+                          <Badge className={`${getStatusColor(order.status)} text-xs px-2 py-1 shrink-0`}>
                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                           </Badge>
                         </div>
                         
-                        <div className="space-y-2 mb-4">
+                        <div className="space-y-1 mb-3">
                           {order.products.map((product, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span>{product.name} x {product.quantity}</span>
-                              <span>KSh {(product.price * product.quantity).toLocaleString()}</span>
+                            <div key={index} className="flex justify-between text-xs">
+                              <span className="truncate mr-2">{product.name} x {product.quantity}</span>
+                              <span className="text-pink-600 font-medium shrink-0">
+                                KSh {(product.price * product.quantity).toLocaleString()}
+                              </span>
                             </div>
                           ))}
                         </div>
                         
                         <div className="border-t pt-2">
-                          <div className="flex justify-between font-semibold">
+                          <div className="flex justify-between text-sm font-medium">
                             <span>Total:</span>
                             <span className="text-pink-600">
                               KSh {order.total_price.toLocaleString()}
