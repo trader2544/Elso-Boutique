@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,65 @@ const Admin = () => {
       }
     });
   }, [navigate]);
+
+  // Add real-time subscription for all order updates
+  useEffect(() => {
+    if (userRole !== "admin") return;
+
+    console.log("Setting up admin real-time subscription for all orders");
+    const channel = supabase
+      .channel('admin-order-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('Admin real-time order update received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newOrder = {
+              ...payload.new,
+              products: convertJsonToOrderProducts(payload.new.products)
+            } as Order;
+            
+            setOrders(prevOrders => [newOrder, ...prevOrders]);
+            
+            toast({
+              title: "New Order Received",
+              description: `Order #${newOrder.id.slice(-8)} has been placed`,
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedOrder = {
+              ...payload.new,
+              products: convertJsonToOrderProducts(payload.new.products)
+            } as Order;
+            
+            setOrders(prevOrders => 
+              prevOrders.map(order => 
+                order.id === updatedOrder.id ? updatedOrder : order
+              )
+            );
+
+            // Show toast for automatic status updates (likely from M-Pesa)
+            if (payload.old.status !== payload.new.status && payload.new.status === 'paid') {
+              toast({
+                title: "Payment Confirmed",
+                description: `Order #${updatedOrder.id.slice(-8)} payment received via M-Pesa`,
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log("Cleaning up admin real-time subscription");
+      supabase.removeChannel(channel);
+    };
+  }, [userRole, toast]);
 
   const checkUserRole = async (userId: string) => {
     try {

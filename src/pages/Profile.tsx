@@ -60,6 +60,54 @@ const Profile = () => {
     initializeUser();
   }, [navigate, toast]);
 
+  // Add real-time subscription for order updates
+  useEffect(() => {
+    if (!user) return;
+
+    console.log("Setting up real-time subscription for orders");
+    const channel = supabase
+      .channel('order-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Real-time order update received:', payload);
+          
+          if (payload.eventType === 'UPDATE') {
+            const updatedOrder = {
+              ...payload.new,
+              products: convertJsonToOrderProducts(payload.new.products)
+            } as Order;
+            
+            setOrders(prevOrders => 
+              prevOrders.map(order => 
+                order.id === updatedOrder.id ? updatedOrder : order
+              )
+            );
+
+            // Show toast notification for status changes
+            if (payload.old.status !== payload.new.status) {
+              toast({
+                title: "Order Status Updated",
+                description: `Order #${updatedOrder.id.slice(-8)} is now ${updatedOrder.status}`,
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log("Cleaning up real-time subscription");
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
+
   const fetchProfile = async (currentUser: SupabaseUser) => {
     try {
       console.log("Fetching profile for user:", currentUser.id);

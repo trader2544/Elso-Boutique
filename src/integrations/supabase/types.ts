@@ -256,7 +256,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      sync_existing_mpesa_transactions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       order_status: "pending" | "paid" | "shipped" | "delivered" | "cancelled"
