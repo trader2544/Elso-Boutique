@@ -71,14 +71,14 @@ const Checkout = () => {
     return () => clearInterval(interval);
   }, [showPaymentPrompt, promptTimer, paymentStatus]);
 
-  // M-Pesa transaction listener
+  // Enhanced M-Pesa transaction listener with real-time updates
   useEffect(() => {
     if (!currentOrderId) return;
 
-    console.log("Setting up M-Pesa transaction listener for order:", currentOrderId);
+    console.log("Setting up real-time M-Pesa transaction listener for order:", currentOrderId);
     
     const channel = supabase
-      .channel('mpesa-transactions')
+      .channel('mpesa-realtime')
       .on(
         'postgres_changes',
         {
@@ -88,7 +88,7 @@ const Checkout = () => {
           filter: `order_id=eq.${currentOrderId}`,
         },
         async (payload) => {
-          console.log('M-Pesa transaction received:', payload);
+          console.log('Real-time M-Pesa transaction received:', payload);
           const transaction = payload.new;
           
           if (transaction.status === 'completed' || transaction.response_code === '0') {
@@ -109,14 +109,66 @@ const Checkout = () => {
 
             toast({
               title: "Payment Successful! 🎉",
-              description: "Your order has been confirmed.",
+              description: "Your order has been confirmed and is being processed.",
             });
             
-            // Clear cart and redirect after prompt disappears
+            // Clear cart and redirect after success display
             setTimeout(() => {
               navigate("/profile");
-            }, 2000);
+            }, 3000);
           } else {
+            // Payment failed
+            setPaymentStatus('failed');
+            setPaymentInProgress(false);
+            setProcessing(false);
+            setCurrentOrderId(null);
+            
+            toast({
+              title: "Payment Failed",
+              description: "Your payment was not successful. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mpesa_transactions',
+          filter: `order_id=eq.${currentOrderId}`,
+        },
+        async (payload) => {
+          console.log('Real-time M-Pesa transaction updated:', payload);
+          const transaction = payload.new;
+          
+          if (transaction.status === 'completed' || transaction.response_code === '0') {
+            // Payment successful
+            setPaymentStatus('success');
+            setPaymentInProgress(false);
+            setProcessing(false);
+            
+            // Update order status to paid
+            const { error: orderError } = await supabase
+              .from("orders")
+              .update({ status: 'paid', transaction_id: transaction.id })
+              .eq("id", currentOrderId);
+
+            if (orderError) {
+              console.error("Error updating order:", orderError);
+            }
+
+            toast({
+              title: "Payment Successful! 🎉",
+              description: "Your order has been confirmed and is being processed.",
+            });
+            
+            // Clear cart and redirect after success display
+            setTimeout(() => {
+              navigate("/profile");
+            }, 3000);
+          } else if (transaction.status === 'failed') {
             // Payment failed
             setPaymentStatus('failed');
             setPaymentInProgress(false);
@@ -134,7 +186,7 @@ const Checkout = () => {
       .subscribe();
 
     return () => {
-      console.log("Cleaning up M-Pesa transaction listener");
+      console.log("Cleaning up real-time M-Pesa transaction listener");
       supabase.removeChannel(channel);
     };
   }, [currentOrderId, navigate, toast]);
@@ -386,6 +438,7 @@ const Checkout = () => {
                   <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
                   <h3 className="text-xl font-bold text-green-700">Payment Successful!</h3>
                   <p className="text-gray-600">Your order has been confirmed and will be processed shortly.</p>
+                  <p className="text-sm text-gray-500">Redirecting to your profile...</p>
                 </div>
               ) : paymentStatus === 'failed' ? (
                 <div className="space-y-4">
@@ -407,6 +460,9 @@ const Checkout = () => {
                   <p className="text-gray-600">Please complete the M-Pesa payment on your phone.</p>
                   <div className="bg-pink-50 p-3 rounded-full">
                     <span className="text-pink-700 font-medium">Auto-close in {promptTimer}s</span>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-xl">
+                    <p className="text-blue-700 text-sm">✨ Live payment tracking enabled - you'll be notified instantly when payment is confirmed!</p>
                   </div>
                 </div>
               )}
@@ -589,7 +645,7 @@ const Checkout = () => {
               <div className="bg-gradient-to-r from-pink-50 to-white p-4 rounded-xl border border-pink-200">
                 <h4 className="font-medium mb-2 text-pink-700">💳 Payment Method</h4>
                 <p className="text-sm text-pink-600">
-                  M-Pesa STK Push. You will receive a payment prompt on your phone to complete the transaction.
+                  M-Pesa STK Push with live payment tracking. You will receive a payment prompt on your phone to complete the transaction.
                 </p>
               </div>
 
