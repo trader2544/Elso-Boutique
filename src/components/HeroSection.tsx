@@ -18,9 +18,9 @@ const HeroSection = () => {
       </div>
 
       <div className="container mx-auto px-4 relative z-10 h-full">
-        <div className="flex items-center justify-center h-full">
-          {/* Centered Content */}
-          <div className="text-center max-w-xl pb-12 md:pb-8">
+        <div className="flex items-center h-full">
+          {/* Left-aligned Content */}
+          <div className="text-left max-w-xl pb-12 md:pb-8">
             {/* Main Heading */}
             <div className="mb-3 md:mb-4">
               <h1 className="text-xl md:text-4xl lg:text-5xl font-bold mb-1 md:mb-2 leading-tight">
@@ -38,7 +38,7 @@ const HeroSection = () => {
             </div>
 
             {/* Subtitle */}
-            <p className="text-white/90 text-xs md:text-base lg:text-lg mb-3 md:mb-4 max-w-md mx-auto drop-shadow-md">
+            <p className="text-white/90 text-xs md:text-base lg:text-lg mb-3 md:mb-4 max-w-md drop-shadow-md">
               Curated Collections for the Modern Connoisseur
             </p>
 
