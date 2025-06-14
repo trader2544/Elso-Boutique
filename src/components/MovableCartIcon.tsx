@@ -5,7 +5,11 @@ import { Link } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 
 const MovableCartIcon = () => {
-  const [position, setPosition] = useState({ x: 50, y: 50 });
+  // Default position: right side, center vertically
+  const [position, setPosition] = useState({ 
+    x: typeof window !== 'undefined' ? window.innerWidth - 80 : 50, 
+    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 50 
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const dragRef = useRef<HTMLDivElement>(null);
