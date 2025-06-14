@@ -127,133 +127,83 @@ const Cart = () => {
             {/* Cart Items Card */}
             <div className="lg:col-span-8">
               <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-2xl overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-pink-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-3">
+                <CardHeader className="bg-gradient-to-r from-pink-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-4">
                   <CardTitle className="text-base font-bold flex items-center text-pink-600">
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     Cart Items ({cartItems.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-3 space-y-3">
+                <CardContent className="p-4 space-y-4">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3">
-                      <div className="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
-                        {/* Product Image */}
-                        <div className="w-full sm:w-16 h-16 bg-gradient-to-br from-pink-100/10 to-pink-50/10 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0">
-                          {item.products.image_url ? (
-                            <img
-                              src={item.products.image_url}
-                              alt={item.products.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-pink-300 text-lg">
-                              📷
-                            </div>
+                    <div key={item.id} className="flex items-center space-x-4 p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                      {/* Product Image */}
+                      <div className="w-12 h-12 bg-gradient-to-br from-pink-100/10 to-pink-50/10 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0">
+                        {item.products.image_url ? (
+                          <img
+                            src={item.products.image_url}
+                            alt={item.products.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-pink-300 text-sm">
+                            📷
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-pink-600 truncate">{item.products.name}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="text-sm font-bold text-pink-500">
+                            KSh {item.products.price.toLocaleString()}
+                          </span>
+                          {!item.products.in_stock && (
+                            <span className="bg-red-100/20 text-red-400 px-2 py-0.5 rounded-full text-xs font-medium backdrop-blur-xl">
+                              Out of stock
+                            </span>
                           )}
                         </div>
+                        <p className="text-xs text-pink-500 mt-1">Qty: {item.quantity}</p>
+                      </div>
 
-                        {/* Product Details */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-sm text-pink-600 mb-1 line-clamp-2">{item.products.name}</h3>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <span className="text-base font-bold text-pink-500">
-                              KSh {item.products.price.toLocaleString()}
-                            </span>
-                            {!item.products.in_stock && (
-                              <span className="bg-red-100/20 text-red-400 px-2 py-0.5 rounded-full text-xs font-medium backdrop-blur-xl">
-                                Out of stock
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Mobile Layout */}
-                          <div className="sm:hidden space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2 bg-white/5 backdrop-blur-xl rounded-lg p-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                  disabled={item.quantity <= 1 || isLoading}
-                                  className="h-6 w-6 rounded-md hover:bg-pink-100/20"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </Button>
-                                <span className="w-6 text-center font-semibold text-xs text-pink-600">{item.quantity}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  disabled={isLoading}
-                                  className="h-6 w-6 rounded-md hover:bg-pink-100/20"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </Button>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeFromCart(item.id)}
-                                disabled={isLoading}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-50/10 rounded-md p-1"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-base font-bold text-pink-600">
-                                KSh {(item.products.price * item.quantity).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
+                      {/* Quantity Controls & Price */}
+                      <div className="flex flex-col items-end space-y-2">
+                        <div className="flex items-center space-x-1 bg-white/5 backdrop-blur-xl rounded-lg p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || isLoading}
+                            className="h-6 w-6 rounded-md hover:bg-pink-100/20"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-6 text-center font-semibold text-xs text-pink-600">{item.quantity}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            disabled={isLoading}
+                            className="h-6 w-6 rounded-md hover:bg-pink-100/20"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
                         </div>
-
-                        {/* Desktop Layout */}
-                        <div className="hidden sm:flex items-center space-x-4">
-                          <div className="flex items-center space-x-2 bg-white/5 backdrop-blur-xl rounded-lg p-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              disabled={item.quantity <= 1 || isLoading}
-                              className="h-8 w-8 rounded-md hover:bg-pink-100/20"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                              className="w-12 text-center border-0 bg-transparent font-semibold text-xs text-pink-600"
-                              min="1"
-                              disabled={isLoading}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              disabled={isLoading}
-                              className="h-8 w-8 rounded-md hover:bg-pink-100/20"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-
-                          <div className="text-right min-w-[100px]">
-                            <p className="text-base font-bold text-pink-600 mb-1">
-                              KSh {(item.products.price * item.quantity).toLocaleString()}
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFromCart(item.id)}
-                              disabled={isLoading}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-50/10 rounded-md text-xs"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Remove
-                            </Button>
-                          </div>
+                        
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-pink-600">
+                            KSh {(item.products.price * item.quantity).toLocaleString()}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromCart(item.id)}
+                            disabled={isLoading}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-50/10 rounded-md text-xs p-1 mt-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
                     </div>
