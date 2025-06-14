@@ -392,7 +392,6 @@ const ProductDetail = () => {
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-gray-700">{review.comment}</p>
                     </div>
                   ))}
                 </div>
