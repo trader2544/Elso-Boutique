@@ -108,7 +108,8 @@ serve(async (req) => {
         response_code: ResultCode?.toString() || null,
         response_description: ResultDesc || null,
         status: transactionStatus,
-        customer_message: ResultDesc || null
+        customer_message: ResultDesc || null,
+        updated_at: new Date().toISOString()
       };
 
       console.log('About to upsert transaction data:', transactionData);
@@ -123,15 +124,21 @@ serve(async (req) => {
       if (transactionError) {
         console.error('Error inserting/updating M-Pesa transaction:', transactionError);
         console.error('Transaction error details:', JSON.stringify(transactionError, null, 2));
+        
+        return new Response('Database Error', { 
+          status: 500,
+          headers: corsHeaders
+        });
       } else {
         console.log('M-Pesa transaction recorded successfully:', transactionResult);
         
-        // If successful payment, verify the order was updated
+        // The database trigger will automatically update the order status
+        // But let's verify it worked by checking the order status after a brief delay
         if (transactionStatus === 'completed' && orderId !== 'unknown') {
-          console.log('Verifying order status after successful payment...');
+          console.log('Payment successful - trigger should update order status automatically');
           
           // Wait a moment for the trigger to execute
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           const { data: orderCheck, error: orderCheckError } = await supabase
             .from('orders')
@@ -143,31 +150,15 @@ serve(async (req) => {
             console.error('Error checking order status:', orderCheckError);
           } else {
             console.log('Order status after trigger execution:', orderCheck);
-            
-            // If the trigger didn't work, manually update the order as fallback
-            if (orderCheck && orderCheck.status !== 'paid') {
-              console.log('Trigger did not update order status, manually updating...');
-              const { error: manualUpdateError } = await supabase
-                .from('orders')
-                .update({
-                  status: 'paid',
-                  transaction_id: transactionId || CheckoutRequestID
-                })
-                .eq('id', orderId);
-
-              if (manualUpdateError) {
-                console.error('Error manually updating order:', manualUpdateError);
-              } else {
-                console.log('Order manually updated to paid status');
-              }
-            } else {
-              console.log('Order status successfully updated by trigger or already paid');
-            }
           }
         }
       }
     } else {
       console.error('No CheckoutRequestID found in callback data');
+      return new Response('Invalid callback - no CheckoutRequestID', { 
+        status: 400,
+        headers: corsHeaders
+      });
     }
 
     return new Response('OK', { 
@@ -178,7 +169,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing M-Pesa callback:', error);
     console.error('Error stack:', error.stack);
-    return new Response('Error', { 
+    return new Response('Internal Server Error', { 
       status: 500,
       headers: corsHeaders
     });

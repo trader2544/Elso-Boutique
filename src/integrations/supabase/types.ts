@@ -51,8 +51,8 @@ export type Database = {
       mpesa_transactions: {
         Row: {
           amount: number
-          checkout_request_id: string | null
-          created_at: string | null
+          checkout_request_id: string
+          created_at: string
           customer_message: string | null
           id: string
           merchant_request_id: string | null
@@ -60,12 +60,13 @@ export type Database = {
           phone_number: string
           response_code: string | null
           response_description: string | null
-          status: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
           amount: number
-          checkout_request_id?: string | null
-          created_at?: string | null
+          checkout_request_id: string
+          created_at?: string
           customer_message?: string | null
           id?: string
           merchant_request_id?: string | null
@@ -73,12 +74,13 @@ export type Database = {
           phone_number: string
           response_code?: string | null
           response_description?: string | null
-          status?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
           amount?: number
-          checkout_request_id?: string | null
-          created_at?: string | null
+          checkout_request_id?: string
+          created_at?: string
           customer_message?: string | null
           id?: string
           merchant_request_id?: string | null
@@ -86,7 +88,8 @@ export type Database = {
           phone_number?: string
           response_code?: string | null
           response_description?: string | null
-          status?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
