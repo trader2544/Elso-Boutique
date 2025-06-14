@@ -144,8 +144,43 @@ serve(async (req) => {
       );
     }
 
-    // Success response - do not create any database records yet
-    // Only the callback will create records for successful transactions
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Step 4: Record the pending transaction in database
+    console.log('Recording pending transaction in database...');
+    
+    const transactionData = {
+      order_id: orderId,
+      phone_number: formattedPhone,
+      amount: Math.ceil(amount),
+      checkout_request_id: stkData.CheckoutRequestID,
+      merchant_request_id: stkData.MerchantRequestID || null,
+      response_code: stkData.ResponseCode || '0',
+      response_description: stkData.ResponseDescription || 'STK Push sent',
+      status: 'pending', // Start as pending
+      customer_message: stkData.CustomerMessage || 'STK Push sent successfully',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('Transaction data to insert:', transactionData);
+
+    const { data: transactionResult, error: transactionError } = await supabase
+      .from('mpesa_transactions')
+      .insert(transactionData)
+      .select();
+
+    if (transactionError) {
+      console.error('Error inserting pending transaction:', transactionError);
+      // Continue even if we can't record the transaction - the callback will handle it
+    } else {
+      console.log('Pending transaction recorded successfully:', transactionResult);
+    }
+
+    // Success response
     const response = {
       success: true,
       message: 'STK Push sent successfully',
@@ -156,7 +191,7 @@ serve(async (req) => {
       customerMessage: stkData.CustomerMessage
     };
 
-    console.log('STK Push successful, waiting for callback to confirm payment:', response);
+    console.log('STK Push successful, transaction recorded as pending, waiting for callback:', response);
 
     return new Response(
       JSON.stringify(response),

@@ -50,26 +50,21 @@ serve(async (req) => {
       MerchantRequestID
     });
 
-    // Check if this is a successful transaction first
+    // Check if this is a successful transaction
     const isSuccessful = (ResultCode === 0 || ResultCode === '0');
     
-    if (!isSuccessful) {
-      console.log('Transaction failed, not recording in database. Result Code:', ResultCode, 'Description:', ResultDesc);
-      return new Response('OK', { 
-        status: 200,
-        headers: corsHeaders
-      });
-    }
+    console.log('Transaction result:', {
+      isSuccessful,
+      ResultCode,
+      ResultDesc
+    });
 
-    console.log('Transaction successful, proceeding to record in database');
-
-    // Extract data from callback metadata for successful transactions
+    // Extract data from callback metadata
     let orderId = 'unknown';
     let transactionId = null;
     let amount = 0;
     let phoneNumber = 'unknown';
 
-    // Extract data from callback metadata
     if (CallbackMetadata?.Item && Array.isArray(CallbackMetadata.Item)) {
       console.log('Processing CallbackMetadata items:', CallbackMetadata.Item);
       
@@ -90,26 +85,77 @@ serve(async (req) => {
       }
     }
 
-    console.log('Final transaction data to insert:', {
-      orderId,
-      phoneNumber,
-      amount,
-      CheckoutRequestID,
-      MerchantRequestID,
-      ResultCode: ResultCode?.toString(),
-      ResultDesc,
-      transactionId
-    });
-
-    // Only insert successful M-Pesa transaction records
-    if (CheckoutRequestID && orderId !== 'unknown') {
-      console.log('Inserting successful M-Pesa transaction record...');
+    // Update the existing transaction record
+    if (CheckoutRequestID) {
+      console.log('Updating transaction record for CheckoutRequestID:', CheckoutRequestID);
       
-      const transactionData = {
+      const updateData = {
+        response_code: ResultCode?.toString() || '1',
+        response_description: ResultDesc || 'Transaction processed',
+        status: isSuccessful ? 'completed' : 'failed',
+        customer_message: ResultDesc || 'Transaction processed',
+        updated_at: new Date().toISOString()
+      };
+
+      // Add additional data if this is a successful transaction
+      if (isSuccessful && orderId !== 'unknown') {
+        updateData.order_id = orderId;
+        if (amount > 0) updateData.amount = amount;
+        if (phoneNumber !== 'unknown') updateData.phone_number = phoneNumber;
+      }
+
+      console.log('Update data:', updateData);
+
+      const { data: updateResult, error: updateError } = await supabase
+        .from('mpesa_transactions')
+        .update(updateData)
+        .eq('checkout_request_id', CheckoutRequestID)
+        .select();
+
+      if (updateError) {
+        console.error('Error updating transaction:', updateError);
+        
+        // If update failed and this is a successful transaction, try to insert a new record
+        if (isSuccessful && orderId !== 'unknown') {
+          console.log('Update failed, attempting to insert new record for successful transaction...');
+          
+          const insertData = {
+            order_id: orderId,
+            phone_number: phoneNumber,
+            amount: amount,
+            checkout_request_id: CheckoutRequestID,
+            merchant_request_id: MerchantRequestID || null,
+            response_code: ResultCode?.toString() || '0',
+            response_description: ResultDesc || 'Success',
+            status: 'completed',
+            customer_message: ResultDesc || 'Payment successful',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          const { data: insertResult, error: insertError } = await supabase
+            .from('mpesa_transactions')
+            .insert(insertData)
+            .select();
+
+          if (insertError) {
+            console.error('Error inserting transaction record:', insertError);
+          } else {
+            console.log('Transaction record inserted successfully:', insertResult);
+          }
+        }
+      } else {
+        console.log('Transaction updated successfully:', updateResult);
+      }
+    } else if (isSuccessful && orderId !== 'unknown') {
+      // If no CheckoutRequestID but successful transaction, insert new record
+      console.log('No CheckoutRequestID found, inserting new successful transaction record...');
+      
+      const insertData = {
         order_id: orderId,
         phone_number: phoneNumber,
         amount: amount,
-        checkout_request_id: CheckoutRequestID,
+        checkout_request_id: CheckoutRequestID || `callback_${Date.now()}`,
         merchant_request_id: MerchantRequestID || null,
         response_code: ResultCode?.toString() || '0',
         response_description: ResultDesc || 'Success',
@@ -119,62 +165,19 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      console.log('About to insert transaction data:', transactionData);
-
-      const { data: transactionResult, error: transactionError } = await supabase
+      const { data: insertResult, error: insertError } = await supabase
         .from('mpesa_transactions')
-        .insert(transactionData)
+        .insert(insertData)
         .select();
 
-      if (transactionError) {
-        console.error('Error inserting M-Pesa transaction:', transactionError);
-        console.error('Transaction error details:', JSON.stringify(transactionError, null, 2));
+      if (insertError) {
+        console.error('Error inserting transaction record:', insertError);
       } else {
-        console.log('M-Pesa transaction inserted successfully:', transactionResult);
-        
-        // The database trigger will automatically update the order status
-        // Let's verify it worked by checking the order status after a brief delay
-        console.log('Payment successful - trigger should update order status automatically');
-        
-        // Wait a moment for the trigger to execute
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const { data: orderCheck, error: orderCheckError } = await supabase
-          .from('orders')
-          .select('id, status, transaction_id')
-          .eq('id', orderId)
-          .single();
-
-        if (orderCheckError) {
-          console.error('Error checking order status:', orderCheckError);
-        } else {
-          console.log('Order status after trigger execution:', orderCheck);
-          
-          // If the trigger didn't work, manually update the order
-          if (orderCheck && orderCheck.status !== 'paid') {
-            console.log('Trigger did not update order, updating manually...');
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({ 
-                status: 'paid',
-                transaction_id: transactionId || CheckoutRequestID 
-              })
-              .eq('id', orderId);
-
-            if (updateError) {
-              console.error('Manual order update failed:', updateError);
-            } else {
-              console.log('Order status updated manually to paid');
-            }
-          }
-        }
+        console.log('Transaction record inserted successfully:', insertResult);
       }
-    } else {
-      console.error('Missing required data for transaction record:', {
-        CheckoutRequestID: !!CheckoutRequestID,
-        orderId: orderId !== 'unknown'
-      });
     }
+
+    console.log('Callback processing completed');
 
     return new Response('OK', { 
       status: 200,
