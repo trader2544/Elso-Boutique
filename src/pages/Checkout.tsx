@@ -71,110 +71,34 @@ const Checkout = () => {
     return () => clearInterval(interval);
   }, [showPaymentPrompt, promptTimer, paymentStatus, toast]);
 
-  // Real-time M-Pesa transaction monitoring
+  // Listen for order status changes instead of transaction changes
   useEffect(() => {
     if (!currentOrderId) return;
 
-    console.log("Setting up real-time M-Pesa transaction listener for order:", currentOrderId);
+    console.log("Setting up real-time order status listener for order:", currentOrderId);
     
     const channel = supabase
-      .channel('mpesa-payment-tracking')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'mpesa_transactions',
-          filter: `order_id=eq.${currentOrderId}`,
-        },
-        async (payload) => {
-          console.log('Real-time M-Pesa transaction INSERT:', payload);
-          const transaction = payload.new;
-          setTransactionDetails(transaction);
-          
-          if (transaction.status === 'completed' || transaction.response_code === '0') {
-            setPaymentStatus('success');
-            setPaymentInProgress(false);
-            setProcessing(false);
-            
-            // Update order status directly
-            const { error: orderError } = await supabase
-              .from("orders")
-              .update({ 
-                status: 'paid', 
-                transaction_id: transaction.checkout_request_id || transaction.merchant_request_id 
-              })
-              .eq("id", currentOrderId);
-
-            if (orderError) {
-              console.error("Error updating order:", orderError);
-            } else {
-              console.log("Order status updated to paid for order:", currentOrderId);
-            }
-
-            toast({
-              title: "Payment Successful! 🎉",
-              description: "Your order has been confirmed and is being processed.",
-            });
-          } else if (transaction.status === 'failed') {
-            setPaymentStatus('failed');
-            setPaymentInProgress(false);
-            setProcessing(false);
-            
-            toast({
-              title: "Payment Failed",
-              description: transaction.customer_message || "Your payment was not successful. Please try again.",
-              variant: "destructive",
-            });
-          }
-        }
-      )
+      .channel('order-status-tracking')
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'mpesa_transactions',
-          filter: `order_id=eq.${currentOrderId}`,
+          table: 'orders',
+          filter: `id=eq.${currentOrderId}`,
         },
         async (payload) => {
-          console.log('Real-time M-Pesa transaction UPDATE:', payload);
-          const transaction = payload.new;
-          setTransactionDetails(transaction);
+          console.log('Real-time order status UPDATE:', payload);
+          const order = payload.new;
           
-          if (transaction.status === 'completed' || transaction.response_code === '0') {
+          if (order.status === 'paid') {
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
             
-            // Update order status directly
-            const { error: orderError } = await supabase
-              .from("orders")
-              .update({ 
-                status: 'paid', 
-                transaction_id: transaction.checkout_request_id || transaction.merchant_request_id 
-              })
-              .eq("id", currentOrderId);
-
-            if (orderError) {
-              console.error("Error updating order:", orderError);
-            } else {
-              console.log("Order status updated to paid for order:", currentOrderId);
-            }
-
             toast({
               title: "Payment Successful! 🎉",
               description: "Your order has been confirmed and is being processed.",
-            });
-          } else if (transaction.status === 'failed') {
-            setPaymentStatus('failed');
-            setPaymentInProgress(false);
-            setProcessing(false);
-            
-            toast({
-              title: "Payment Failed",
-              description: transaction.customer_message || "Your payment was not successful. Please try again.",
-              variant: "destructive",
             });
           }
         }
@@ -182,7 +106,7 @@ const Checkout = () => {
       .subscribe();
 
     return () => {
-      console.log("Cleaning up real-time M-Pesa transaction listener");
+      console.log("Cleaning up real-time order status listener");
       supabase.removeChannel(channel);
     };
   }, [currentOrderId, toast]);
@@ -441,12 +365,6 @@ const Checkout = () => {
                   <div>
                     <h3 className="text-lg font-bold text-green-700 mb-2">Payment Successful!</h3>
                     <p className="text-gray-700 text-sm mb-4">Your order has been confirmed and will be processed shortly.</p>
-                    {transactionDetails && (
-                      <div className="bg-green-50/30 backdrop-blur-sm p-3 rounded-lg text-xs">
-                        <p className="text-green-700">Transaction ID: {transactionDetails.checkout_request_id}</p>
-                        <p className="text-green-700">Amount: KSh {transactionDetails.amount}</p>
-                      </div>
-                    )}
                   </div>
                   <Button
                     onClick={handleGoToHomepage}
@@ -463,14 +381,7 @@ const Checkout = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-red-700 mb-2">Payment Failed</h3>
-                    <p className="text-gray-700 text-sm mb-4">
-                      {transactionDetails?.customer_message || "Your payment was not successful."}
-                    </p>
-                    {transactionDetails && (
-                      <div className="bg-red-50/30 backdrop-blur-sm p-3 rounded-lg text-xs">
-                        <p className="text-red-700">Response: {transactionDetails.response_description}</p>
-                      </div>
-                    )}
+                    <p className="text-gray-700 text-sm mb-4">Your payment was not successful.</p>
                   </div>
                   <div className="space-y-3">
                     <Button
@@ -512,15 +423,9 @@ const Checkout = () => {
                     </div>
                   </div>
                   <div className="bg-blue-50/30 backdrop-blur-sm p-3 rounded-lg">
-                    <p className="text-blue-700 text-sm font-medium">✨ Real-time payment tracking enabled</p>
+                    <p className="text-blue-700 text-sm font-medium">✨ Waiting for payment confirmation</p>
                     <p className="text-blue-600 text-xs">You'll be notified instantly when payment is received!</p>
                   </div>
-                  {transactionDetails && (
-                    <div className="bg-gray-50/30 backdrop-blur-sm p-3 rounded-lg text-xs">
-                      <p className="text-gray-700">Checkout Request: {transactionDetails.checkout_request_id}</p>
-                      <p className="text-gray-700">Status: {transactionDetails.status}</p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -731,7 +636,7 @@ const Checkout = () => {
                 <div className="bg-gradient-to-r from-green-50/30 to-emerald-50/30 backdrop-blur-sm border border-green-200/30 rounded-lg p-2 text-center">
                   <Shield className="w-4 h-4 text-green-600 mx-auto mb-1" />
                   <h4 className="font-bold text-green-700 mb-0.5 text-xs">Secure Payment</h4>
-                  <p className="text-xs text-green-600">M-Pesa with live tracking</p>
+                  <p className="text-xs text-green-600">M-Pesa callback tracking</p>
                 </div>
 
                 <div className="bg-gradient-to-r from-blue-50/30 to-indigo-50/30 backdrop-blur-sm border border-blue-200/30 rounded-lg p-2 text-center">

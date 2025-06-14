@@ -85,72 +85,11 @@ serve(async (req) => {
       }
     }
 
-    // Update the existing transaction record
-    if (CheckoutRequestID) {
-      console.log('Updating transaction record for CheckoutRequestID:', CheckoutRequestID);
-      
-      const updateData = {
-        response_code: ResultCode?.toString() || '1',
-        response_description: ResultDesc || 'Transaction processed',
-        status: isSuccessful ? 'completed' : 'failed',
-        customer_message: ResultDesc || 'Transaction processed',
-        updated_at: new Date().toISOString()
-      };
+    // Only process successful transactions
+    if (isSuccessful && orderId !== 'unknown') {
+      console.log('Processing successful transaction for order:', orderId);
 
-      // Add additional data if this is a successful transaction
-      if (isSuccessful && orderId !== 'unknown') {
-        updateData.order_id = orderId;
-        if (amount > 0) updateData.amount = amount;
-        if (phoneNumber !== 'unknown') updateData.phone_number = phoneNumber;
-      }
-
-      console.log('Update data:', updateData);
-
-      const { data: updateResult, error: updateError } = await supabase
-        .from('mpesa_transactions')
-        .update(updateData)
-        .eq('checkout_request_id', CheckoutRequestID)
-        .select();
-
-      if (updateError) {
-        console.error('Error updating transaction:', updateError);
-        
-        // If update failed and this is a successful transaction, try to insert a new record
-        if (isSuccessful && orderId !== 'unknown') {
-          console.log('Update failed, attempting to insert new record for successful transaction...');
-          
-          const insertData = {
-            order_id: orderId,
-            phone_number: phoneNumber,
-            amount: amount,
-            checkout_request_id: CheckoutRequestID,
-            merchant_request_id: MerchantRequestID || null,
-            response_code: ResultCode?.toString() || '0',
-            response_description: ResultDesc || 'Success',
-            status: 'completed',
-            customer_message: ResultDesc || 'Payment successful',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-
-          const { data: insertResult, error: insertError } = await supabase
-            .from('mpesa_transactions')
-            .insert(insertData)
-            .select();
-
-          if (insertError) {
-            console.error('Error inserting transaction record:', insertError);
-          } else {
-            console.log('Transaction record inserted successfully:', insertResult);
-          }
-        }
-      } else {
-        console.log('Transaction updated successfully:', updateResult);
-      }
-    } else if (isSuccessful && orderId !== 'unknown') {
-      // If no CheckoutRequestID but successful transaction, insert new record
-      console.log('No CheckoutRequestID found, inserting new successful transaction record...');
-      
+      // First, record the successful transaction
       const insertData = {
         order_id: orderId,
         phone_number: phoneNumber,
@@ -165,15 +104,69 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      const { data: insertResult, error: insertError } = await supabase
+      console.log('Recording successful transaction:', insertData);
+
+      const { data: transactionResult, error: transactionError } = await supabase
         .from('mpesa_transactions')
-        .insert(insertData)
+        .upsert(insertData, { 
+          onConflict: 'checkout_request_id',
+          ignoreDuplicates: false 
+        })
         .select();
 
-      if (insertError) {
-        console.error('Error inserting transaction record:', insertError);
+      if (transactionError) {
+        console.error('Error recording transaction:', transactionError);
       } else {
-        console.log('Transaction record inserted successfully:', insertResult);
+        console.log('Transaction recorded successfully:', transactionResult);
+      }
+
+      // Now update the order status to paid
+      console.log('Updating order status to paid for order:', orderId);
+      
+      const { data: orderUpdateResult, error: orderUpdateError } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'paid',
+          transaction_id: transactionId || CheckoutRequestID || `callback_${Date.now()}`
+        })
+        .eq('id', orderId)
+        .select();
+
+      if (orderUpdateError) {
+        console.error('Error updating order status:', orderUpdateError);
+      } else {
+        console.log('Order status updated successfully:', orderUpdateResult);
+      }
+
+    } else if (!isSuccessful) {
+      console.log('Transaction failed, recording failed transaction');
+      
+      // Record failed transaction
+      const failedData = {
+        order_id: orderId !== 'unknown' ? orderId : `unknown_${Date.now()}`,
+        phone_number: phoneNumber !== 'unknown' ? phoneNumber : 'unknown',
+        amount: amount || 0,
+        checkout_request_id: CheckoutRequestID || `failed_${Date.now()}`,
+        merchant_request_id: MerchantRequestID || null,
+        response_code: ResultCode?.toString() || '1',
+        response_description: ResultDesc || 'Transaction failed',
+        status: 'failed',
+        customer_message: ResultDesc || 'Payment failed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: failedTransactionError } = await supabase
+        .from('mpesa_transactions')
+        .upsert(failedData, { 
+          onConflict: 'checkout_request_id',
+          ignoreDuplicates: false 
+        });
+
+      if (failedTransactionError) {
+        console.error('Error recording failed transaction:', failedTransactionError);
+      } else {
+        console.log('Failed transaction recorded');
       }
     }
 
