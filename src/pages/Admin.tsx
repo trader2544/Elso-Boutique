@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -19,6 +19,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [openOrders, setOpenOrders] = useState<Set<string>>(new Set());
+  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -33,13 +34,13 @@ const Admin = () => {
     });
   }, [navigate]);
 
-  // Add real-time subscription for all order updates
+  // Enhanced real-time subscription for all order updates
   useEffect(() => {
     if (userRole !== "admin") return;
 
-    console.log("Setting up admin real-time subscription for all orders");
+    console.log("Setting up enhanced admin real-time subscription for all orders");
     const channel = supabase
-      .channel('admin-order-updates')
+      .channel('admin-order-updates-enhanced')
       .on(
         'postgres_changes',
         {
@@ -75,10 +76,11 @@ const Admin = () => {
             );
 
             // Show toast for automatic status updates (likely from M-Pesa)
-            if (payload.old.status !== payload.new.status && payload.new.status === 'paid') {
+            if (payload.old.status !== payload.new.status) {
+              const statusChange = `${payload.old.status} → ${payload.new.status}`;
               toast({
-                title: "Payment Confirmed",
-                description: `Order #${updatedOrder.id.slice(-8)} payment received via M-Pesa`,
+                title: "Order Status Updated",
+                description: `Order #${updatedOrder.id.slice(-8)}: ${statusChange}`,
               });
             }
           }
@@ -87,7 +89,7 @@ const Admin = () => {
       .subscribe();
 
     return () => {
-      console.log("Cleaning up admin real-time subscription");
+      console.log("Cleaning up enhanced admin real-time subscription");
       supabase.removeChannel(channel);
     };
   }, [userRole, toast]);
@@ -141,6 +143,33 @@ const Admin = () => {
       setOrders(formattedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
+    }
+  };
+
+  // New function to manually sync M-Pesa transactions with orders
+  const syncMpesaTransactions = async () => {
+    setSyncing(true);
+    try {
+      const { error } = await supabase.rpc('manual_fix_order_statuses');
+      
+      if (error) throw error;
+      
+      // Refresh orders after sync
+      await fetchOrders();
+      
+      toast({
+        title: "Sync Complete",
+        description: "M-Pesa transactions have been synced with orders",
+      });
+    } catch (error) {
+      console.error("Error syncing M-Pesa transactions:", error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync M-Pesa transactions",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -265,7 +294,23 @@ const Admin = () => {
           <TabsContent value="orders">
             <Card className="shadow-lg border-pink-200">
               <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-                <CardTitle className="text-pink-700">Order Management ({orders.length})</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-pink-700">Order Management ({orders.length})</CardTitle>
+                  <Button
+                    onClick={syncMpesaTransactions}
+                    disabled={syncing}
+                    size="sm"
+                    variant="outline"
+                    className="border-pink-200 text-pink-700 hover:bg-pink-50"
+                  >
+                    {syncing ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-600 mr-2"></div>
+                    ) : (
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                    )}
+                    Sync M-Pesa
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-4 md:p-6">
                 <div className="space-y-4">

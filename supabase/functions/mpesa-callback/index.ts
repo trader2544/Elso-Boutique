@@ -59,15 +59,12 @@ serve(async (req) => {
 
     // Determine transaction status based on result code
     let transactionStatus = 'pending';
-    let orderStatus = 'pending';
     
     if (ResultCode === 0) {
       transactionStatus = 'completed';
-      orderStatus = 'paid';
-      console.log('Payment successful - updating to paid status');
+      console.log('Payment successful - M-Pesa transaction will be marked as completed');
     } else {
       transactionStatus = 'failed';
-      orderStatus = 'cancelled';
       console.log('Payment failed with result code:', ResultCode);
     }
 
@@ -78,13 +75,12 @@ serve(async (req) => {
       transactionId,
       amount,
       phoneNumber,
-      transactionStatus,
-      orderStatus
+      transactionStatus
     });
 
-    // Always insert/update M-Pesa transaction record first
+    // Insert/update M-Pesa transaction record - this should trigger our database trigger
     if (CheckoutRequestID) {
-      console.log('Inserting M-Pesa transaction record...');
+      console.log('Inserting/updating M-Pesa transaction record...');
       const { data: transactionData, error: transactionError } = await supabase
         .from('mpesa_transactions')
         .upsert({
@@ -104,41 +100,46 @@ serve(async (req) => {
       if (transactionError) {
         console.error('Error inserting/updating M-Pesa transaction:', transactionError);
       } else {
-        console.log('M-Pesa transaction recorded successfully:', transactionData);
-      }
-    }
-
-    // If payment was successful and we have an order ID, update the order
-    if (ResultCode === 0 && orderId) {
-      console.log('Attempting to update order status to paid for order:', orderId);
-      
-      // First, check if the order exists
-      const { data: existingOrder, error: checkError } = await supabase
-        .from('orders')
-        .select('id, status')
-        .eq('id', orderId)
-        .single();
-
-      if (checkError) {
-        console.error('Error checking order existence:', checkError);
-      } else {
-        console.log('Found existing order:', existingOrder);
+        console.log('M-Pesa transaction recorded successfully. Database trigger should handle order status update.');
         
-        // Update the order status
-        const { data: updateData, error: orderError } = await supabase
-          .from('orders')
-          .update({
-            status: 'paid',
-            transaction_id: transactionId,
-            customer_phone: phoneNumber || undefined
-          })
-          .eq('id', orderId)
-          .select();
+        // Let's also verify the order was updated by checking it
+        if (ResultCode === 0 && orderId) {
+          console.log('Verifying order status after transaction insert...');
+          
+          // Wait a moment for the trigger to execute
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const { data: orderCheck, error: orderCheckError } = await supabase
+            .from('orders')
+            .select('id, status, transaction_id')
+            .eq('id', orderId)
+            .single();
 
-        if (orderError) {
-          console.error('Error updating order status:', orderError);
-        } else {
-          console.log('Order status updated successfully:', updateData);
+          if (orderCheckError) {
+            console.error('Error checking order status:', orderCheckError);
+          } else {
+            console.log('Order status after trigger execution:', orderCheck);
+            
+            // If the trigger didn't work, let's manually update the order as fallback
+            if (orderCheck.status !== 'paid') {
+              console.log('Trigger did not update order status, manually updating...');
+              const { error: manualUpdateError } = await supabase
+                .from('orders')
+                .update({
+                  status: 'paid',
+                  transaction_id: transactionId
+                })
+                .eq('id', orderId);
+
+              if (manualUpdateError) {
+                console.error('Error manually updating order:', manualUpdateError);
+              } else {
+                console.log('Order manually updated to paid status');
+              }
+            } else {
+              console.log('Order status successfully updated by trigger');
+            }
+          }
         }
       }
     }
