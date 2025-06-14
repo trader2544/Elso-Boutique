@@ -36,6 +36,14 @@ function Header({ user, onSignOut }: { user: SupabaseUser | null; onSignOut: () 
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const wishlistItemCount = wishlistItems.length;
 
+  const handleSearch = (searchTerm: string) => {
+    console.log('Search term:', searchTerm);
+    // You can implement search logic here or navigate to a search results page
+    if (searchTerm.trim()) {
+      navigate(`/?search=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -62,7 +70,7 @@ function Header({ user, onSignOut }: { user: SupabaseUser | null; onSignOut: () 
 
           {/* Search Bar - Hidden on small screens */}
           <div className="hidden lg:flex flex-1 max-w-md mx-8">
-            <SearchBar />
+            <SearchBar onSearch={handleSearch} />
           </div>
 
           {/* Desktop Actions */}
@@ -119,7 +127,7 @@ function Header({ user, onSignOut }: { user: SupabaseUser | null; onSignOut: () 
             <div className="px-2 pt-2 pb-3 space-y-1 border-t">
               {/* Mobile Search */}
               <div className="px-3 py-2">
-                <SearchBar />
+                <SearchBar onSearch={handleSearch} />
               </div>
               
               <Link
