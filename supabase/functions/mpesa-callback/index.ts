@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -113,9 +112,19 @@ serve(async (req) => {
       console.log('Transaction updated successfully:', transactionResult);
     }
 
-    // ONLY update order status if payment was actually successful
+    // CRITICAL: ONLY update order status to 'paid' if payment was actually successful
+    // This is the ONLY place where orders should be marked as paid
     if (isSuccessful && orderId !== 'unknown') {
-      console.log('Payment confirmed successful - updating order status to paid for order:', orderId);
+      console.log('🎉 PAYMENT CONFIRMED SUCCESSFUL - Updating order status to PAID for order:', orderId);
+      
+      // First check current order status to log the change
+      const { data: currentOrder } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', orderId)
+        .single();
+      
+      console.log('Current order status before update:', currentOrder?.status);
       
       const { data: orderUpdateResult, error: orderUpdateError } = await supabase
         .from('orders')
@@ -127,16 +136,18 @@ serve(async (req) => {
         .select();
 
       if (orderUpdateError) {
-        console.error('Error updating order status to paid:', orderUpdateError);
+        console.error('❌ ERROR updating order status to paid:', orderUpdateError);
       } else {
-        console.log('Order status updated to PAID successfully:', orderUpdateResult);
+        console.log('✅ ORDER STATUS SUCCESSFULLY UPDATED TO PAID:', orderUpdateResult);
       }
 
     } else if (!isSuccessful) {
-      console.log('Payment failed or cancelled - order status remains pending. Result:', ResultDesc);
+      console.log('❌ Payment failed or cancelled - order status remains pending. Result:', ResultDesc);
       
-      // Optionally, you can update order status to 'payment_failed' if you want to track failed payments
+      // Keep order status as pending for failed payments so user can retry
       if (orderId !== 'unknown') {
+        console.log('Ensuring order status remains pending for retry for order:', orderId);
+        
         const { data: orderUpdateResult, error: orderUpdateError } = await supabase
           .from('orders')
           .update({ 
@@ -152,7 +163,7 @@ serve(async (req) => {
         }
       }
     } else {
-      console.log('Payment callback processed but no order ID found or payment not successful');
+      console.log('⚠️ Payment callback processed but no order ID found or payment not successful');
     }
 
     console.log('Callback processing completed');
@@ -163,7 +174,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error processing M-Pesa callback:', error);
+    console.error('❌ Error processing M-Pesa callback:', error);
     console.error('Error stack:', error.stack);
     
     // Always return 200 OK to M-Pesa to avoid retries

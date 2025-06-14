@@ -58,7 +58,7 @@ serve(async (req) => {
       formattedPhone = '254' + formattedPhone;
     }
 
-    console.log('Processing STK Push for:', {
+    console.log('🚀 Processing STK Push for:', {
       amount,
       phoneNumber: formattedPhone,
       orderId,
@@ -91,7 +91,7 @@ serve(async (req) => {
       throw new Error('Failed to obtain access token');
     }
 
-    console.log('OAuth token obtained successfully');
+    console.log('✅ OAuth token obtained successfully');
 
     // Step 2: Generate password and timestamp
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
@@ -112,7 +112,7 @@ serve(async (req) => {
       TransactionDesc: `Payment for order ${orderId.slice(-8)}`
     };
 
-    console.log('STK Push payload:', {
+    console.log('📱 STK Push payload:', {
       ...stkPushPayload,
       Password: '[HIDDEN]'
     });
@@ -128,10 +128,10 @@ serve(async (req) => {
 
     const stkData = await stkResponse.json();
     
-    console.log('M-Pesa STK Push response:', stkData);
+    console.log('📱 M-Pesa STK Push response:', stkData);
 
     if (!stkResponse.ok || stkData.errorCode) {
-      console.error('STK Push failed:', stkData);
+      console.error('❌ STK Push failed:', stkData);
       return new Response(
         JSON.stringify({ 
           error: 'STK Push failed',
@@ -150,7 +150,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Step 4: Record the STK push request (NOT a successful transaction yet)
-    console.log('Recording STK push request in database...');
+    console.log('💾 Recording STK push request as PENDING in database...');
     
     const transactionData = {
       order_id: orderId,
@@ -166,7 +166,7 @@ serve(async (req) => {
       updated_at: new Date().toISOString()
     };
 
-    console.log('STK push data to insert:', transactionData);
+    console.log('💾 STK push data to insert:', transactionData);
 
     const { data: transactionResult, error: transactionError } = await supabase
       .from('mpesa_transactions')
@@ -174,13 +174,15 @@ serve(async (req) => {
       .select();
 
     if (transactionError) {
-      console.error('Error inserting STK push record:', transactionError);
+      console.error('❌ Error inserting STK push record:', transactionError);
       // Continue even if we can't record the transaction - the callback will handle it
     } else {
-      console.log('STK push request recorded successfully:', transactionResult);
+      console.log('✅ STK push request recorded successfully:', transactionResult);
     }
 
-    // DO NOT UPDATE ORDER STATUS HERE - only update when callback confirms payment
+    // 🚨 CRITICAL: DO NOT UPDATE ORDER STATUS HERE 
+    // Order status should ONLY be updated when callback confirms payment
+    console.log('⚠️ IMPORTANT: Order status will remain PENDING until payment is confirmed via callback');
 
     // Success response
     const response = {
@@ -193,7 +195,7 @@ serve(async (req) => {
       customerMessage: stkData.CustomerMessage
     };
 
-    console.log('STK Push successful, waiting for payment confirmation via callback:', response);
+    console.log('🎯 STK Push sent successfully, waiting for payment confirmation via callback:', response);
 
     return new Response(
       JSON.stringify(response),
@@ -203,7 +205,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in STK Push:', error);
+    console.error('❌ Error in STK Push:', error);
     
     return new Response(
       JSON.stringify({ 
