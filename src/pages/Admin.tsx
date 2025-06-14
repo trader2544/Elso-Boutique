@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -12,12 +12,14 @@ import { Order, convertJsonToOrderProducts, OrderStatus } from "@/types/order";
 import AdminDashboard from "@/components/AdminDashboard";
 import AdminProducts from "@/components/AdminProducts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Admin = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [openOrders, setOpenOrders] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -120,6 +122,16 @@ const Admin = () => {
     }
   };
 
+  const toggleOrder = (orderId: string) => {
+    const newOpenOrders = new Set(openOrders);
+    if (newOpenOrders.has(orderId)) {
+      newOpenOrders.delete(orderId);
+    } else {
+      newOpenOrders.add(orderId);
+    }
+    setOpenOrders(newOpenOrders);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 flex items-center justify-center">
@@ -200,100 +212,208 @@ const Admin = () => {
               <CardContent className="p-4 md:p-6">
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="border border-pink-200 rounded-xl p-4 bg-gradient-to-r from-white to-pink-50 shadow-sm">
-                      <div className="flex flex-col space-y-4">
-                        {/* Order Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between space-y-3 sm:space-y-0">
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
-                            <p className="text-sm text-gray-600">
-                              {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString()}
-                            </p>
-                          </div>
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-                            <Badge className={getStatusColor(order.status)}>
-                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                            </Badge>
-                            <select
-                              value={order.status}
-                              onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                              className="text-sm border border-pink-200 rounded-lg px-2 py-1 focus:border-pink-400 w-full sm:w-auto bg-white"
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="paid">Paid</option>
-                              <option value="shipped">Shipped</option>
-                              <option value="delivered">Delivered</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Customer Info */}
-                        {order.profiles && (
-                          <div className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-xl border border-blue-200">
-                            <h4 className="font-medium text-blue-700 mb-3">👤 Customer Information</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                              <div className="space-y-2">
-                                <div>
-                                  <span className="text-gray-600 font-medium">Full Name: </span>
-                                  <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-600 font-medium">Email: </span>
-                                  <span className="text-gray-900">{order.profiles.email}</span>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div>
-                                  <span className="text-gray-600 font-medium">Phone: </span>
-                                  <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
-                                </div>
-                                {order.delivery_location && (
-                                  <div>
-                                    <span className="text-gray-600 font-medium">Delivery Address: </span>
-                                    <span className="text-gray-900">{order.delivery_location}</span>
+                    <div key={order.id} className="border border-pink-200 rounded-xl bg-gradient-to-r from-white to-pink-50 shadow-sm">
+                      {/* Mobile Collapsible View */}
+                      <div className="block md:hidden">
+                        <Collapsible open={openOrders.has(order.id)} onOpenChange={() => toggleOrder(order.id)}>
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-pink-50 rounded-t-xl">
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge className={getStatusColor(order.status)}>
+                                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                    </Badge>
+                                    {openOrders.has(order.id) ? (
+                                      <ChevronDown className="h-4 w-4 text-gray-600" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4 text-gray-600" />
+                                    )}
                                   </div>
-                                )}
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <p className="text-sm text-gray-600">
+                                    {new Date(order.created_at).toLocaleDateString()}
+                                  </p>
+                                  <p className="text-sm font-medium text-pink-600">
+                                    KSh {order.total_price.toLocaleString()}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                        
-                        {/* Order Items */}
-                        <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-xl border border-purple-200">
-                          <h4 className="font-medium text-purple-700 mb-3">📦 Order Items ({order.products.length})</h4>
-                          <div className="space-y-3">
-                            {order.products.map((product, index) => (
-                              <div key={index} className="flex justify-between items-center py-2 px-3 bg-white rounded-lg border border-purple-100">
-                                <div className="flex-1">
-                                  <span className="text-sm font-medium text-gray-800">{product.name}</span>
-                                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                                    <span>Quantity: {product.quantity}</span>
-                                    <span>•</span>
-                                    <span>Unit Price: KSh {product.price.toLocaleString()}</span>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="px-4 pb-4 space-y-4">
+                              {/* Customer Info */}
+                              {order.profiles && (
+                                <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-lg border border-blue-200">
+                                  <h4 className="font-medium text-blue-700 mb-2 text-sm">👤 Customer Details</h4>
+                                  <div className="space-y-1 text-sm">
+                                    <div>
+                                      <span className="text-gray-600 font-medium">Name: </span>
+                                      <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600 font-medium">Email: </span>
+                                      <span className="text-gray-900">{order.profiles.email}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600 font-medium">Phone: </span>
+                                      <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
+                                    </div>
+                                    {order.delivery_location && (
+                                      <div>
+                                        <span className="text-gray-600 font-medium">Address: </span>
+                                        <span className="text-gray-900">{order.delivery_location}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <span className="text-purple-600 font-semibold">
-                                  KSh {(product.price * product.quantity).toLocaleString()}
-                                </span>
+                              )}
+
+                              {/* Products */}
+                              <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-lg border border-purple-200">
+                                <h4 className="font-medium text-purple-700 mb-2 text-sm">📦 Products ({order.products.length})</h4>
+                                <div className="space-y-2">
+                                  {order.products.map((product, index) => (
+                                    <div key={index} className="flex justify-between items-center py-1 px-2 bg-white rounded border border-purple-100">
+                                      <div className="flex-1">
+                                        <span className="text-sm font-medium text-gray-800">{product.name}</span>
+                                        <div className="text-xs text-gray-500">
+                                          Qty: {product.quantity} × KSh {product.price.toLocaleString()}
+                                        </div>
+                                      </div>
+                                      <span className="text-purple-600 font-semibold text-sm">
+                                        KSh {(product.price * product.quantity).toLocaleString()}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            ))}
+
+                              {/* Status Update */}
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Update Status:</label>
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                                  className="w-full text-sm border border-pink-200 rounded-lg px-3 py-2 focus:border-pink-400 bg-white"
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="paid">Paid</option>
+                                  <option value="shipped">Shipped</option>
+                                  <option value="delivered">Delivered</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </select>
+                              </div>
+
+                              {order.transaction_id && (
+                                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                                  Transaction ID: {order.transaction_id}
+                                </div>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+
+                      {/* Desktop View */}
+                      <div className="hidden md:block p-4">
+                        <div className="flex flex-col space-y-4">
+                          {/* Order Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between space-y-3 sm:space-y-0">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
+                              <p className="text-sm text-gray-600">
+                                {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString()}
+                              </p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                              <Badge className={getStatusColor(order.status)}>
+                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              </Badge>
+                              <select
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                                className="text-sm border border-pink-200 rounded-lg px-2 py-1 focus:border-pink-400 w-full sm:w-auto bg-white"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="paid">Paid</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </div>
                           </div>
-                        </div>
-                        
-                        {/* Total */}
-                        <div className="border-t border-pink-200 pt-4">
-                          <div className="flex justify-between items-center font-bold text-lg">
-                            <span className="text-gray-700">Total Amount:</span>
-                            <span className="text-pink-600 text-xl">
-                              KSh {order.total_price.toLocaleString()}
-                            </span>
-                          </div>
-                          {order.transaction_id && (
-                            <p className="text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded">
-                              Transaction ID: {order.transaction_id}
-                            </p>
+
+                          {/* Customer Info */}
+                          {order.profiles && (
+                            <div className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-xl border border-blue-200">
+                              <h4 className="font-medium text-blue-700 mb-3">👤 Customer Information</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                <div className="space-y-2">
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Full Name: </span>
+                                    <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Email: </span>
+                                    <span className="text-gray-900">{order.profiles.email}</span>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Phone: </span>
+                                    <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
+                                  </div>
+                                  {order.delivery_location && (
+                                    <div>
+                                      <span className="text-gray-600 font-medium">Delivery Address: </span>
+                                      <span className="text-gray-900">{order.delivery_location}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           )}
+                          
+                          {/* Order Items */}
+                          <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-xl border border-purple-200">
+                            <h4 className="font-medium text-purple-700 mb-3">📦 Order Items ({order.products.length})</h4>
+                            <div className="space-y-3">
+                              {order.products.map((product, index) => (
+                                <div key={index} className="flex justify-between items-center py-2 px-3 bg-white rounded-lg border border-purple-100">
+                                  <div className="flex-1">
+                                    <span className="text-sm font-medium text-gray-800">{product.name}</span>
+                                    <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
+                                      <span>Quantity: {product.quantity}</span>
+                                      <span>•</span>
+                                      <span>Unit Price: KSh {product.price.toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-purple-600 font-semibold">
+                                    KSh {(product.price * product.quantity).toLocaleString()}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Total */}
+                          <div className="border-t border-pink-200 pt-4">
+                            <div className="flex justify-between items-center font-bold text-lg">
+                              <span className="text-gray-700">Total Amount:</span>
+                              <span className="text-pink-600 text-xl">
+                                KSh {order.total_price.toLocaleString()}
+                              </span>
+                            </div>
+                            {order.transaction_id && (
+                              <p className="text-xs text-gray-500 mt-2 bg-gray-50 p-2 rounded">
+                                Transaction ID: {order.transaction_id}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
