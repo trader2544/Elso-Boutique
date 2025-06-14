@@ -31,12 +31,15 @@ serve(async (req) => {
 
     const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata } = stkCallback;
 
+    console.log('Processing callback with ResultCode:', ResultCode);
+
     // Extract order ID from account reference
     let orderId = null;
     if (CallbackMetadata?.Item) {
       const accountRefItem = CallbackMetadata.Item.find((item: any) => item.Name === 'AccountReference');
       if (accountRefItem?.Value) {
         orderId = accountRefItem.Value.replace('ORDER_', '');
+        console.log('Extracted order ID:', orderId);
       }
     }
 
@@ -57,12 +60,15 @@ serve(async (req) => {
     // Determine transaction status based on result code
     let transactionStatus = 'pending';
     let orderStatus = 'pending';
+    
     if (ResultCode === 0) {
       transactionStatus = 'completed';
       orderStatus = 'paid';
+      console.log('Payment successful - updating to paid status');
     } else {
       transactionStatus = 'failed';
       orderStatus = 'cancelled';
+      console.log('Payment failed with result code:', ResultCode);
     }
 
     console.log('Processing payment callback:', {
@@ -76,14 +82,15 @@ serve(async (req) => {
       orderStatus
     });
 
-    // Insert or update M-Pesa transaction record
-    if (orderId && phoneNumber && amount) {
-      const { error: transactionError } = await supabase
+    // Always insert/update M-Pesa transaction record first
+    if (CheckoutRequestID) {
+      console.log('Inserting M-Pesa transaction record...');
+      const { data: transactionData, error: transactionError } = await supabase
         .from('mpesa_transactions')
         .upsert({
-          order_id: orderId,
-          phone_number: phoneNumber,
-          amount: parseFloat(amount),
+          order_id: orderId || 'unknown',
+          phone_number: phoneNumber || 'unknown',
+          amount: amount ? parseFloat(amount) : 0,
           checkout_request_id: CheckoutRequestID,
           merchant_request_id: stkCallback.MerchantRequestID,
           response_code: ResultCode.toString(),
@@ -97,25 +104,42 @@ serve(async (req) => {
       if (transactionError) {
         console.error('Error inserting/updating M-Pesa transaction:', transactionError);
       } else {
-        console.log(`M-Pesa transaction recorded with status: ${transactionStatus}`);
+        console.log('M-Pesa transaction recorded successfully:', transactionData);
       }
     }
 
-    // Update order status in database
-    if (orderId) {
-      const { error: orderError } = await supabase
+    // If payment was successful and we have an order ID, update the order
+    if (ResultCode === 0 && orderId) {
+      console.log('Attempting to update order status to paid for order:', orderId);
+      
+      // First, check if the order exists
+      const { data: existingOrder, error: checkError } = await supabase
         .from('orders')
-        .update({
-          status: orderStatus,
-          transaction_id: transactionId,
-          customer_phone: phoneNumber || undefined
-        })
-        .eq('id', orderId);
+        .select('id, status')
+        .eq('id', orderId)
+        .single();
 
-      if (orderError) {
-        console.error('Error updating order:', orderError);
+      if (checkError) {
+        console.error('Error checking order existence:', checkError);
       } else {
-        console.log(`Order ${orderId} updated with status: ${orderStatus}`);
+        console.log('Found existing order:', existingOrder);
+        
+        // Update the order status
+        const { data: updateData, error: orderError } = await supabase
+          .from('orders')
+          .update({
+            status: 'paid',
+            transaction_id: transactionId,
+            customer_phone: phoneNumber || undefined
+          })
+          .eq('id', orderId)
+          .select();
+
+        if (orderError) {
+          console.error('Error updating order status:', orderError);
+        } else {
+          console.log('Order status updated successfully:', updateData);
+        }
       }
     }
 
