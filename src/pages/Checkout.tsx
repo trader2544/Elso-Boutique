@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle, XCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Clock, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -19,7 +20,6 @@ const Checkout = () => {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
   const [promptTimer, setPromptTimer] = useState(30);
-  const [showBackToShop, setShowBackToShop] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -54,20 +54,20 @@ const Checkout = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (showPaymentPrompt && promptTimer > 0) {
+    if (showPaymentPrompt && promptTimer > 0 && paymentStatus === 'pending') {
       interval = setInterval(() => {
         setPromptTimer(prev => prev - 1);
       }, 1000);
-    } else if (promptTimer === 0) {
-      setShowPaymentPrompt(false);
-      setPaymentStatus(null);
-      setPromptTimer(30);
-      if (!paymentStatus || paymentStatus === 'pending') {
-        setShowBackToShop(true);
-      }
+    } else if (promptTimer === 0 && paymentStatus === 'pending') {
+      setPaymentStatus('failed');
+      toast({
+        title: "Payment Timeout",
+        description: "Payment request timed out. Please try again.",
+        variant: "destructive",
+      });
     }
     return () => clearInterval(interval);
-  }, [showPaymentPrompt, promptTimer, paymentStatus]);
+  }, [showPaymentPrompt, promptTimer, paymentStatus, toast]);
 
   useEffect(() => {
     if (!currentOrderId) return;
@@ -106,15 +106,10 @@ const Checkout = () => {
               title: "Payment Successful! 🎉",
               description: "Your order has been confirmed and is being processed.",
             });
-            
-            setTimeout(() => {
-              navigate("/profile");
-            }, 3000);
           } else {
             setPaymentStatus('failed');
             setPaymentInProgress(false);
             setProcessing(false);
-            setCurrentOrderId(null);
             
             toast({
               title: "Payment Failed",
@@ -154,15 +149,10 @@ const Checkout = () => {
               title: "Payment Successful! 🎉",
               description: "Your order has been confirmed and is being processed.",
             });
-            
-            setTimeout(() => {
-              navigate("/profile");
-            }, 3000);
           } else if (transaction.status === 'failed') {
             setPaymentStatus('failed');
             setPaymentInProgress(false);
             setProcessing(false);
-            setCurrentOrderId(null);
             
             toast({
               title: "Payment Failed",
@@ -225,7 +215,6 @@ const Checkout = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
-    setShowBackToShop(false);
 
     try {
       if (!customerInfo.phone || !customerInfo.address || !customerInfo.city || !customerInfo.exactLocation) {
@@ -260,6 +249,7 @@ const Checkout = () => {
       setCurrentOrderId(orderData.id);
       setPaymentInProgress(true);
       setShowPaymentPrompt(true);
+      setPaymentStatus('pending');
       setPromptTimer(30);
 
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -296,6 +286,7 @@ const Checkout = () => {
       setProcessing(false);
       setPaymentInProgress(false);
       setCurrentOrderId(null);
+      setShowPaymentPrompt(false);
       toast({
         title: "Error",
         description: error.message || "Failed to process order",
@@ -309,9 +300,8 @@ const Checkout = () => {
 
     setProcessing(true);
     setPaymentInProgress(true);
-    setShowPaymentPrompt(true);
+    setPaymentStatus('pending');
     setPromptTimer(30);
-    setShowBackToShop(false);
 
     try {
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -336,13 +326,17 @@ const Checkout = () => {
       console.error("Error retrying payment:", error);
       setProcessing(false);
       setPaymentInProgress(false);
-      setShowPaymentPrompt(false);
+      setPaymentStatus('failed');
       toast({
         title: "Error",
         description: error.message || "Failed to retry payment",
         variant: "destructive",
       });
     }
+  };
+
+  const handleGoToHomepage = () => {
+    navigate("/");
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -415,19 +409,6 @@ const Checkout = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
           <div className="w-full max-w-xs bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
             <div className="p-4 text-center">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowPaymentPrompt(false);
-                  setPaymentStatus(null);
-                  setPromptTimer(30);
-                  setShowBackToShop(true);
-                }}
-                className="absolute top-2 left-2 rounded-full p-1 hover:bg-gray-100/30 w-6 h-6"
-              >
-                <ArrowLeft className="w-3 h-3" />
-              </Button>
-              
               {paymentStatus === 'success' ? (
                 <div className="space-y-3">
                   <div className="w-12 h-12 bg-green-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
@@ -435,11 +416,15 @@ const Checkout = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-green-700 mb-1">Payment Successful!</h3>
-                    <p className="text-gray-700 text-xs">Your order has been confirmed and will be processed shortly.</p>
+                    <p className="text-gray-700 text-xs mb-3">Your order has been confirmed and will be processed shortly.</p>
                   </div>
-                  <div className="bg-green-50/30 backdrop-blur-sm rounded-lg p-2">
-                    <p className="text-green-600 font-medium text-xs">Redirecting to your profile...</p>
-                  </div>
+                  <Button
+                    onClick={handleGoToHomepage}
+                    className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-green-300/20"
+                  >
+                    <Home className="w-3 h-3 mr-1" />
+                    Go to Homepage
+                  </Button>
                 </div>
               ) : paymentStatus === 'failed' ? (
                 <div className="space-y-3">
@@ -448,15 +433,25 @@ const Checkout = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-red-700 mb-1">Payment Failed</h3>
-                    <p className="text-gray-700 text-xs">Your payment was not successful. Please try again.</p>
+                    <p className="text-gray-700 text-xs mb-3">Your payment was not successful.</p>
                   </div>
-                  <Button
-                    onClick={handleRetryPayment}
-                    disabled={processing}
-                    className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-pink-300/20"
-                  >
-                    {processing ? "Retrying..." : "Retry Payment"}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      onClick={handleRetryPayment}
+                      disabled={processing}
+                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-pink-300/20"
+                    >
+                      {processing ? "Retrying..." : "Retry Payment"}
+                    </Button>
+                    <Button
+                      onClick={handleGoToHomepage}
+                      variant="outline"
+                      className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-2 rounded-lg text-xs font-semibold backdrop-blur-xl"
+                    >
+                      <Home className="w-3 h-3 mr-1" />
+                      Go to Homepage
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -465,50 +460,19 @@ const Checkout = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-pink-700 mb-1">Processing Payment</h3>
-                    <p className="text-gray-700 text-xs">Please complete the M-Pesa payment on your phone.</p>
+                    <p className="text-gray-700 text-xs mb-3">Please complete the M-Pesa payment on your phone.</p>
                   </div>
                   <div className="bg-pink-50/30 backdrop-blur-sm p-2 rounded-lg">
                     <div className="flex items-center justify-center space-x-1 mb-1">
                       <Clock className="w-3 h-3 text-pink-600" />
-                      <span className="text-pink-700 font-semibold text-xs">Auto-close in {promptTimer}s</span>
+                      <span className="text-pink-700 font-semibold text-xs">{promptTimer}s remaining</span>
                     </div>
                   </div>
                   <div className="bg-blue-50/30 backdrop-blur-sm p-2 rounded-lg">
-                    <p className="text-blue-700 text-xs font-medium">✨ Live payment tracking enabled - you'll be notified instantly when payment is confirmed!</p>
+                    <p className="text-blue-700 text-xs font-medium">✨ Live payment tracking enabled - you'll be notified instantly!</p>
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Back to Shop Button */}
-      {showBackToShop && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-          <div className="w-full max-w-xs bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
-            <div className="p-4 text-center">
-              <div className="w-12 h-12 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3">
-                <ShoppingBag className="w-8 h-8 text-pink-500" />
-              </div>
-              <h3 className="text-sm font-bold text-pink-700 mb-2">Continue Shopping?</h3>
-              <p className="text-gray-700 mb-4 text-xs">Your order is being processed. Would you like to continue shopping?</p>
-              <div className="space-y-2">
-                <Button
-                  onClick={() => navigate("/")}
-                  className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-pink-300/20"
-                >
-                  <ShoppingBag className="w-3 h-3 mr-1" />
-                  Back to Shop
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowBackToShop(false)}
-                  className="w-full border-pink-200/50 text-pink-700 hover:bg-pink-50/30 py-2 rounded-lg text-xs font-semibold backdrop-blur-xl"
-                >
-                  Stay Here
-                </Button>
-              </div>
             </div>
           </div>
         </div>
