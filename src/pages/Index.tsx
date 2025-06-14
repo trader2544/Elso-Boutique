@@ -134,7 +134,7 @@ const Index = () => {
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden shadow-md">
                 <img
-                  src="/lovable-uploads/3942f446-3594-43a8-b602-0e80b80bdd8c.png"
+                  src="/lovable-uploads/7796bdd5-cd59-4ebe-b828-c3a6a07072c4.png"
                   alt="ELSO Boutique"
                   className="w-full h-full object-contain"
                 />

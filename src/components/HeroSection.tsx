@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
@@ -14,13 +15,15 @@ const HeroSection = () => {
             <p className="text-lg md:text-xl mb-6 md:mb-8 opacity-90">
               Elevate your fashion game with our curated collection of trendy jewelry, accessories, and beauty essentials
             </p>
-            <Button 
-              size="lg" 
-              variant="secondary"
-              className="bg-white text-pink-600 hover:bg-pink-50 px-6 md:px-8 py-3 md:py-4 text-base md:text-lg rounded-full font-semibold"
-            >
-              Shop Now
-            </Button>
+            <Link to="/about">
+              <Button 
+                size="lg" 
+                variant="secondary"
+                className="bg-white text-pink-600 hover:bg-pink-50 px-6 md:px-8 py-3 md:py-4 text-base md:text-lg rounded-full font-semibold"
+              >
+                About Us
+              </Button>
+            </Link>
           </div>
           <div className="md:w-1/2 flex justify-center">
             <div className="w-64 h-64 md:w-80 md:h-80 rounded-full overflow-hidden shadow-2xl backdrop-blur-sm border-4 border-white/30">

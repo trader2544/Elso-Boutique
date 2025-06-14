@@ -240,37 +240,44 @@ const Admin = () => {
                                     KSh {order.total_price.toLocaleString()}
                                   </p>
                                 </div>
+                                {/* Show basic customer info when collapsed */}
+                                <div className="mt-2">
+                                  <p className="text-sm text-gray-600">
+                                    Customer: {order.profiles?.full_name || order.customer_name || 'N/A'}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    Items: {order.products.length}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </CollapsibleTrigger>
                           <CollapsibleContent>
                             <div className="px-4 pb-4 space-y-4">
                               {/* Customer Info */}
-                              {order.profiles && (
-                                <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-lg border border-blue-200">
-                                  <h4 className="font-medium text-blue-700 mb-2 text-sm">👤 Customer Details</h4>
-                                  <div className="space-y-1 text-sm">
-                                    <div>
-                                      <span className="text-gray-600 font-medium">Name: </span>
-                                      <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-600 font-medium">Email: </span>
-                                      <span className="text-gray-900">{order.profiles.email}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-600 font-medium">Phone: </span>
-                                      <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
-                                    </div>
-                                    {order.delivery_location && (
-                                      <div>
-                                        <span className="text-gray-600 font-medium">Address: </span>
-                                        <span className="text-gray-900">{order.delivery_location}</span>
-                                      </div>
-                                    )}
+                              <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-lg border border-blue-200">
+                                <h4 className="font-medium text-blue-700 mb-2 text-sm">👤 Customer Details</h4>
+                                <div className="space-y-1 text-sm">
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Name: </span>
+                                    <span className="text-gray-900">{order.profiles?.full_name || order.customer_name || 'N/A'}</span>
                                   </div>
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Email: </span>
+                                    <span className="text-gray-900">{order.profiles?.email || order.customer_email || 'N/A'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Phone: </span>
+                                    <span className="text-gray-900">{order.customer_phone || order.profiles?.phone || 'N/A'}</span>
+                                  </div>
+                                  {order.delivery_location && (
+                                    <div>
+                                      <span className="text-gray-600 font-medium">Address: </span>
+                                      <span className="text-gray-900">{order.delivery_location}</span>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
 
                               {/* Products */}
                               <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-lg border border-purple-200">
@@ -324,9 +331,12 @@ const Admin = () => {
                           {/* Order Header */}
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between space-y-3 sm:space-y-0">
                             <div className="flex-1">
-                              <p className="font-semibold text-gray-900">Order #{order.id.slice(-8)}</p>
+                              <p className="font-semibold text-gray-900 text-lg">Order #{order.id.slice(-8)}</p>
                               <p className="text-sm text-gray-600">
                                 {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString()}
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Customer: {order.profiles?.full_name || order.customer_name || 'N/A'} | Items: {order.products.length}
                               </p>
                             </div>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
@@ -348,35 +358,33 @@ const Admin = () => {
                           </div>
 
                           {/* Customer Info */}
-                          {order.profiles && (
-                            <div className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-xl border border-blue-200">
-                              <h4 className="font-medium text-blue-700 mb-3">👤 Customer Information</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                <div className="space-y-2">
-                                  <div>
-                                    <span className="text-gray-600 font-medium">Full Name: </span>
-                                    <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600 font-medium">Email: </span>
-                                    <span className="text-gray-900">{order.profiles.email}</span>
-                                  </div>
+                          <div className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-xl border border-blue-200">
+                            <h4 className="font-medium text-blue-700 mb-3">👤 Customer Information</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                              <div className="space-y-2">
+                                <div>
+                                  <span className="text-gray-600 font-medium">Full Name: </span>
+                                  <span className="text-gray-900">{order.profiles?.full_name || order.customer_name || 'N/A'}</span>
                                 </div>
-                                <div className="space-y-2">
-                                  <div>
-                                    <span className="text-gray-600 font-medium">Phone: </span>
-                                    <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
-                                  </div>
-                                  {order.delivery_location && (
-                                    <div>
-                                      <span className="text-gray-600 font-medium">Delivery Address: </span>
-                                      <span className="text-gray-900">{order.delivery_location}</span>
-                                    </div>
-                                  )}
+                                <div>
+                                  <span className="text-gray-600 font-medium">Email: </span>
+                                  <span className="text-gray-900">{order.profiles?.email || order.customer_email || 'N/A'}</span>
                                 </div>
                               </div>
+                              <div className="space-y-2">
+                                <div>
+                                  <span className="text-gray-600 font-medium">Phone: </span>
+                                  <span className="text-gray-900">{order.customer_phone || order.profiles?.phone || 'N/A'}</span>
+                                </div>
+                                {order.delivery_location && (
+                                  <div>
+                                    <span className="text-gray-600 font-medium">Delivery Address: </span>
+                                    <span className="text-gray-900">{order.delivery_location}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          </div>
                           
                           {/* Order Items */}
                           <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-xl border border-purple-200">
