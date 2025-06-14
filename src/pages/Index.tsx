@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,10 @@ import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
 import MobileProductCard from "@/components/MobileProductCard";
 import FloatingBackground from "@/components/FloatingBackground";
+import MovableCartIcon from "@/components/MovableCartIcon";
 import { useCart } from "@/hooks/useCart";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
   id: string;
@@ -36,6 +38,8 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { cartCount } = useCart();
+  const scrollDirection = useScrollDirection();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -126,8 +130,10 @@ const Index = () => {
     <div className="min-h-screen relative">
       <FloatingBackground />
       
-      {/* Header */}
-      <header className="bg-gradient-to-r from-pink-50 via-white to-pink-50 backdrop-blur-md shadow-lg sticky top-0 z-50 relative border-b border-pink-100">
+      {/* Header with scroll behavior */}
+      <header className={`bg-gradient-to-r from-pink-50 via-white to-pink-50 backdrop-blur-md shadow-lg sticky top-0 z-50 relative border-b border-pink-100 transition-transform duration-300 ${
+        isMobile && scrollDirection === 'down' ? '-translate-y-full' : 'translate-y-0'
+      }`}>
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -320,6 +326,9 @@ const Index = () => {
           </svg>
         </a>
       </div>
+
+      {/* Movable Cart Icon - Only show on mobile when user is signed in */}
+      {isMobile && user && <MovableCartIcon />}
     </div>
   );
 };
