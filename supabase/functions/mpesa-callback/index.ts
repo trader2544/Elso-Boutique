@@ -22,92 +22,116 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { Body } = callbackData;
+    
+    if (!Body) {
+      console.error('Invalid callback structure - no Body');
+      return new Response('Invalid callback - no Body', { status: 400 });
+    }
+
     const { stkCallback } = Body;
 
     if (!stkCallback) {
-      console.error('Invalid callback structure');
-      return new Response('Invalid callback', { status: 400 });
+      console.error('Invalid callback structure - no stkCallback');
+      return new Response('Invalid callback - no stkCallback', { status: 400 });
     }
 
-    const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata } = stkCallback;
+    const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata, MerchantRequestID } = stkCallback;
 
-    console.log('Processing callback with ResultCode:', ResultCode);
+    console.log('Processing callback with:', {
+      CheckoutRequestID,
+      ResultCode,
+      ResultDesc,
+      MerchantRequestID
+    });
 
-    // Extract order ID from account reference
-    let orderId = null;
-    if (CallbackMetadata?.Item) {
-      const accountRefItem = CallbackMetadata.Item.find((item: any) => item.Name === 'AccountReference');
-      if (accountRefItem?.Value) {
-        orderId = accountRefItem.Value.replace('ORDER_', '');
-        console.log('Extracted order ID:', orderId);
-      }
-    }
-
+    // Extract data from callback metadata
+    let orderId = 'unknown';
     let transactionId = null;
-    let amount = null;
-    let phoneNumber = null;
+    let amount = 0;
+    let phoneNumber = 'unknown';
 
-    if (CallbackMetadata?.Item) {
-      const receiptItem = CallbackMetadata.Item.find((item: any) => item.Name === 'MpesaReceiptNumber');
-      const amountItem = CallbackMetadata.Item.find((item: any) => item.Name === 'Amount');
-      const phoneItem = CallbackMetadata.Item.find((item: any) => item.Name === 'PhoneNumber');
+    if (CallbackMetadata?.Item && Array.isArray(CallbackMetadata.Item)) {
+      console.log('Processing CallbackMetadata items:', CallbackMetadata.Item);
       
-      transactionId = receiptItem?.Value;
-      amount = amountItem?.Value;
-      phoneNumber = phoneItem?.Value;
+      for (const item of CallbackMetadata.Item) {
+        if (item.Name === 'AccountReference' && item.Value) {
+          orderId = item.Value.toString().replace('ORDER_', '');
+          console.log('Extracted order ID:', orderId);
+        } else if (item.Name === 'MpesaReceiptNumber' && item.Value) {
+          transactionId = item.Value.toString();
+          console.log('Extracted transaction ID:', transactionId);
+        } else if (item.Name === 'Amount' && item.Value) {
+          amount = parseFloat(item.Value.toString()) || 0;
+          console.log('Extracted amount:', amount);
+        } else if (item.Name === 'PhoneNumber' && item.Value) {
+          phoneNumber = item.Value.toString();
+          console.log('Extracted phone number:', phoneNumber);
+        }
+      }
+    } else {
+      console.log('No CallbackMetadata or items found');
     }
 
     // Determine transaction status based on result code
     let transactionStatus = 'pending';
     
-    if (ResultCode === 0) {
+    if (ResultCode === 0 || ResultCode === '0') {
       transactionStatus = 'completed';
-      console.log('Payment successful - M-Pesa transaction will be marked as completed');
+      console.log('Payment successful - marking as completed');
     } else {
       transactionStatus = 'failed';
       console.log('Payment failed with result code:', ResultCode);
     }
 
-    console.log('Processing payment callback:', {
+    console.log('Final transaction data to insert:', {
       orderId,
-      ResultCode,
-      ResultDesc,
-      transactionId,
-      amount,
       phoneNumber,
-      transactionStatus
+      amount,
+      CheckoutRequestID,
+      MerchantRequestID,
+      ResultCode: ResultCode?.toString(),
+      ResultDesc,
+      transactionStatus,
+      transactionId
     });
 
-    // Insert/update M-Pesa transaction record - this should trigger our database trigger
+    // Insert/update M-Pesa transaction record
     if (CheckoutRequestID) {
       console.log('Inserting/updating M-Pesa transaction record...');
-      const { data: transactionData, error: transactionError } = await supabase
+      
+      const transactionData = {
+        order_id: orderId,
+        phone_number: phoneNumber,
+        amount: amount,
+        checkout_request_id: CheckoutRequestID,
+        merchant_request_id: MerchantRequestID || null,
+        response_code: ResultCode?.toString() || null,
+        response_description: ResultDesc || null,
+        status: transactionStatus,
+        customer_message: ResultDesc || null
+      };
+
+      console.log('About to upsert transaction data:', transactionData);
+
+      const { data: transactionResult, error: transactionError } = await supabase
         .from('mpesa_transactions')
-        .upsert({
-          order_id: orderId || 'unknown',
-          phone_number: phoneNumber || 'unknown',
-          amount: amount ? parseFloat(amount) : 0,
-          checkout_request_id: CheckoutRequestID,
-          merchant_request_id: stkCallback.MerchantRequestID,
-          response_code: ResultCode.toString(),
-          response_description: ResultDesc,
-          status: transactionStatus,
-          customer_message: ResultDesc
-        }, {
+        .upsert(transactionData, {
           onConflict: 'checkout_request_id'
-        });
+        })
+        .select();
 
       if (transactionError) {
         console.error('Error inserting/updating M-Pesa transaction:', transactionError);
+        console.error('Transaction error details:', JSON.stringify(transactionError, null, 2));
       } else {
-        console.log('M-Pesa transaction recorded successfully. Database trigger should handle order status update.');
+        console.log('M-Pesa transaction recorded successfully:', transactionResult);
         
-        // Let's also verify the order was updated by checking it
-        if (ResultCode === 0 && orderId) {
-          console.log('Verifying order status after transaction insert...');
+        // If successful payment, verify the order was updated
+        if (transactionStatus === 'completed' && orderId !== 'unknown') {
+          console.log('Verifying order status after successful payment...');
           
           // Wait a moment for the trigger to execute
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           const { data: orderCheck, error: orderCheckError } = await supabase
             .from('orders')
@@ -120,14 +144,14 @@ serve(async (req) => {
           } else {
             console.log('Order status after trigger execution:', orderCheck);
             
-            // If the trigger didn't work, let's manually update the order as fallback
-            if (orderCheck.status !== 'paid') {
+            // If the trigger didn't work, manually update the order as fallback
+            if (orderCheck && orderCheck.status !== 'paid') {
               console.log('Trigger did not update order status, manually updating...');
               const { error: manualUpdateError } = await supabase
                 .from('orders')
                 .update({
                   status: 'paid',
-                  transaction_id: transactionId
+                  transaction_id: transactionId || CheckoutRequestID
                 })
                 .eq('id', orderId);
 
@@ -137,11 +161,13 @@ serve(async (req) => {
                 console.log('Order manually updated to paid status');
               }
             } else {
-              console.log('Order status successfully updated by trigger');
+              console.log('Order status successfully updated by trigger or already paid');
             }
           }
         }
       }
+    } else {
+      console.error('No CheckoutRequestID found in callback data');
     }
 
     return new Response('OK', { 
@@ -151,6 +177,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error processing M-Pesa callback:', error);
+    console.error('Error stack:', error.stack);
     return new Response('Error', { 
       status: 500,
       headers: corsHeaders
