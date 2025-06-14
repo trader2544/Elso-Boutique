@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -17,6 +17,9 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [paymentInProgress, setPaymentInProgress] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
+  const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
+  const [promptTimer, setPromptTimer] = useState(30);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -49,42 +52,73 @@ const Checkout = () => {
     calculateDeliveryFee();
   }, [customerInfo.city, customerInfo.exactLocation]);
 
-  // M-Pesa realtime listener for transaction status
+  // Payment prompt timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showPaymentPrompt && promptTimer > 0) {
+      interval = setInterval(() => {
+        setPromptTimer(prev => prev - 1);
+      }, 1000);
+    } else if (promptTimer === 0) {
+      setShowPaymentPrompt(false);
+      setPaymentStatus(null);
+      setPromptTimer(30);
+    }
+    return () => clearInterval(interval);
+  }, [showPaymentPrompt, promptTimer]);
+
+  // M-Pesa transaction listener
   useEffect(() => {
     if (!currentOrderId) return;
 
-    console.log("Setting up realtime listener for order:", currentOrderId);
+    console.log("Setting up M-Pesa transaction listener for order:", currentOrderId);
     
     const channel = supabase
-      .channel('order-updates')
+      .channel('mpesa-transactions')
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: 'INSERT',
           schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${currentOrderId}`,
+          table: 'mpesa_transactions',
+          filter: `order_id=eq.${currentOrderId}`,
         },
-        (payload) => {
-          console.log('Order update received:', payload);
-          const updatedOrder = payload.new;
+        async (payload) => {
+          console.log('M-Pesa transaction received:', payload);
+          const transaction = payload.new;
           
-          if (updatedOrder.status === 'paid') {
+          if (transaction.status === 'completed' || transaction.response_code === '0') {
+            // Payment successful
+            setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
+            
+            // Update order status to paid
+            const { error: orderError } = await supabase
+              .from("orders")
+              .update({ status: 'paid', transaction_id: transaction.id })
+              .eq("id", currentOrderId);
+
+            if (orderError) {
+              console.error("Error updating order:", orderError);
+            }
+
             toast({
               title: "Payment Successful! 🎉",
-              description: "Your order has been confirmed. Redirecting to order history...",
+              description: "Your order has been confirmed.",
             });
             
-            // Clear cart and redirect to profile
+            // Clear cart and redirect after prompt disappears
             setTimeout(() => {
               navigate("/profile");
             }, 2000);
-          } else if (updatedOrder.status === 'cancelled') {
+          } else {
+            // Payment failed
+            setPaymentStatus('failed');
             setPaymentInProgress(false);
             setProcessing(false);
             setCurrentOrderId(null);
+            
             toast({
               title: "Payment Failed",
               description: "Your payment was not successful. Please try again.",
@@ -96,7 +130,7 @@ const Checkout = () => {
       .subscribe();
 
     return () => {
-      console.log("Cleaning up realtime listener");
+      console.log("Cleaning up M-Pesa transaction listener");
       supabase.removeChannel(channel);
     };
   }, [currentOrderId, navigate, toast]);
@@ -125,11 +159,11 @@ const Checkout = () => {
     const exactLocation = customerInfo.exactLocation.toLowerCase();
     
     if (city.includes('kisumu') && (exactLocation.includes('cbd') || exactLocation.includes('town center'))) {
-      setDeliveryFee(0); // Free delivery within Kisumu CBD
+      setDeliveryFee(0);
     } else if (city.includes('kisumu')) {
-      setDeliveryFee(100); // KES 100 for other locations in Kisumu town
+      setDeliveryFee(100);
     } else {
-      setDeliveryFee(300); // KES 300 for all other regions in Kenya
+      setDeliveryFee(300);
     }
   };
 
@@ -161,7 +195,7 @@ const Checkout = () => {
 
       const deliveryLocation = `${customerInfo.address}, ${customerInfo.exactLocation}, ${customerInfo.city}`;
 
-      // Create order first - only set to pending, not paid yet
+      // Create order first
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -180,6 +214,8 @@ const Checkout = () => {
       console.log("Order created:", orderData);
       setCurrentOrderId(orderData.id);
       setPaymentInProgress(true);
+      setShowPaymentPrompt(true);
+      setPromptTimer(30);
 
       // Trigger STK Push
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -230,9 +266,10 @@ const Checkout = () => {
 
     setProcessing(true);
     setPaymentInProgress(true);
+    setShowPaymentPrompt(true);
+    setPromptTimer(30);
 
     try {
-      // Trigger STK Push again for the same order
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
         body: {
           amount: getFinalTotal(),
@@ -255,6 +292,7 @@ const Checkout = () => {
       console.error("Error retrying payment:", error);
       setProcessing(false);
       setPaymentInProgress(false);
+      setShowPaymentPrompt(false);
       toast({
         title: "Error",
         description: error.message || "Failed to retry payment",
@@ -265,20 +303,15 @@ const Checkout = () => {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
-    // Remove all non-digit characters
     const digits = value.replace(/\D/g, '');
     
-    // Always start with +254
     if (digits.length === 0) {
       setCustomerInfo({ ...customerInfo, phone: "+254" });
     } else if (digits.startsWith('254')) {
       setCustomerInfo({ ...customerInfo, phone: `+${digits}` });
     } else if (digits.startsWith('0') && digits.length > 1) {
-      // Convert 07... to +2547...
       setCustomerInfo({ ...customerInfo, phone: `+254${digits.substring(1)}` });
     } else if (!digits.startsWith('254')) {
-      // Add 254 prefix if not present
       setCustomerInfo({ ...customerInfo, phone: `+254${digits}` });
     } else {
       setCustomerInfo({ ...customerInfo, phone: `+${digits}` });
@@ -298,7 +331,7 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 flex items-center justify-center">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
       </div>
     );
@@ -306,14 +339,14 @@ const Checkout = () => {
 
   if (cartItems.length === 0 && !paymentInProgress) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-lg border-pink-200">
-          <CardHeader>
+      <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-xl border border-pink-100 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
             <CardTitle className="text-pink-700">Cart is Empty</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <p className="text-gray-600 mb-4">Add some items to your cart first.</p>
-            <Button onClick={() => navigate("/")} className="w-full bg-gradient-to-r from-pink-500 to-purple-500">
+            <Button onClick={() => navigate("/")} className="w-full bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 rounded-full">
               Start Shopping
             </Button>
           </CardContent>
@@ -323,49 +356,76 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100">
+    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 relative">
+      {/* Payment Status Prompt */}
+      {showPaymentPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden">
+            <CardContent className="p-8 text-center">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowPaymentPrompt(false);
+                  setPaymentStatus(null);
+                  setPromptTimer(30);
+                }}
+                className="absolute top-4 left-4 rounded-full p-2 hover:bg-gray-100"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              
+              {paymentStatus === 'success' ? (
+                <div className="space-y-4">
+                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+                  <h3 className="text-xl font-bold text-green-700">Payment Successful!</h3>
+                  <p className="text-gray-600">Your order has been confirmed and will be processed shortly.</p>
+                </div>
+              ) : paymentStatus === 'failed' ? (
+                <div className="space-y-4">
+                  <XCircle className="w-16 h-16 text-red-500 mx-auto" />
+                  <h3 className="text-xl font-bold text-red-700">Payment Failed</h3>
+                  <p className="text-gray-600">Your payment was not successful. Please try again.</p>
+                  <Button
+                    onClick={handleRetryPayment}
+                    disabled={processing}
+                    className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 rounded-full"
+                  >
+                    {processing ? "Retrying..." : "Retry Payment"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+                  <h3 className="text-xl font-bold text-pink-700">Processing Payment</h3>
+                  <p className="text-gray-600">Please complete the M-Pesa payment on your phone.</p>
+                  <div className="bg-pink-50 p-3 rounded-full">
+                    <span className="text-pink-700 font-medium">Auto-close in {promptTimer}s</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-6 md:py-8">
         <Button
           variant="ghost"
           onClick={() => navigate("/cart")}
-          className="mb-6 hover:bg-pink-100"
+          className="mb-6 hover:bg-pink-50 rounded-full"
           disabled={paymentInProgress}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Cart
         </Button>
 
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent">
           Checkout
         </h1>
 
-        {paymentInProgress && (
-          <Card className="mb-6 shadow-lg border-yellow-200 bg-yellow-50">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                <div>
-                  <p className="font-medium text-yellow-800">Payment in Progress</p>
-                  <p className="text-sm text-yellow-700">
-                    Waiting for M-Pesa payment confirmation. Please complete the payment on your phone.
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={handleRetryPayment}
-                disabled={processing}
-                className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
-                size="sm"
-              >
-                {processing ? "Retrying..." : "Retry Payment"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
-          <Card className="shadow-lg border-pink-200">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+          <Card className="shadow-xl border border-pink-100 rounded-3xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
               <CardTitle className="text-pink-700">Delivery Information</CardTitle>
             </CardHeader>
             <CardContent className="p-4 md:p-6">
@@ -380,7 +440,7 @@ const Checkout = () => {
                     placeholder="+254700000000"
                     required
                     disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
                   />
                   <p className="text-sm text-pink-600 mt-1">
                     📱 Enter your phone number for M-Pesa payment
@@ -396,11 +456,8 @@ const Checkout = () => {
                     placeholder="Street address, building, apartment number"
                     required
                     disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Include detailed address for accurate delivery
-                  </p>
                 </div>
                 
                 <div>
@@ -412,7 +469,7 @@ const Checkout = () => {
                     placeholder="Kisumu, Nairobi, Mombasa, etc."
                     required
                     disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
                   />
                 </div>
 
@@ -425,15 +482,12 @@ const Checkout = () => {
                     placeholder="CBD, town center, specific area/landmark"
                     required
                     disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400"
+                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Be specific (e.g., "CBD", "town center", or exact area) for accurate delivery fee calculation
-                  </p>
                 </div>
 
                 {customerInfo.city && customerInfo.exactLocation && (
-                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-xl border border-blue-200">
                     <p className="text-sm text-blue-700 font-medium">📍 Delivery Zone: {getDeliveryZoneInfo()}</p>
                   </div>
                 )}
@@ -441,7 +495,7 @@ const Checkout = () => {
                 {!paymentInProgress && (
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md py-3"
+                    className="w-full bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 shadow-lg py-3 rounded-full"
                     disabled={processing}
                   >
                     {processing ? (
@@ -458,8 +512,8 @@ const Checkout = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-pink-200">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+          <Card className="shadow-xl border border-pink-100 rounded-3xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
               <CardTitle className="text-pink-700">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:p-6">
@@ -496,20 +550,19 @@ const Checkout = () => {
                 </div>
               </div>
 
-              <div className="bg-pink-50 p-4 rounded-lg border border-pink-200">
+              <div className="bg-gradient-to-r from-pink-50 to-white p-4 rounded-xl border border-pink-200">
                 <h4 className="font-medium mb-2 text-pink-700">💳 Payment Method</h4>
                 <p className="text-sm text-pink-600">
                   M-Pesa STK Push. You will receive a payment prompt on your phone to complete the transaction.
                 </p>
               </div>
 
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-xl border border-purple-200">
                 <h4 className="font-medium mb-2 text-purple-700">🚚 Delivery Info</h4>
                 <div className="text-sm text-purple-600 space-y-1">
                   <p>• Free delivery within Kisumu CBD</p>
                   <p>• KES 100 for other locations in Kisumu town</p>
                   <p>• KES 300 to all other regions in Kenya</p>
-                  <p className="mt-2">You will receive a confirmation call after successful payment.</p>
                 </div>
               </div>
             </CardContent>
@@ -518,7 +571,7 @@ const Checkout = () => {
       </div>
 
       {/* WhatsApp Hover Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-40">
         <a
           href="https://wa.me/254773482210"
           target="_blank"

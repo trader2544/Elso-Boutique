@@ -34,10 +34,23 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      // Fetch total sales and orders
+      // Fetch total sales and orders with customer details
       const { data: ordersData } = await supabase
         .from("orders")
-        .select("total_price, created_at, status, id, customer_phone")
+        .select(`
+          total_price, 
+          created_at, 
+          status, 
+          id, 
+          customer_phone,
+          delivery_location,
+          products,
+          profiles (
+            full_name,
+            email,
+            phone
+          )
+        `)
         .order("created_at", { ascending: false });
 
       // Fetch total users
@@ -153,29 +166,24 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Recent Orders */}
         <Card className="lg:col-span-2 shadow-lg border-pink-200">
-          <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+          <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
             <CardTitle className="text-pink-700">Recent Orders</CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
-            <div className="space-y-3">
+            <div className="space-y-4">
               {stats.recentOrders.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">No orders yet</p>
               ) : (
                 stats.recentOrders.map((order) => (
-                  <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-pink-100 space-y-2 sm:space-y-0">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 text-sm">Order #{order.id.slice(-8)}</p>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        <span>{new Date(order.created_at).toLocaleDateString()}</span>
-                        {order.customer_phone && (
-                          <span>• {order.customer_phone}</span>
-                        )}
+                  <div key={order.id} className="bg-white rounded-lg border border-pink-100 p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">Order #{order.id.slice(-8)}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                          <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                          <span>• KSh {Number(order.total_price).toLocaleString()}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:flex-col sm:items-end sm:text-right space-x-2 sm:space-x-0">
-                      <p className="font-medium text-pink-600 text-sm">
-                        KSh {Number(order.total_price).toLocaleString()}
-                      </p>
                       <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                         order.status === 'paid' ? 'bg-green-100 text-green-800' :
                         order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -186,6 +194,56 @@ const AdminDashboard = () => {
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                     </div>
+
+                    {/* Customer Details */}
+                    {order.profiles && (
+                      <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-lg border border-blue-100">
+                        <h5 className="text-xs font-medium text-blue-700 mb-2">👤 Customer Details</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                          <div>
+                            <span className="text-gray-600">Name: </span>
+                            <span className="text-gray-900">{order.profiles.full_name || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Email: </span>
+                            <span className="text-gray-900">{order.profiles.email}</span>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <span className="text-gray-600">Phone: </span>
+                            <span className="text-gray-900">{order.customer_phone || order.profiles.phone || 'N/A'}</span>
+                          </div>
+                          {order.delivery_location && (
+                            <div className="sm:col-span-2">
+                              <span className="text-gray-600">Address: </span>
+                              <span className="text-gray-900">{order.delivery_location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Products List */}
+                    {order.products && Array.isArray(order.products) && (
+                      <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-lg border border-purple-100">
+                        <h5 className="text-xs font-medium text-purple-700 mb-2">📦 Products ({order.products.length})</h5>
+                        <div className="space-y-1">
+                          {order.products.slice(0, 3).map((product: any, index: number) => (
+                            <div key={index} className="flex justify-between items-center text-xs">
+                              <span className="text-gray-700 flex-1">
+                                {product.name} 
+                                <span className="text-purple-600 ml-1">×{product.quantity}</span>
+                              </span>
+                              <span className="text-purple-600 font-medium">
+                                KSh {(product.price * product.quantity).toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                          {order.products.length > 3 && (
+                            <p className="text-xs text-gray-500 italic">+{order.products.length - 3} more items...</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -195,7 +253,7 @@ const AdminDashboard = () => {
 
         {/* Order Status Breakdown */}
         <Card className="shadow-lg border-pink-200">
-          <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50">
+          <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
             <CardTitle className="text-pink-700">Order Status</CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6">

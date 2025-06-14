@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ const Index = () => {
       <FloatingBackground />
       
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 relative border-b border-pink-100">
+      <header className="bg-gradient-to-r from-pink-50 via-white to-pink-50 backdrop-blur-md shadow-lg sticky top-0 z-50 relative border-b border-pink-100">
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -138,7 +139,7 @@ const Index = () => {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-400 bg-clip-text text-transparent">
                 ELSO
               </h1>
             </div>
@@ -154,42 +155,42 @@ const Index = () => {
                 <>
                   {userRole === 'admin' && (
                     <Link to="/admin">
-                      <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-100">
+                      <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-50">
                         <Settings className="w-4 h-4 md:mr-2" />
                         <span className="hidden md:inline">Admin</span>
                       </Button>
                     </Link>
                   )}
                   <Link to="/wishlist">
-                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-100">
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-50">
                       <Heart className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Wishlist</span>
                     </Button>
                   </Link>
                   <Link to="/cart">
-                    <Button variant="ghost" size="sm" className="rounded-full relative p-2 md:px-3 hover:bg-pink-100">
+                    <Button variant="ghost" size="sm" className="rounded-full relative p-2 md:px-3 hover:bg-pink-50">
                       <ShoppingCart className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Cart</span>
                       {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                        <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md">
                           {cartCount}
                         </span>
                       )}
                     </Button>
                   </Link>
                   <Link to="/profile">
-                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-100">
+                    <Button variant="ghost" size="sm" className="rounded-full p-2 md:px-3 hover:bg-pink-50">
                       <User className="w-4 h-4 md:mr-2" />
                       <span className="hidden md:inline">Profile</span>
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex rounded-full hover:bg-pink-100">
+                  <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex rounded-full hover:bg-pink-50">
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <Link to="/auth">
-                  <Button className="rounded-full text-sm bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-md">
+                  <Button className="rounded-full text-sm bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 shadow-md">
                     <User className="w-4 h-4 mr-1 md:mr-2" />
                     Sign In
                   </Button>
@@ -220,7 +221,7 @@ const Index = () => {
               onClick={() => setSelectedCategory(category)}
               className={`mb-2 rounded-full text-xs md:text-sm px-3 py-1 md:px-4 md:py-2 transition-all ${
                 selectedCategory === category 
-                  ? "bg-gradient-to-r from-pink-500 to-purple-500 shadow-md" 
+                  ? "bg-gradient-to-r from-pink-400 to-pink-300 shadow-md" 
                   : "border-pink-200 hover:bg-pink-50"
               }`}
               size="sm"
@@ -254,45 +255,45 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-pink-900 to-purple-900 text-white py-8 md:py-12 relative z-10">
+      <footer className="bg-gradient-to-r from-pink-100 via-white to-pink-100 text-gray-800 py-8 md:py-12 relative z-10 border-t border-pink-100">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
             <div>
-              <h3 className="text-lg md:text-xl font-bold mb-4">ELSO BOUTIQUE</h3>
-              <p className="text-gray-400 text-sm md:text-base">Your premier destination for women's fashion and beauty in Kenya.</p>
+              <h3 className="text-lg md:text-xl font-bold mb-4 bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent">ELSO BOUTIQUE</h3>
+              <p className="text-gray-600 text-sm md:text-base">Your premier destination for women's fashion and beauty in Kenya.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-sm md:text-base">Quick Links</h4>
-              <ul className="space-y-2 text-gray-400 text-sm md:text-base">
-                <li><Link to="/" className="hover:text-white">Home</Link></li>
-                <li><Link to="/cart" className="hover:text-white">Cart</Link></li>
-                <li><Link to="/wishlist" className="hover:text-white">Wishlist</Link></li>
-                <li><Link to="/profile" className="hover:text-white">Profile</Link></li>
+              <h4 className="font-semibold mb-4 text-sm md:text-base text-pink-700">Quick Links</h4>
+              <ul className="space-y-2 text-gray-600 text-sm md:text-base">
+                <li><Link to="/" className="hover:text-pink-600">Home</Link></li>
+                <li><Link to="/cart" className="hover:text-pink-600">Cart</Link></li>
+                <li><Link to="/wishlist" className="hover:text-pink-600">Wishlist</Link></li>
+                <li><Link to="/profile" className="hover:text-pink-600">Profile</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-sm md:text-base">Categories</h4>
-              <ul className="space-y-2 text-gray-400 text-sm md:text-base">
-                <li><a href="#" className="hover:text-white">Jewelry</a></li>
-                <li><a href="#" className="hover:text-white">Accessories</a></li>
-                <li><a href="#" className="hover:text-white">Beauty</a></li>
-                <li><a href="#" className="hover:text-white">Fashion</a></li>
+              <h4 className="font-semibold mb-4 text-sm md:text-base text-pink-700">Categories</h4>
+              <ul className="space-y-2 text-gray-600 text-sm md:text-base">
+                <li><a href="#" className="hover:text-pink-600">Jewelry</a></li>
+                <li><a href="#" className="hover:text-pink-600">Accessories</a></li>
+                <li><a href="#" className="hover:text-pink-600">Beauty</a></li>
+                <li><a href="#" className="hover:text-pink-600">Fashion</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-sm md:text-base">Contact Info</h4>
-              <ul className="space-y-2 text-gray-400 text-sm md:text-base">
+              <h4 className="font-semibold mb-4 text-sm md:text-base text-pink-700">Contact Info</h4>
+              <ul className="space-y-2 text-gray-600 text-sm md:text-base">
                 <li>📧 elsokisumu@gmail.com</li>
                 <li>📱 +254 745 242174</li>
                 <li>📍 Kisumu, Kenya</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-700 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-gray-400">
+          <div className="border-t border-pink-200 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-gray-500">
             <p className="text-xs md:text-sm">&copy; 2024 ELSO BOUTIQUE. All rights reserved.</p>
             <p className="text-xs mt-2">
               <span className="md:hidden">Powered by </span>
-              <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="hover:text-white">
+              <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="hover:text-pink-600">
                 <span className="hidden md:inline">Powered by </span>Telvix
               </a>
             </p>
