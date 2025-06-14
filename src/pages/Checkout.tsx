@@ -18,7 +18,7 @@ const Checkout = () => {
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
-  const [promptTimer, setPromptTimer] = useState(120); // Increased to 2 minutes for proper payment time
+  const [promptTimer, setPromptTimer] = useState(120);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -95,7 +95,7 @@ const Checkout = () => {
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
-            setShowPaymentPrompt(true); // Show success modal
+            setShowPaymentPrompt(true);
             
             toast({
               title: "Payment Confirmed! 🎉",
@@ -180,7 +180,7 @@ const Checkout = () => {
 
       const deliveryLocation = `${customerInfo.address}, ${customerInfo.exactLocation}, ${customerInfo.city}`;
 
-      // Create order with 'pending' status - it will only change to 'paid' when payment is confirmed
+      // Create order with 'pending' status
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -189,7 +189,7 @@ const Checkout = () => {
           total_price: getFinalTotal(),
           customer_phone: customerInfo.phone,
           delivery_location: deliveryLocation,
-          status: "pending", // Always start as pending
+          status: "pending",
         })
         .select()
         .single();
@@ -197,11 +197,7 @@ const Checkout = () => {
       if (orderError) throw orderError;
 
       console.log("Order created with pending status:", orderData);
-      setCurrentOrderId(orderData.id);
-      setPaymentInProgress(true);
-      setPaymentStatus('pending');
-      setPromptTimer(120);
-
+      
       // Send STK push request
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
         body: {
@@ -214,31 +210,14 @@ const Checkout = () => {
       if (stkError) throw stkError;
 
       if (stkResponse.success) {
-        toast({
-          title: "Payment Request Sent! 📱",
-          description: "Please check your phone and complete the M-Pesa payment. Your order will be confirmed once payment is received.",
-        });
-
-        // Clear cart only after STK push is successful
-        const { error: clearCartError } = await supabase
-          .from("cart_items")
-          .delete()
-          .eq("user_id", user!.id);
-
-        if (clearCartError) {
-          console.error("Error clearing cart:", clearCartError);
-        } else {
-          await refreshCart();
-        }
+        console.log("STK push sent successfully, order remains pending until callback confirms payment");
+        setProcessing(false);
       } else {
         throw new Error("Failed to initiate payment");
       }
     } catch (error: any) {
       console.error("Error processing order:", error);
       setProcessing(false);
-      setPaymentInProgress(false);
-      setCurrentOrderId(null);
-      setShowPaymentPrompt(false);
       toast({
         title: "Error",
         description: error.message || "Failed to process order",
