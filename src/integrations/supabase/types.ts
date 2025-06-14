@@ -256,6 +256,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      debug_order_mpesa_sync: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          order_id: string
+          order_status: string
+          mpesa_status: string
+          mpesa_response_code: string
+          should_be_paid: boolean
+        }[]
+      }
+      manual_fix_order_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       sync_existing_mpesa_transactions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
