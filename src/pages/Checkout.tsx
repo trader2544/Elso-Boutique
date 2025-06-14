@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,8 @@ const Checkout = () => {
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
-  const [promptTimer, setPromptTimer] = useState(30);
+  const [promptTimer, setPromptTimer] = useState(60); // Increased to 60 seconds for better visibility
+  const [transactionDetails, setTransactionDetails] = useState<any>(null);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -60,6 +60,8 @@ const Checkout = () => {
       }, 1000);
     } else if (promptTimer === 0 && paymentStatus === 'pending') {
       setPaymentStatus('failed');
+      setShowPaymentPrompt(false);
+      setPaymentInProgress(false);
       toast({
         title: "Payment Timeout",
         description: "Payment request timed out. Please try again.",
@@ -69,13 +71,14 @@ const Checkout = () => {
     return () => clearInterval(interval);
   }, [showPaymentPrompt, promptTimer, paymentStatus, toast]);
 
+  // Real-time M-Pesa transaction monitoring
   useEffect(() => {
     if (!currentOrderId) return;
 
     console.log("Setting up real-time M-Pesa transaction listener for order:", currentOrderId);
     
     const channel = supabase
-      .channel('mpesa-realtime')
+      .channel('mpesa-payment-tracking')
       .on(
         'postgres_changes',
         {
@@ -85,35 +88,42 @@ const Checkout = () => {
           filter: `order_id=eq.${currentOrderId}`,
         },
         async (payload) => {
-          console.log('Real-time M-Pesa transaction received:', payload);
+          console.log('Real-time M-Pesa transaction INSERT:', payload);
           const transaction = payload.new;
+          setTransactionDetails(transaction);
           
           if (transaction.status === 'completed' || transaction.response_code === '0') {
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
             
+            // Update order status directly
             const { error: orderError } = await supabase
               .from("orders")
-              .update({ status: 'paid', transaction_id: transaction.id })
+              .update({ 
+                status: 'paid', 
+                transaction_id: transaction.checkout_request_id || transaction.merchant_request_id 
+              })
               .eq("id", currentOrderId);
 
             if (orderError) {
               console.error("Error updating order:", orderError);
+            } else {
+              console.log("Order status updated to paid for order:", currentOrderId);
             }
 
             toast({
               title: "Payment Successful! 🎉",
               description: "Your order has been confirmed and is being processed.",
             });
-          } else {
+          } else if (transaction.status === 'failed') {
             setPaymentStatus('failed');
             setPaymentInProgress(false);
             setProcessing(false);
             
             toast({
               title: "Payment Failed",
-              description: "Your payment was not successful. Please try again.",
+              description: transaction.customer_message || "Your payment was not successful. Please try again.",
               variant: "destructive",
             });
           }
@@ -128,21 +138,28 @@ const Checkout = () => {
           filter: `order_id=eq.${currentOrderId}`,
         },
         async (payload) => {
-          console.log('Real-time M-Pesa transaction updated:', payload);
+          console.log('Real-time M-Pesa transaction UPDATE:', payload);
           const transaction = payload.new;
+          setTransactionDetails(transaction);
           
           if (transaction.status === 'completed' || transaction.response_code === '0') {
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
             
+            // Update order status directly
             const { error: orderError } = await supabase
               .from("orders")
-              .update({ status: 'paid', transaction_id: transaction.id })
+              .update({ 
+                status: 'paid', 
+                transaction_id: transaction.checkout_request_id || transaction.merchant_request_id 
+              })
               .eq("id", currentOrderId);
 
             if (orderError) {
               console.error("Error updating order:", orderError);
+            } else {
+              console.log("Order status updated to paid for order:", currentOrderId);
             }
 
             toast({
@@ -156,7 +173,7 @@ const Checkout = () => {
             
             toast({
               title: "Payment Failed",
-              description: "Your payment was not successful. Please try again.",
+              description: transaction.customer_message || "Your payment was not successful. Please try again.",
               variant: "destructive",
             });
           }
@@ -168,7 +185,15 @@ const Checkout = () => {
       console.log("Cleaning up real-time M-Pesa transaction listener");
       supabase.removeChannel(channel);
     };
-  }, [currentOrderId, navigate, toast]);
+  }, [currentOrderId, toast]);
+
+  // Auto-show payment prompt when payment is in progress
+  useEffect(() => {
+    if (paymentInProgress && !showPaymentPrompt) {
+      setShowPaymentPrompt(true);
+      setPromptTimer(60);
+    }
+  }, [paymentInProgress, showPaymentPrompt]);
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -248,9 +273,8 @@ const Checkout = () => {
       console.log("Order created:", orderData);
       setCurrentOrderId(orderData.id);
       setPaymentInProgress(true);
-      setShowPaymentPrompt(true);
       setPaymentStatus('pending');
-      setPromptTimer(30);
+      setPromptTimer(60);
 
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
         body: {
@@ -301,7 +325,7 @@ const Checkout = () => {
     setProcessing(true);
     setPaymentInProgress(true);
     setPaymentStatus('pending');
-    setPromptTimer(30);
+    setPromptTimer(60);
 
     try {
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -404,73 +428,99 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl relative">
-      {/* Payment Status Prompt */}
-      {showPaymentPrompt && (
+      {/* Enhanced Payment Status Prompt - Always visible when payment is in progress */}
+      {(showPaymentPrompt || paymentInProgress) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-          <div className="w-full max-w-xs bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
-            <div className="p-4 text-center">
+          <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
+            <div className="p-6 text-center">
               {paymentStatus === 'success' ? (
-                <div className="space-y-3">
-                  <div className="w-12 h-12 bg-green-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-8 h-8 text-green-500" />
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-green-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-10 h-10 text-green-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-green-700 mb-1">Payment Successful!</h3>
-                    <p className="text-gray-700 text-xs mb-3">Your order has been confirmed and will be processed shortly.</p>
+                    <h3 className="text-lg font-bold text-green-700 mb-2">Payment Successful!</h3>
+                    <p className="text-gray-700 text-sm mb-4">Your order has been confirmed and will be processed shortly.</p>
+                    {transactionDetails && (
+                      <div className="bg-green-50/30 backdrop-blur-sm p-3 rounded-lg text-xs">
+                        <p className="text-green-700">Transaction ID: {transactionDetails.checkout_request_id}</p>
+                        <p className="text-green-700">Amount: KSh {transactionDetails.amount}</p>
+                      </div>
+                    )}
                   </div>
                   <Button
                     onClick={handleGoToHomepage}
-                    className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-green-300/20"
+                    className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-green-300/20"
                   >
-                    <Home className="w-3 h-3 mr-1" />
+                    <Home className="w-4 h-4 mr-2" />
                     Go to Homepage
                   </Button>
                 </div>
               ) : paymentStatus === 'failed' ? (
-                <div className="space-y-3">
-                  <div className="w-12 h-12 bg-red-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
-                    <XCircle className="w-8 h-8 text-red-500" />
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-red-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
+                    <XCircle className="w-10 h-10 text-red-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-red-700 mb-1">Payment Failed</h3>
-                    <p className="text-gray-700 text-xs mb-3">Your payment was not successful.</p>
+                    <h3 className="text-lg font-bold text-red-700 mb-2">Payment Failed</h3>
+                    <p className="text-gray-700 text-sm mb-4">
+                      {transactionDetails?.customer_message || "Your payment was not successful."}
+                    </p>
+                    {transactionDetails && (
+                      <div className="bg-red-50/30 backdrop-blur-sm p-3 rounded-lg text-xs">
+                        <p className="text-red-700">Response: {transactionDetails.response_description}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Button
                       onClick={handleRetryPayment}
                       disabled={processing}
-                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-pink-300/20"
+                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-pink-300/20"
                     >
                       {processing ? "Retrying..." : "Retry Payment"}
                     </Button>
                     <Button
                       onClick={handleGoToHomepage}
                       variant="outline"
-                      className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-2 rounded-lg text-xs font-semibold backdrop-blur-xl"
+                      className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-3 rounded-lg text-sm font-semibold backdrop-blur-xl"
                     >
-                      <Home className="w-3 h-3 mr-1" />
+                      <Home className="w-4 h-4 mr-2" />
                       Go to Homepage
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="w-12 h-12 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-pink-300/30 border-t-pink-500"></div>
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
+                    <div className="inline-block animate-spin rounded-full h-10 w-10 border-2 border-pink-300/30 border-t-pink-500"></div>
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-pink-700 mb-1">Processing Payment</h3>
-                    <p className="text-gray-700 text-xs mb-3">Please complete the M-Pesa payment on your phone.</p>
+                    <h3 className="text-lg font-bold text-pink-700 mb-2">Processing Payment</h3>
+                    <p className="text-gray-700 text-sm mb-4">Please complete the M-Pesa payment on your phone.</p>
                   </div>
-                  <div className="bg-pink-50/30 backdrop-blur-sm p-2 rounded-lg">
-                    <div className="flex items-center justify-center space-x-1 mb-1">
-                      <Clock className="w-3 h-3 text-pink-600" />
-                      <span className="text-pink-700 font-semibold text-xs">{promptTimer}s remaining</span>
+                  <div className="bg-pink-50/30 backdrop-blur-sm p-4 rounded-lg">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <Clock className="w-4 h-4 text-pink-600" />
+                      <span className="text-pink-700 font-semibold text-lg">{promptTimer}s remaining</span>
+                    </div>
+                    <div className="w-full bg-pink-200/30 rounded-full h-2">
+                      <div 
+                        className="bg-pink-500 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${(promptTimer / 60) * 100}%` }}
+                      ></div>
                     </div>
                   </div>
-                  <div className="bg-blue-50/30 backdrop-blur-sm p-2 rounded-lg">
-                    <p className="text-blue-700 text-xs font-medium">✨ Live payment tracking enabled - you'll be notified instantly!</p>
+                  <div className="bg-blue-50/30 backdrop-blur-sm p-3 rounded-lg">
+                    <p className="text-blue-700 text-sm font-medium">✨ Real-time payment tracking enabled</p>
+                    <p className="text-blue-600 text-xs">You'll be notified instantly when payment is received!</p>
                   </div>
+                  {transactionDetails && (
+                    <div className="bg-gray-50/30 backdrop-blur-sm p-3 rounded-lg text-xs">
+                      <p className="text-gray-700">Checkout Request: {transactionDetails.checkout_request_id}</p>
+                      <p className="text-gray-700">Status: {transactionDetails.status}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -569,7 +619,6 @@ const Checkout = () => {
                     </div>
                   )}
 
-                  {/* Phone Number Field - Moved to just before payment button */}
                   <div className="space-y-3 pt-3 border-t border-pink-100/20">
                     <div>
                       <Label htmlFor="phone" className="text-pink-700 font-semibold text-xs flex items-center mb-1">
@@ -678,7 +727,6 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Security & Payment Info */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-gradient-to-r from-green-50/30 to-emerald-50/30 backdrop-blur-sm border border-green-200/30 rounded-lg p-2 text-center">
                   <Shield className="w-4 h-4 text-green-600 mx-auto mb-1" />
