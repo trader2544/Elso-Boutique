@@ -6,15 +6,15 @@ import { ChevronDown } from "lucide-react";
 const HeroSection = () => {
   return (
     <section className="relative bg-gradient-to-br from-pink-50 via-pink-25 to-white h-[70vh] md:h-[80vh] flex items-center overflow-hidden">
-      {/* Background Image with Pink Overlay */}
+      {/* Background Image without Pink Overlay */}
       <div className="absolute inset-0 z-0">
         <img
           src="/lovable-uploads/6dbb14c3-2b40-46f1-9d1f-eeb627e9ea0b.png"
           alt="ELSO Boutique Fashion Model"
           className="w-full h-full object-cover"
         />
-        {/* Pink Gradient Overlay for Brand Consistency */}
-        <div className="absolute inset-0 bg-gradient-to-r from-pink-900/70 via-pink-800/50 to-pink-600/30"></div>
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
