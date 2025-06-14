@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,10 +43,10 @@ const Cart = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-pink-200 border-t-pink-600"></div>
-          <p className="text-pink-600 font-medium text-base sm:text-lg">Loading your cart...</p>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-pink-300/30 border-t-pink-500"></div>
+          <p className="text-pink-600 font-medium text-sm">Loading your cart...</p>
         </div>
       </div>
     );
@@ -53,19 +54,19 @@ const Cart = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
-          <div className="bg-gradient-to-r from-pink-500 to-pink-400 text-white text-center py-8">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShoppingBag className="w-10 h-10" />
+      <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl flex items-center justify-center p-3">
+        <div className="w-full max-w-sm mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden">
+          <div className="bg-gradient-to-r from-pink-500/80 to-pink-400/80 backdrop-blur-xl text-white text-center py-6">
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <ShoppingBag className="w-8 h-8" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold">Sign In Required</h2>
+            <h2 className="text-lg font-bold text-pink-50">Sign In Required</h2>
           </div>
-          <div className="p-6 sm:p-8 text-center">
-            <p className="text-gray-700 mb-6 text-base sm:text-lg">Please sign in to view your cart and start shopping.</p>
+          <div className="p-5 text-center">
+            <p className="text-pink-600 mb-5 text-sm">Please sign in to view your cart and start shopping.</p>
             <Button 
               onClick={() => navigate("/auth")} 
-              className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white py-3 rounded-full text-base sm:text-lg font-semibold shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+              className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2.5 rounded-xl text-sm font-semibold backdrop-blur-xl border border-pink-300/20"
             >
               Sign In Now
             </Button>
@@ -76,45 +77,45 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/60 backdrop-blur-xl border-b border-white/30">
-        <div className="container mx-auto px-4 py-4">
+      <div className="sticky top-0 z-10 bg-white/5 backdrop-blur-2xl border-b border-white/10">
+        <div className="container mx-auto px-3 py-3">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
-              className="flex items-center space-x-2 hover:bg-pink-50/50 rounded-full px-4 py-2"
+              className="flex items-center space-x-2 hover:bg-pink-50/20 rounded-xl px-3 py-2 backdrop-blur-xl"
             >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
-              <span className="hidden sm:inline text-pink-600 font-medium text-sm sm:text-base">Continue Shopping</span>
+              <ArrowLeft className="w-4 h-4 text-pink-600" />
+              <span className="hidden sm:inline text-pink-600 font-medium text-xs">Continue Shopping</span>
             </Button>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-500 bg-clip-text text-transparent">
-              Shopping Cart ({cartItems.length})
+            <h1 className="text-base sm:text-lg font-bold text-pink-600">
+              Cart ({cartItems.length})
             </h1>
-            <div className="w-20"></div>
+            <div className="w-16"></div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="container mx-auto px-3 py-4">
         {isLoading ? (
-          <div className="text-center py-16">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-pink-200 border-t-pink-600 mb-4"></div>
-            <p className="text-pink-600 font-medium text-base sm:text-lg">Loading your cart...</p>
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-pink-300/30 border-t-pink-500 mb-3"></div>
+            <p className="text-pink-600 font-medium text-sm">Loading your cart...</p>
           </div>
         ) : cartItems.length === 0 ? (
-          <div className="max-w-md mx-auto">
-            <Card className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
-              <CardContent className="text-center py-12 sm:py-16 px-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6">
-                  <ShoppingBag className="w-10 h-10 sm:w-12 sm:h-12 text-pink-400" />
+          <div className="max-w-sm mx-auto">
+            <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-2xl overflow-hidden">
+              <CardContent className="text-center py-10 px-5">
+                <div className="w-16 h-16 bg-pink-100/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShoppingBag className="w-8 h-8 text-pink-400" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
-                <p className="text-gray-600 mb-8 text-base sm:text-lg">Discover amazing products and start shopping!</p>
+                <h2 className="text-lg font-bold text-pink-600 mb-3">Your cart is empty</h2>
+                <p className="text-pink-500 mb-6 text-sm">Discover amazing products and start shopping!</p>
                 <Button 
                   onClick={() => navigate("/")}
-                  className="bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white px-6 sm:px-8 py-3 rounded-full text-base sm:text-lg font-semibold shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+                  className="bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white px-6 py-2.5 rounded-xl text-sm font-semibold backdrop-blur-xl border border-pink-300/20"
                 >
                   Start Shopping
                 </Button>
@@ -122,30 +123,30 @@ const Cart = () => {
             </Card>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Cart Items Card */}
             <div className="lg:col-span-8">
-              <Card className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-400 text-white">
-                  <CardTitle className="text-lg sm:text-xl font-bold flex items-center">
-                    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
+              <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-2xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-pink-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-3">
+                  <CardTitle className="text-base font-bold flex items-center text-pink-600">
+                    <ShoppingBag className="w-4 h-4 mr-2" />
                     Cart Items ({cartItems.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-6 space-y-4">
+                <CardContent className="p-3 space-y-3">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl p-4 hover:shadow-lg transition-all duration-300">
-                      <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                    <div key={item.id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3">
+                      <div className="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
                         {/* Product Image */}
-                        <div className="w-full sm:w-20 h-20 bg-gradient-to-br from-pink-100/30 to-pink-50/30 backdrop-blur-sm rounded-xl overflow-hidden flex-shrink-0 relative group">
+                        <div className="w-full sm:w-16 h-16 bg-gradient-to-br from-pink-100/10 to-pink-50/10 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0">
                           {item.products.image_url ? (
                             <img
                               src={item.products.image_url}
                               alt={item.products.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-pink-300 text-xl sm:text-2xl">
+                            <div className="w-full h-full flex items-center justify-center text-pink-300 text-lg">
                               📷
                             </div>
                           )}
@@ -153,40 +154,40 @@ const Cart = () => {
 
                         {/* Product Details */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-base sm:text-lg md:text-xl text-gray-800 mb-2 line-clamp-2">{item.products.name}</h3>
-                          <div className="flex items-center space-x-3 mb-4">
-                            <span className="text-lg sm:text-xl md:text-2xl font-bold text-pink-600">
+                          <h3 className="font-bold text-sm text-pink-600 mb-1 line-clamp-2">{item.products.name}</h3>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-base font-bold text-pink-500">
                               KSh {item.products.price.toLocaleString()}
                             </span>
                             {!item.products.in_stock && (
-                              <span className="bg-red-100 text-red-600 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
+                              <span className="bg-red-100/20 text-red-400 px-2 py-0.5 rounded-full text-xs font-medium backdrop-blur-xl">
                                 Out of stock
                               </span>
                             )}
                           </div>
 
                           {/* Mobile Layout */}
-                          <div className="sm:hidden space-y-4">
+                          <div className="sm:hidden space-y-2">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-xl p-2">
+                              <div className="flex items-center space-x-2 bg-white/5 backdrop-blur-xl rounded-lg p-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                   disabled={item.quantity <= 1 || isLoading}
-                                  className="h-8 w-8 rounded-lg hover:bg-pink-100/30"
+                                  className="h-6 w-6 rounded-md hover:bg-pink-100/20"
                                 >
-                                  <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  <Minus className="w-3 h-3" />
                                 </Button>
-                                <span className="w-8 text-center font-semibold text-sm sm:text-base">{item.quantity}</span>
+                                <span className="w-6 text-center font-semibold text-xs text-pink-600">{item.quantity}</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                   disabled={isLoading}
-                                  className="h-8 w-8 rounded-lg hover:bg-pink-100/30"
+                                  className="h-6 w-6 rounded-md hover:bg-pink-100/20"
                                 >
-                                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  <Plus className="w-3 h-3" />
                                 </Button>
                               </div>
                               <Button
@@ -194,13 +195,13 @@ const Cart = () => {
                                 size="sm"
                                 onClick={() => removeFromCart(item.id)}
                                 disabled={isLoading}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50/30 rounded-lg p-2"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-50/10 rounded-md p-1"
                               >
-                                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                             <div className="text-right">
-                              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
+                              <p className="text-base font-bold text-pink-600">
                                 KSh {(item.products.price * item.quantity).toLocaleString()}
                               </p>
                             </div>
@@ -208,22 +209,22 @@ const Cart = () => {
                         </div>
 
                         {/* Desktop Layout */}
-                        <div className="hidden sm:flex items-center space-x-6">
-                          <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-xl p-2">
+                        <div className="hidden sm:flex items-center space-x-4">
+                          <div className="flex items-center space-x-2 bg-white/5 backdrop-blur-xl rounded-lg p-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               disabled={item.quantity <= 1 || isLoading}
-                              className="h-10 w-10 rounded-lg hover:bg-pink-100/30"
+                              className="h-8 w-8 rounded-md hover:bg-pink-100/20"
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-3 h-3" />
                             </Button>
                             <Input
                               type="number"
                               value={item.quantity}
                               onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                              className="w-16 text-center border-0 bg-transparent font-semibold text-sm sm:text-base"
+                              className="w-12 text-center border-0 bg-transparent font-semibold text-xs text-pink-600"
                               min="1"
                               disabled={isLoading}
                             />
@@ -232,14 +233,14 @@ const Cart = () => {
                               size="sm"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               disabled={isLoading}
-                              className="h-10 w-10 rounded-lg hover:bg-pink-100/30"
+                              className="h-8 w-8 rounded-md hover:bg-pink-100/20"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-3 h-3" />
                             </Button>
                           </div>
 
-                          <div className="text-right min-w-[120px]">
-                            <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                          <div className="text-right min-w-[100px]">
+                            <p className="text-base font-bold text-pink-600 mb-1">
                               KSh {(item.products.price * item.quantity).toLocaleString()}
                             </p>
                             <Button
@@ -247,9 +248,9 @@ const Cart = () => {
                               size="sm"
                               onClick={() => removeFromCart(item.id)}
                               disabled={isLoading}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50/30 rounded-lg text-sm"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-50/10 rounded-md text-xs"
                             >
-                              <Trash2 className="w-4 h-4 mr-2" />
+                              <Trash2 className="w-3 h-3 mr-1" />
                               Remove
                             </Button>
                           </div>
@@ -263,23 +264,23 @@ const Cart = () => {
 
             {/* Order Summary Card */}
             <div className="lg:col-span-4">
-              <div className="sticky top-24 space-y-6">
-                <Card className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-400 text-white">
-                    <CardTitle className="text-lg sm:text-xl font-bold flex items-center">
-                      <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
+              <div className="sticky top-20 space-y-4">
+                <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-2xl overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-pink-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-3">
+                    <CardTitle className="text-base font-bold flex items-center text-pink-600">
+                      <ShoppingBag className="w-4 h-4 mr-2" />
                       Order Summary
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex justify-between text-base sm:text-lg">
-                        <span className="text-gray-700">Subtotal ({cartItems.length} items):</span>
-                        <span className="font-semibold">KSh {getTotalPrice().toLocaleString()}</span>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-pink-500">Subtotal ({cartItems.length} items):</span>
+                        <span className="font-semibold text-pink-600">KSh {getTotalPrice().toLocaleString()}</span>
                       </div>
-                      <div className="border-t border-pink-100 pt-4">
-                        <div className="flex justify-between text-xl sm:text-2xl font-bold">
-                          <span>Total:</span>
+                      <div className="border-t border-pink-100/20 pt-3">
+                        <div className="flex justify-between text-lg font-bold">
+                          <span className="text-pink-600">Total:</span>
                           <span className="text-pink-600">
                             KSh {getTotalPrice().toLocaleString()}
                           </span>
@@ -289,15 +290,15 @@ const Cart = () => {
 
                     <Button
                       onClick={proceedToCheckout}
-                      className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white py-3 sm:py-4 rounded-2xl text-base sm:text-lg font-bold shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-3 rounded-xl text-sm font-bold backdrop-blur-xl border border-pink-300/20"
                       disabled={cartItems.some(item => !item.products.in_stock) || isLoading}
                     >
                       Proceed to Checkout
                     </Button>
                     
                     {cartItems.some(item => !item.products.in_stock) && (
-                      <div className="bg-red-50/30 backdrop-blur-sm border border-red-200/30 rounded-xl p-4">
-                        <p className="text-red-600 text-sm font-medium text-center">
+                      <div className="bg-red-50/10 backdrop-blur-xl border border-red-200/20 rounded-xl p-3">
+                        <p className="text-red-400 text-xs font-medium text-center">
                           ⚠️ Remove out of stock items to proceed
                         </p>
                       </div>
@@ -306,53 +307,53 @@ const Cart = () => {
                 </Card>
 
                 {/* Store Features Card */}
-                <Card className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-400 text-white pb-4">
-                    <CardTitle className="text-base sm:text-lg font-bold flex items-center">
-                      <Heart className="w-5 h-5 mr-2" />
+                <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-2xl overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-purple-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-2">
+                    <CardTitle className="text-sm font-bold flex items-center text-pink-600">
+                      <Heart className="w-4 h-4 mr-2" />
                       Why Choose Us?
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <Star className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-start space-x-2">
+                      <Star className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-sm text-gray-800">Premium Quality</h4>
-                        <p className="text-xs text-gray-600">Top-quality products carefully selected for you</p>
+                        <h4 className="font-semibold text-xs text-pink-600">Premium Quality</h4>
+                        <p className="text-xs text-pink-500">Top-quality products carefully selected</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-start space-x-3">
-                      <Shield className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start space-x-2">
+                      <Shield className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-sm text-gray-800">Premium Packaging</h4>
-                        <p className="text-xs text-gray-600">Secure & elegant packaging for safe delivery</p>
+                        <h4 className="font-semibold text-xs text-pink-600">Premium Packaging</h4>
+                        <p className="text-xs text-pink-500">Secure & elegant packaging</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-start space-x-3">
-                      <div className="w-5 h-5 bg-green-600 rounded text-white text-xs flex items-center justify-center mt-0.5 font-bold flex-shrink-0">
+                    <div className="flex items-start space-x-2">
+                      <div className="w-4 h-4 bg-green-500/80 rounded text-white text-xs flex items-center justify-center mt-0.5 font-bold flex-shrink-0">
                         M
                       </div>
                       <div>
-                        <h4 className="font-semibold text-sm text-gray-800">M-Pesa Payment</h4>
-                        <p className="text-xs text-gray-600">Easy & secure mobile money payments</p>
+                        <h4 className="font-semibold text-xs text-pink-600">M-Pesa Payment</h4>
+                        <p className="text-xs text-pink-500">Easy & secure mobile payments</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-start space-x-3">
-                      <Phone className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start space-x-2">
+                      <Phone className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-sm text-gray-800">24/7 Customer Care</h4>
-                        <p className="text-xs text-gray-600">Full-time support via call or WhatsApp</p>
+                        <h4 className="font-semibold text-xs text-pink-600">24/7 Customer Care</h4>
+                        <p className="text-xs text-pink-500">Full-time support via call or WhatsApp</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-start space-x-3">
-                      <TrendingUp className="w-5 h-5 text-pink-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start space-x-2">
+                      <TrendingUp className="w-4 h-4 text-pink-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <h4 className="font-semibold text-sm text-gray-800">Trusted Store</h4>
-                        <p className="text-xs text-gray-600">Popular choice among thousands of customers</p>
+                        <h4 className="font-semibold text-xs text-pink-600">Trusted Store</h4>
+                        <p className="text-xs text-pink-500">Popular choice among thousands</p>
                       </div>
                     </div>
                   </CardContent>
