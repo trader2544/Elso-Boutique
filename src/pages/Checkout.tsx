@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle, XCircle, ShoppingBag } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -52,7 +52,6 @@ const Checkout = () => {
     calculateDeliveryFee();
   }, [customerInfo.city, customerInfo.exactLocation]);
 
-  // Payment prompt timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (showPaymentPrompt && promptTimer > 0) {
@@ -63,7 +62,6 @@ const Checkout = () => {
       setShowPaymentPrompt(false);
       setPaymentStatus(null);
       setPromptTimer(30);
-      // Show back to shop button after prompt disappears
       if (!paymentStatus || paymentStatus === 'pending') {
         setShowBackToShop(true);
       }
@@ -71,7 +69,6 @@ const Checkout = () => {
     return () => clearInterval(interval);
   }, [showPaymentPrompt, promptTimer, paymentStatus]);
 
-  // Enhanced M-Pesa transaction listener with real-time updates
   useEffect(() => {
     if (!currentOrderId) return;
 
@@ -92,12 +89,10 @@ const Checkout = () => {
           const transaction = payload.new;
           
           if (transaction.status === 'completed' || transaction.response_code === '0') {
-            // Payment successful
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
             
-            // Update order status to paid
             const { error: orderError } = await supabase
               .from("orders")
               .update({ status: 'paid', transaction_id: transaction.id })
@@ -112,12 +107,10 @@ const Checkout = () => {
               description: "Your order has been confirmed and is being processed.",
             });
             
-            // Clear cart and redirect after success display
             setTimeout(() => {
               navigate("/profile");
             }, 3000);
           } else {
-            // Payment failed
             setPaymentStatus('failed');
             setPaymentInProgress(false);
             setProcessing(false);
@@ -144,12 +137,10 @@ const Checkout = () => {
           const transaction = payload.new;
           
           if (transaction.status === 'completed' || transaction.response_code === '0') {
-            // Payment successful
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
             
-            // Update order status to paid
             const { error: orderError } = await supabase
               .from("orders")
               .update({ status: 'paid', transaction_id: transaction.id })
@@ -164,12 +155,10 @@ const Checkout = () => {
               description: "Your order has been confirmed and is being processed.",
             });
             
-            // Clear cart and redirect after success display
             setTimeout(() => {
               navigate("/profile");
             }, 3000);
           } else if (transaction.status === 'failed') {
-            // Payment failed
             setPaymentStatus('failed');
             setPaymentInProgress(false);
             setProcessing(false);
@@ -236,7 +225,7 @@ const Checkout = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
-    setShowBackToShop(false); // Hide back to shop button when starting new payment
+    setShowBackToShop(false);
 
     try {
       if (!customerInfo.phone || !customerInfo.address || !customerInfo.city || !customerInfo.exactLocation) {
@@ -252,7 +241,6 @@ const Checkout = () => {
 
       const deliveryLocation = `${customerInfo.address}, ${customerInfo.exactLocation}, ${customerInfo.city}`;
 
-      // Create order first
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -274,7 +262,6 @@ const Checkout = () => {
       setShowPaymentPrompt(true);
       setPromptTimer(30);
 
-      // Trigger STK Push
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
         body: {
           amount: getFinalTotal(),
@@ -291,7 +278,6 @@ const Checkout = () => {
           description: "Please check your phone for M-Pesa payment prompt and complete the payment.",
         });
 
-        // Clear cart only after successful STK initiation
         const { error: clearCartError } = await supabase
           .from("cart_items")
           .delete()
@@ -325,7 +311,7 @@ const Checkout = () => {
     setPaymentInProgress(true);
     setShowPaymentPrompt(true);
     setPromptTimer(30);
-    setShowBackToShop(false); // Hide back to shop button when retrying
+    setShowBackToShop(false);
 
     try {
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -389,22 +375,31 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-pink-200 border-t-pink-600"></div>
+          <p className="text-pink-600 font-medium">Loading checkout...</p>
+        </div>
       </div>
     );
   }
 
   if (cartItems.length === 0 && !paymentInProgress) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl border border-pink-100 rounded-3xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-            <CardTitle className="text-pink-700">Cart is Empty</CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-400 text-white text-center py-8">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShoppingBag className="w-10 h-10" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Cart is Empty</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <p className="text-gray-600 mb-4">Add some items to your cart first.</p>
-            <Button onClick={() => navigate("/")} className="w-full bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 rounded-full">
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-600 mb-6 text-lg">Add some items to your cart first.</p>
+            <Button 
+              onClick={() => navigate("/")} 
+              className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white py-3 rounded-full text-lg font-semibold shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+            >
               Start Shopping
             </Button>
           </CardContent>
@@ -414,11 +409,11 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 relative">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative">
       {/* Payment Status Prompt */}
       {showPaymentPrompt && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden animate-scale-in">
             <CardContent className="p-8 text-center">
               <Button
                 variant="ghost"
@@ -434,35 +429,52 @@ const Checkout = () => {
               </Button>
               
               {paymentStatus === 'success' ? (
-                <div className="space-y-4">
-                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-                  <h3 className="text-xl font-bold text-green-700">Payment Successful!</h3>
-                  <p className="text-gray-600">Your order has been confirmed and will be processed shortly.</p>
-                  <p className="text-sm text-gray-500">Redirecting to your profile...</p>
+                <div className="space-y-6">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-12 h-12 text-green-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-green-700 mb-2">Payment Successful!</h3>
+                    <p className="text-gray-600 text-lg">Your order has been confirmed and will be processed shortly.</p>
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-4">
+                    <p className="text-green-600 font-medium">Redirecting to your profile...</p>
+                  </div>
                 </div>
               ) : paymentStatus === 'failed' ? (
-                <div className="space-y-4">
-                  <XCircle className="w-16 h-16 text-red-500 mx-auto" />
-                  <h3 className="text-xl font-bold text-red-700">Payment Failed</h3>
-                  <p className="text-gray-600">Your payment was not successful. Please try again.</p>
+                <div className="space-y-6">
+                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                    <XCircle className="w-12 h-12 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-red-700 mb-2">Payment Failed</h3>
+                    <p className="text-gray-600 text-lg">Your payment was not successful. Please try again.</p>
+                  </div>
                   <Button
                     onClick={handleRetryPayment}
                     disabled={processing}
-                    className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 rounded-full"
+                    className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white py-3 rounded-full text-lg font-semibold shadow-lg"
                   >
                     {processing ? "Retrying..." : "Retry Payment"}
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
-                  <h3 className="text-xl font-bold text-pink-700">Processing Payment</h3>
-                  <p className="text-gray-600">Please complete the M-Pesa payment on your phone.</p>
-                  <div className="bg-pink-50 p-3 rounded-full">
-                    <span className="text-pink-700 font-medium">Auto-close in {promptTimer}s</span>
+                <div className="space-y-6">
+                  <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-pink-200 border-t-pink-600"></div>
                   </div>
-                  <div className="bg-blue-50 p-3 rounded-xl">
-                    <p className="text-blue-700 text-sm">✨ Live payment tracking enabled - you'll be notified instantly when payment is confirmed!</p>
+                  <div>
+                    <h3 className="text-2xl font-bold text-pink-700 mb-2">Processing Payment</h3>
+                    <p className="text-gray-600 text-lg">Please complete the M-Pesa payment on your phone.</p>
+                  </div>
+                  <div className="bg-pink-50 p-4 rounded-xl">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <Clock className="w-5 h-5 text-pink-600" />
+                      <span className="text-pink-700 font-semibold">Auto-close in {promptTimer}s</span>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-xl">
+                    <p className="text-blue-700 text-sm font-medium">✨ Live payment tracking enabled - you'll be notified instantly when payment is confirmed!</p>
                   </div>
                 </div>
               )}
@@ -473,24 +485,26 @@ const Checkout = () => {
 
       {/* Back to Shop Button */}
       {showBackToShop && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden animate-scale-in">
             <CardContent className="p-8 text-center">
-              <ShoppingBag className="w-16 h-16 text-pink-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-pink-700 mb-2">Continue Shopping?</h3>
-              <p className="text-gray-600 mb-6">Your order is being processed. Would you like to continue shopping?</p>
+              <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShoppingBag className="w-12 h-12 text-pink-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-pink-700 mb-3">Continue Shopping?</h3>
+              <p className="text-gray-600 mb-8 text-lg">Your order is being processed. Would you like to continue shopping?</p>
               <div className="space-y-3">
                 <Button
                   onClick={() => navigate("/")}
-                  className="w-full bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 rounded-full"
+                  className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white py-3 rounded-full text-lg font-semibold shadow-lg"
                 >
-                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  <ShoppingBag className="w-5 h-5 mr-2" />
                   Back to Shop
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowBackToShop(false)}
-                  className="w-full border-pink-200 text-pink-700 hover:bg-pink-50 rounded-full"
+                  className="w-full border-pink-200 text-pink-700 hover:bg-pink-50 py-3 rounded-full text-lg font-semibold"
                 >
                   Stay Here
                 </Button>
@@ -500,180 +514,238 @@ const Checkout = () => {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-6 md:py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/cart")}
-          className="mb-6 hover:bg-pink-50 rounded-full"
-          disabled={paymentInProgress}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Cart
-        </Button>
-
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent">
-          Checkout
-        </h1>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
-          <Card className="shadow-xl border border-pink-100 rounded-3xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-              <CardTitle className="text-pink-700">Delivery Information</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 md:p-6">
-              <form onSubmit={handleCheckout} className="space-y-4">
-                <div>
-                  <Label htmlFor="phone" className="text-pink-700 font-medium">M-Pesa Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={customerInfo.phone}
-                    onChange={handlePhoneChange}
-                    placeholder="+254700000000"
-                    required
-                    disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
-                  />
-                  <p className="text-sm text-pink-600 mt-1">
-                    📱 Enter your phone number for M-Pesa payment
-                  </p>
-                </div>
-                
-                <div>
-                  <Label htmlFor="address" className="text-pink-700 font-medium">Delivery Address *</Label>
-                  <Input
-                    id="address"
-                    value={customerInfo.address}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-                    placeholder="Street address, building, apartment number"
-                    required
-                    disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="city" className="text-pink-700 font-medium">City/Town *</Label>
-                  <Input
-                    id="city"
-                    value={customerInfo.city}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, city: e.target.value })}
-                    placeholder="Kisumu, Nairobi, Mombasa, etc."
-                    required
-                    disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="exactLocation" className="text-pink-700 font-medium">Exact Location *</Label>
-                  <Input
-                    id="exactLocation"
-                    value={customerInfo.exactLocation}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, exactLocation: e.target.value })}
-                    placeholder="CBD, town center, specific area/landmark"
-                    required
-                    disabled={paymentInProgress}
-                    className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl"
-                  />
-                </div>
-
-                {customerInfo.city && customerInfo.exactLocation && (
-                  <div className="bg-gradient-to-r from-blue-50 to-white p-3 rounded-xl border border-blue-200">
-                    <p className="text-sm text-blue-700 font-medium">📍 Delivery Zone: {getDeliveryZoneInfo()}</p>
-                  </div>
-                )}
-
-                {!paymentInProgress && (
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 shadow-lg py-3 rounded-full"
-                    disabled={processing}
-                  >
-                    {processing ? (
-                      <>
-                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing Payment...
-                      </>
-                    ) : (
-                      "💳 Pay with M-Pesa"
-                    )}
-                  </Button>
-                )}
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xl border border-pink-100 rounded-3xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
-              <CardTitle className="text-pink-700">Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 p-4 md:p-6">
-              <div className="space-y-3">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center py-2 border-b border-pink-100">
-                    <div className="flex-1">
-                      <span className="text-sm font-medium">{item.products.name}</span>
-                      <div className="text-xs text-gray-500">Qty: {item.quantity}</div>
-                    </div>
-                    <span className="font-medium">
-                      KSh {(item.products.price * item.quantity).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>KSh {getTotalPrice().toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Delivery Fee:</span>
-                  <span className={deliveryFee === 0 ? "text-green-600" : "text-gray-700"}>
-                    {getDeliveryFeeText()}
-                  </span>
-                </div>
-                <div className="flex justify-between font-bold text-lg border-t pt-2">
-                  <span>Total:</span>
-                  <span className="text-pink-600">
-                    KSh {getFinalTotal().toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-pink-50 to-white p-4 rounded-xl border border-pink-200">
-                <h4 className="font-medium mb-2 text-pink-700">💳 Payment Method</h4>
-                <p className="text-sm text-pink-600">
-                  M-Pesa STK Push with live payment tracking. You will receive a payment prompt on your phone to complete the transaction.
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-xl border border-purple-200">
-                <h4 className="font-medium mb-2 text-purple-700">🚚 Delivery Info</h4>
-                <div className="text-sm text-purple-600 space-y-1">
-                  <p>• Free delivery within Kisumu CBD</p>
-                  <p>• KES 100 for other locations in Kisumu town</p>
-                  <p>• KES 300 to all other regions in Kenya</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-pink-100">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/cart")}
+              disabled={paymentInProgress}
+              className="flex items-center space-x-2 hover:bg-pink-50 rounded-full px-4 py-2"
+            >
+              <ArrowLeft className="w-5 h-5 text-pink-600" />
+              <span className="hidden sm:inline text-pink-600 font-medium">Back to Cart</span>
+            </Button>
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-500 bg-clip-text text-transparent">
+              Secure Checkout
+            </h1>
+            <div className="w-20"></div>
+          </div>
         </div>
       </div>
 
-      {/* WhatsApp Hover Button */}
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
+          {/* Delivery Information */}
+          <div className="xl:col-span-7">
+            <Card className="shadow-xl border-0 rounded-3xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-400 text-white">
+                <CardTitle className="text-xl font-bold flex items-center">
+                  <MapPin className="w-6 h-6 mr-3" />
+                  Delivery Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 lg:p-8">
+                <form onSubmit={handleCheckout} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="phone" className="text-pink-700 font-semibold text-lg flex items-center mb-3">
+                        <Phone className="w-5 h-5 mr-2" />
+                        M-Pesa Phone Number *
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={handlePhoneChange}
+                        placeholder="+254700000000"
+                        required
+                        disabled={paymentInProgress}
+                        className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl py-3 text-lg"
+                      />
+                      <p className="text-sm text-pink-600 mt-2 flex items-center">
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Enter your phone number for M-Pesa payment
+                      </p>
+                    </div>
+                    
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="address" className="text-pink-700 font-semibold text-lg flex items-center mb-3">
+                        <MapPin className="w-5 h-5 mr-2" />
+                        Delivery Address *
+                      </Label>
+                      <Input
+                        id="address"
+                        value={customerInfo.address}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                        placeholder="Street address, building, apartment number"
+                        required
+                        disabled={paymentInProgress}
+                        className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl py-3 text-lg"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="city" className="text-pink-700 font-semibold text-lg mb-3 block">
+                        City/Town *
+                      </Label>
+                      <Input
+                        id="city"
+                        value={customerInfo.city}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, city: e.target.value })}
+                        placeholder="Kisumu, Nairobi, Mombasa, etc."
+                        required
+                        disabled={paymentInProgress}
+                        className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl py-3 text-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="exactLocation" className="text-pink-700 font-semibold text-lg mb-3 block">
+                        Exact Location *
+                      </Label>
+                      <Input
+                        id="exactLocation"
+                        value={customerInfo.exactLocation}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, exactLocation: e.target.value })}
+                        placeholder="CBD, town center, specific area"
+                        required
+                        disabled={paymentInProgress}
+                        className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-xl py-3 text-lg"
+                      />
+                    </div>
+                  </div>
+
+                  {customerInfo.city && customerInfo.exactLocation && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+                      <div className="flex items-center mb-2">
+                        <Truck className="w-5 h-5 text-blue-600 mr-2" />
+                        <p className="text-blue-700 font-semibold">Delivery Zone: {getDeliveryZoneInfo()}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!paymentInProgress && (
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-600 hover:to-pink-500 text-white shadow-2xl py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:shadow-pink-300/50 hover:scale-105"
+                      disabled={processing}
+                    >
+                      {processing ? (
+                        <div className="flex items-center justify-center">
+                          <div className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
+                          Processing Payment...
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center">
+                          <CreditCard className="w-6 h-6 mr-3" />
+                          Pay with M-Pesa - KSh {getFinalTotal().toLocaleString()}
+                        </div>
+                      )}
+                    </Button>
+                  )}
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Order Summary */}
+          <div className="xl:col-span-5">
+            <div className="sticky top-24 space-y-6">
+              <Card className="shadow-2xl border-0 rounded-3xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-400 text-white">
+                  <CardTitle className="text-xl font-bold flex items-center">
+                    <ShoppingBag className="w-6 h-6 mr-3" />
+                    Order Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-4 max-h-60 overflow-y-auto">
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-12 h-12 bg-pink-100 rounded-lg overflow-hidden flex-shrink-0">
+                          {item.products.image_url ? (
+                            <img
+                              src={item.products.image_url}
+                              alt={item.products.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-pink-300">
+                              📷
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{item.products.name}</p>
+                          <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-pink-600">
+                            KSh {(item.products.price * item.quantity).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="border-t border-pink-100 pt-6 space-y-4">
+                    <div className="flex justify-between text-lg">
+                      <span className="text-gray-600">Subtotal:</span>
+                      <span className="font-semibold">KSh {getTotalPrice().toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-lg">
+                      <span className="text-gray-600">Delivery Fee:</span>
+                      <span className={`font-semibold ${deliveryFee === 0 ? "text-green-600" : "text-gray-700"}`}>
+                        {getDeliveryFeeText()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-2xl font-bold border-t border-pink-100 pt-4">
+                      <span>Total:</span>
+                      <span className="text-pink-600">
+                        KSh {getFinalTotal().toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Security & Payment Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
+                <Card className="border-0 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl">
+                  <CardContent className="p-4 text-center">
+                    <Shield className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                    <h4 className="font-bold text-green-700 mb-1">Secure Payment</h4>
+                    <p className="text-sm text-green-600">M-Pesa with live tracking</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl">
+                  <CardContent className="p-4 text-center">
+                    <Truck className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                    <h4 className="font-bold text-blue-700 mb-1">Fast Delivery</h4>
+                    <p className="text-sm text-blue-600">Free in Kisumu CBD</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* WhatsApp Support */}
       <div className="fixed bottom-6 right-6 z-40">
         <a
           href="https://wa.me/254773482210"
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center"
+          className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
           title="Chat with us on WhatsApp"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
+            className="h-6 w-6 group-hover:scale-110 transition-transform"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
