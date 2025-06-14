@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Minus, ArrowLeft, ShoppingCart, Heart } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,37 +12,24 @@ import { User as SupabaseUser } from "@supabase/supabase-js";
 const Cart = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const { cartItems, updateQuantity, removeFromCart, refreshCart, isLoading } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, isLoading } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-      
-      if (session?.user) {
-        // Force refresh cart when component mounts
-        await refreshCart();
-      }
-    };
-
-    initializeAuth();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
         setAuthLoading(false);
-        
-        if (session?.user) {
-          // Refresh cart when user state changes
-          await refreshCart();
-        }
       }
     );
 
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
     return () => subscription.unsubscribe();
-  }, [refreshCart]);
+  }, []);
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
@@ -71,7 +58,7 @@ const Cart = () => {
         <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
           <div className="bg-gradient-to-r from-pink-500 to-pink-400 text-white text-center py-8">
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShoppingCart className="w-10 h-10" />
+              <ShoppingBag className="w-10 h-10" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold">Sign In Required</h2>
           </div>
@@ -122,7 +109,7 @@ const Cart = () => {
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
               <div className="text-center py-12 sm:py-16 px-6">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6">
-                  <ShoppingCart className="w-10 h-10 sm:w-12 sm:h-12 text-pink-400" />
+                  <ShoppingBag className="w-10 h-10 sm:w-12 sm:h-12 text-pink-400" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
                 <p className="text-gray-600 mb-8 text-base sm:text-lg">Discover amazing products and start shopping!</p>
@@ -138,143 +125,133 @@ const Cart = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             {/* Cart Items */}
-            <div className="lg:col-span-8">
-              <div className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
-                <div className="bg-gradient-to-r from-pink-500 to-pink-400 text-white p-6">
-                  <h2 className="text-lg sm:text-xl font-bold flex items-center">
-                    <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
-                    Cart Items ({cartItems.length})
-                  </h2>
-                </div>
-                <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="bg-white/20 backdrop-blur-sm border border-white/20 shadow-lg rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300">
-                      <div className="p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6">
-                          {/* Product Image */}
-                          <div className="w-full sm:w-20 h-20 sm:h-20 bg-gradient-to-br from-pink-100/30 to-pink-50/30 backdrop-blur-sm rounded-xl overflow-hidden flex-shrink-0 relative group">
-                            {item.products.image_url ? (
-                              <img
-                                src={item.products.image_url}
-                                alt={item.products.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-pink-300 text-xl sm:text-2xl">
-                                📷
-                              </div>
-                            )}
+            <div className="lg:col-span-8 space-y-4">
+              {cartItems.map((item) => (
+                <div key={item.id} className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300">
+                  <div className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                      {/* Product Image */}
+                      <div className="w-full sm:w-20 h-20 sm:h-20 bg-gradient-to-br from-pink-100/30 to-pink-50/30 backdrop-blur-sm rounded-xl overflow-hidden flex-shrink-0 relative group">
+                        {item.products.image_url ? (
+                          <img
+                            src={item.products.image_url}
+                            alt={item.products.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-pink-300 text-xl sm:text-2xl">
+                            📷
                           </div>
+                        )}
+                      </div>
 
-                          {/* Product Details */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-base sm:text-lg md:text-xl text-gray-800 mb-2 line-clamp-2">{item.products.name}</h3>
-                            <div className="flex items-center space-x-3 mb-4">
-                              <span className="text-lg sm:text-xl md:text-2xl font-bold text-pink-600">
-                                KSh {item.products.price.toLocaleString()}
-                              </span>
-                              {!item.products.in_stock && (
-                                <span className="bg-red-100 text-red-600 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
-                                  Out of stock
-                                </span>
-                              )}
-                            </div>
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base sm:text-lg md:text-xl text-gray-800 mb-2 line-clamp-2">{item.products.name}</h3>
+                        <div className="flex items-center space-x-3 mb-4">
+                          <span className="text-lg sm:text-xl md:text-2xl font-bold text-pink-600">
+                            KSh {item.products.price.toLocaleString()}
+                          </span>
+                          {!item.products.in_stock && (
+                            <span className="bg-red-100 text-red-600 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
+                              Out of stock
+                            </span>
+                          )}
+                        </div>
 
-                            {/* Mobile Layout */}
-                            <div className="sm:hidden space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-xl p-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                    disabled={item.quantity <= 1 || isLoading}
-                                    className="h-8 w-8 rounded-lg hover:bg-pink-100/30"
-                                  >
-                                    <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                  <span className="w-8 text-center font-semibold text-sm sm:text-base">{item.quantity}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                    disabled={isLoading}
-                                    className="h-8 w-8 rounded-lg hover:bg-pink-100/30"
-                                  >
-                                    <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeFromCart(item.id)}
-                                  disabled={isLoading}
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50/30 rounded-lg p-2"
-                                >
-                                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                                </Button>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
-                                  KSh {(item.products.price * item.quantity).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Desktop Layout */}
-                          <div className="hidden sm:flex items-center space-x-6">
+                        {/* Mobile Layout */}
+                        <div className="sm:hidden space-y-4">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-xl p-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 disabled={item.quantity <= 1 || isLoading}
-                                className="h-10 w-10 rounded-lg hover:bg-pink-100/30"
+                                className="h-8 w-8 rounded-lg hover:bg-pink-100/30"
                               >
-                                <Minus className="w-4 h-4" />
+                                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                                className="w-16 text-center border-0 bg-transparent font-semibold text-sm sm:text-base"
-                                min="1"
-                                disabled={isLoading}
-                              />
+                              <span className="w-8 text-center font-semibold text-sm sm:text-base">{item.quantity}</span>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 disabled={isLoading}
-                                className="h-10 w-10 rounded-lg hover:bg-pink-100/30"
+                                className="h-8 w-8 rounded-lg hover:bg-pink-100/30"
                               >
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </div>
-
-                            <div className="text-right min-w-[120px]">
-                              <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-                                KSh {(item.products.price * item.quantity).toLocaleString()}
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeFromCart(item.id)}
-                                disabled={isLoading}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50/30 rounded-lg text-sm"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Remove
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFromCart(item.id)}
+                              disabled={isLoading}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50/30 rounded-lg p-2"
+                            >
+                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </Button>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
+                              KSh {(item.products.price * item.quantity).toLocaleString()}
+                            </p>
                           </div>
                         </div>
                       </div>
+
+                      {/* Desktop Layout */}
+                      <div className="hidden sm:flex items-center space-x-6">
+                        <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-xl p-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || isLoading}
+                            className="h-10 w-10 rounded-lg hover:bg-pink-100/30"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            className="w-16 text-center border-0 bg-transparent font-semibold text-sm sm:text-base"
+                            min="1"
+                            disabled={isLoading}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            disabled={isLoading}
+                            className="h-10 w-10 rounded-lg hover:bg-pink-100/30"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="text-right min-w-[120px]">
+                          <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                            KSh {(item.products.price * item.quantity).toLocaleString()}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromCart(item.id)}
+                            disabled={isLoading}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50/30 rounded-lg text-sm"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
 
             {/* Order Summary */}
@@ -283,7 +260,7 @@ const Cart = () => {
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
                   <div className="bg-gradient-to-r from-pink-500 to-pink-400 text-white p-6">
                     <h2 className="text-lg sm:text-xl font-bold flex items-center">
-                      <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
+                      <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
                       Order Summary
                     </h2>
                   </div>
@@ -292,6 +269,10 @@ const Cart = () => {
                       <div className="flex justify-between text-base sm:text-lg">
                         <span className="text-gray-700">Subtotal ({cartItems.length} items):</span>
                         <span className="font-semibold">KSh {getTotalPrice().toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-base sm:text-lg">
+                        <span className="text-gray-700">Shipping:</span>
+                        <span className="font-semibold text-green-600">Free</span>
                       </div>
                       <div className="border-t border-pink-100 pt-4">
                         <div className="flex justify-between text-xl sm:text-2xl font-bold">
@@ -324,37 +305,11 @@ const Cart = () => {
                         <div className="text-center">
                           <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-pink-500 mx-auto mb-2" />
                           <p className="text-sm font-medium text-pink-600">
-                            Premium Shopping Experience
+                            Free shipping on all orders
                           </p>
                           <p className="text-xs text-pink-500 mt-1">
-                            Quality guaranteed & fast delivery
+                            30-day return policy
                           </p>
-                        </div>
-                      </div>
-
-                      {/* Store Features */}
-                      <div className="bg-gradient-to-r from-blue-50/30 to-indigo-50/30 backdrop-blur-sm rounded-xl p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center text-xs sm:text-sm text-blue-700">
-                            <span className="text-blue-500 mr-2">✨</span>
-                            Premium quality products
-                          </div>
-                          <div className="flex items-center text-xs sm:text-sm text-blue-700">
-                            <span className="text-blue-500 mr-2">📦</span>
-                            Professional packaging
-                          </div>
-                          <div className="flex items-center text-xs sm:text-sm text-blue-700">
-                            <span className="text-blue-500 mr-2">💳</span>
-                            Secure M-Pesa payments
-                          </div>
-                          <div className="flex items-center text-xs sm:text-sm text-blue-700">
-                            <span className="text-blue-500 mr-2">📞</span>
-                            24/7 customer support
-                          </div>
-                          <div className="flex items-center text-xs sm:text-sm text-blue-700">
-                            <span className="text-blue-500 mr-2">⭐</span>
-                            Trusted by thousands
-                          </div>
                         </div>
                       </div>
                     </div>
