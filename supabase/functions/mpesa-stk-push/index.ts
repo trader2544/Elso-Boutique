@@ -149,8 +149,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Step 4: Record the pending transaction in database
-    console.log('Recording pending transaction in database...');
+    // Step 4: Record the STK push request (NOT a successful transaction yet)
+    console.log('Recording STK push request in database...');
     
     const transactionData = {
       order_id: orderId,
@@ -160,13 +160,13 @@ serve(async (req) => {
       merchant_request_id: stkData.MerchantRequestID || null,
       response_code: stkData.ResponseCode || '0',
       response_description: stkData.ResponseDescription || 'STK Push sent',
-      status: 'pending', // Start as pending
+      status: 'pending', // Always pending until callback confirms
       customer_message: stkData.CustomerMessage || 'STK Push sent successfully',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
-    console.log('Transaction data to insert:', transactionData);
+    console.log('STK push data to insert:', transactionData);
 
     const { data: transactionResult, error: transactionError } = await supabase
       .from('mpesa_transactions')
@@ -174,11 +174,13 @@ serve(async (req) => {
       .select();
 
     if (transactionError) {
-      console.error('Error inserting pending transaction:', transactionError);
+      console.error('Error inserting STK push record:', transactionError);
       // Continue even if we can't record the transaction - the callback will handle it
     } else {
-      console.log('Pending transaction recorded successfully:', transactionResult);
+      console.log('STK push request recorded successfully:', transactionResult);
     }
+
+    // DO NOT UPDATE ORDER STATUS HERE - only update when callback confirms payment
 
     // Success response
     const response = {
@@ -191,7 +193,7 @@ serve(async (req) => {
       customerMessage: stkData.CustomerMessage
     };
 
-    console.log('STK Push successful, transaction recorded as pending, waiting for callback:', response);
+    console.log('STK Push successful, waiting for payment confirmation via callback:', response);
 
     return new Response(
       JSON.stringify(response),
