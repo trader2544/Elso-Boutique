@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
+import { CartProvider } from "@/hooks/useCart";
+import { WishlistProvider } from "@/hooks/useWishlist";
 import SearchBar from "@/components/SearchBar";
 import FloatingBackground from "@/components/FloatingBackground";
 import Index from "./pages/Index";
@@ -257,7 +259,11 @@ function App() {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppContent />
+          <CartProvider>
+            <WishlistProvider>
+              <AppContent />
+            </WishlistProvider>
+          </CartProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
