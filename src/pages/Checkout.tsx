@@ -97,6 +97,16 @@ const Checkout = () => {
             setProcessing(false);
             setShowPaymentPrompt(true);
             
+            // Clear cart when payment is confirmed
+            const { error: clearCartError } = await supabase
+              .from("cart_items")
+              .delete()
+              .eq("user_id", user!.id);
+
+            if (!clearCartError) {
+              await refreshCart();
+            }
+            
             toast({
               title: "Payment Confirmed! 🎉",
               description: "Your payment has been received and your order is confirmed!",
@@ -110,7 +120,7 @@ const Checkout = () => {
       console.log("Cleaning up real-time order status listener");
       supabase.removeChannel(channel);
     };
-  }, [currentOrderId, toast]);
+  }, [currentOrderId, toast, user, refreshCart]);
 
   // Auto-show payment prompt when payment is in progress
   useEffect(() => {
@@ -164,6 +174,12 @@ const Checkout = () => {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent duplicate submissions
+    if (processing || paymentInProgress) {
+      return;
+    }
+    
     setProcessing(true);
 
     try {
@@ -197,6 +213,7 @@ const Checkout = () => {
       if (orderError) throw orderError;
 
       console.log("Order created with pending status:", orderData);
+      setCurrentOrderId(orderData.id);
       
       // Send STK push request
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -211,9 +228,22 @@ const Checkout = () => {
 
       if (stkResponse.success) {
         console.log("STK push sent successfully, order remains pending until callback confirms payment");
+        setPaymentInProgress(true);
+        setPaymentStatus('pending');
+        setPromptTimer(120);
         setProcessing(false);
+        
+        toast({
+          title: "Payment Request Sent! 📱",
+          description: "Please check your phone and complete the M-Pesa payment.",
+        });
       } else {
-        throw new Error("Failed to initiate payment");
+        // Handle specific error cases
+        if (stkResponse.errorCode === '500.001.1001') {
+          throw new Error("A transaction is already in progress for this number. Please wait a few minutes and try again.");
+        } else {
+          throw new Error(stkResponse.details || "Failed to initiate payment");
+        }
       }
     } catch (error: any) {
       console.error("Error processing order:", error);
@@ -250,8 +280,13 @@ const Checkout = () => {
           title: "Payment Request Sent Again! 📱",
           description: "Please check your phone and complete the M-Pesa payment.",
         });
+        setProcessing(false);
       } else {
-        throw new Error("Failed to retry payment");
+        if (stkResponse.errorCode === '500.001.1001') {
+          throw new Error("A transaction is already in progress for this number. Please wait a few minutes and try again.");
+        } else {
+          throw new Error(stkResponse.details || "Failed to retry payment");
+        }
       }
     } catch (error: any) {
       console.error("Error retrying payment:", error);

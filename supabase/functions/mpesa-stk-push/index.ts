@@ -66,6 +66,33 @@ serve(async (req) => {
       tillNumber
     });
 
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Check for recent pending transactions for this phone number
+    const { data: recentTransactions } = await supabase
+      .from('mpesa_transactions')
+      .select('*')
+      .eq('phone_number', formattedPhone)
+      .eq('status', 'pending')
+      .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString()); // Last 2 minutes
+
+    if (recentTransactions && recentTransactions.length > 0) {
+      console.log('❌ Recent pending transaction found for this phone number, blocking duplicate request');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Transaction in progress',
+          details: 'Please wait for the current transaction to complete before initiating a new one.'
+        }),
+        { 
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Step 1: Get OAuth token
     const auth = btoa(`${consumerKey}:${consumerSecret}`);
     
@@ -132,10 +159,22 @@ serve(async (req) => {
 
     if (!stkResponse.ok || stkData.errorCode) {
       console.error('❌ STK Push failed:', stkData);
+      
+      // Handle specific M-Pesa errors with user-friendly messages
+      let errorMessage = 'STK Push failed';
+      if (stkData.errorCode === '500.001.1001') {
+        errorMessage = 'A transaction is already in progress for this number. Please wait a few minutes and try again.';
+      } else if (stkData.errorMessage) {
+        errorMessage = stkData.errorMessage;
+      } else if (stkData.ResponseDescription) {
+        errorMessage = stkData.ResponseDescription;
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: 'STK Push failed',
-          details: stkData.errorMessage || stkData.ResponseDescription || 'Unknown error'
+          details: errorMessage,
+          errorCode: stkData.errorCode
         }),
         { 
           status: 400,
@@ -143,11 +182,6 @@ serve(async (req) => {
         }
       );
     }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Step 4: Record the STK push request (NOT a successful transaction yet)
     console.log('💾 Recording STK push request as PENDING in database...');
