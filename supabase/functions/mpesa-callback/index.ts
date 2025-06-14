@@ -25,14 +25,21 @@ serve(async (req) => {
     
     if (!Body) {
       console.error('Invalid callback structure - no Body');
-      return new Response('Invalid callback - no Body', { status: 400 });
+      // Still return success to avoid M-Pesa retries
+      return new Response('OK', { 
+        status: 200,
+        headers: corsHeaders
+      });
     }
 
     const { stkCallback } = Body;
 
     if (!stkCallback) {
       console.error('Invalid callback structure - no stkCallback');
-      return new Response('Invalid callback - no stkCallback', { status: 400 });
+      return new Response('OK', { 
+        status: 200,
+        headers: corsHeaders
+      });
     }
 
     const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata, MerchantRequestID } = stkCallback;
@@ -50,26 +57,45 @@ serve(async (req) => {
     let amount = 0;
     let phoneNumber = 'unknown';
 
+    // First, try to get order ID from existing transaction record
+    if (CheckoutRequestID) {
+      console.log('Looking for existing transaction with checkout request ID:', CheckoutRequestID);
+      
+      const { data: existingTransaction, error: fetchError } = await supabase
+        .from('mpesa_transactions')
+        .select('order_id, phone_number, amount')
+        .eq('checkout_request_id', CheckoutRequestID)
+        .single();
+
+      if (!fetchError && existingTransaction) {
+        console.log('Found existing transaction:', existingTransaction);
+        orderId = existingTransaction.order_id;
+        phoneNumber = existingTransaction.phone_number;
+        amount = existingTransaction.amount;
+      } else {
+        console.log('No existing transaction found, extracting from callback metadata');
+      }
+    }
+
+    // Extract additional data from callback metadata if available
     if (CallbackMetadata?.Item && Array.isArray(CallbackMetadata.Item)) {
       console.log('Processing CallbackMetadata items:', CallbackMetadata.Item);
       
       for (const item of CallbackMetadata.Item) {
         if (item.Name === 'AccountReference' && item.Value) {
           orderId = item.Value.toString().replace('ORDER_', '');
-          console.log('Extracted order ID:', orderId);
+          console.log('Extracted order ID from metadata:', orderId);
         } else if (item.Name === 'MpesaReceiptNumber' && item.Value) {
           transactionId = item.Value.toString();
           console.log('Extracted transaction ID:', transactionId);
         } else if (item.Name === 'Amount' && item.Value) {
-          amount = parseFloat(item.Value.toString()) || 0;
-          console.log('Extracted amount:', amount);
+          amount = parseFloat(item.Value.toString()) || amount;
+          console.log('Extracted amount from metadata:', amount);
         } else if (item.Name === 'PhoneNumber' && item.Value) {
           phoneNumber = item.Value.toString();
-          console.log('Extracted phone number:', phoneNumber);
+          console.log('Extracted phone number from metadata:', phoneNumber);
         }
       }
-    } else {
-      console.log('No CallbackMetadata or items found');
     }
 
     // Determine transaction status based on result code
@@ -83,7 +109,7 @@ serve(async (req) => {
       console.log('Payment failed with result code:', ResultCode);
     }
 
-    console.log('Final transaction data to insert:', {
+    console.log('Final transaction data to upsert:', {
       orderId,
       phoneNumber,
       amount,
@@ -97,7 +123,7 @@ serve(async (req) => {
 
     // Insert/update M-Pesa transaction record
     if (CheckoutRequestID) {
-      console.log('Inserting/updating M-Pesa transaction record...');
+      console.log('Upserting M-Pesa transaction record...');
       
       const transactionData = {
         order_id: orderId,
@@ -122,43 +148,65 @@ serve(async (req) => {
         .select();
 
       if (transactionError) {
-        console.error('Error inserting/updating M-Pesa transaction:', transactionError);
+        console.error('Error upserting M-Pesa transaction:', transactionError);
         console.error('Transaction error details:', JSON.stringify(transactionError, null, 2));
         
-        return new Response('Database Error', { 
-          status: 500,
-          headers: corsHeaders
-        });
-      } else {
-        console.log('M-Pesa transaction recorded successfully:', transactionResult);
-        
-        // The database trigger will automatically update the order status
-        // But let's verify it worked by checking the order status after a brief delay
-        if (transactionStatus === 'completed' && orderId !== 'unknown') {
-          console.log('Payment successful - trigger should update order status automatically');
-          
-          // Wait a moment for the trigger to execute
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const { data: orderCheck, error: orderCheckError } = await supabase
-            .from('orders')
-            .select('id, status, transaction_id')
-            .eq('id', orderId)
-            .single();
+        // Try inserting instead of upserting in case of conflict issues
+        console.log('Trying to insert as new record...');
+        const { data: insertResult, error: insertError } = await supabase
+          .from('mpesa_transactions')
+          .insert(transactionData)
+          .select();
 
-          if (orderCheckError) {
-            console.error('Error checking order status:', orderCheckError);
-          } else {
-            console.log('Order status after trigger execution:', orderCheck);
+        if (insertError) {
+          console.error('Insert also failed:', insertError);
+        } else {
+          console.log('Transaction inserted successfully:', insertResult);
+        }
+      } else {
+        console.log('M-Pesa transaction upserted successfully:', transactionResult);
+      }
+
+      // The database trigger will automatically update the order status
+      // Let's verify it worked by checking the order status after a brief delay
+      if (transactionStatus === 'completed' && orderId !== 'unknown') {
+        console.log('Payment successful - trigger should update order status automatically');
+        
+        // Wait a moment for the trigger to execute
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const { data: orderCheck, error: orderCheckError } = await supabase
+          .from('orders')
+          .select('id, status, transaction_id')
+          .eq('id', orderId)
+          .single();
+
+        if (orderCheckError) {
+          console.error('Error checking order status:', orderCheckError);
+        } else {
+          console.log('Order status after trigger execution:', orderCheck);
+          
+          // If the trigger didn't work, manually update the order
+          if (orderCheck && orderCheck.status !== 'paid') {
+            console.log('Trigger did not update order, updating manually...');
+            const { error: updateError } = await supabase
+              .from('orders')
+              .update({ 
+                status: 'paid',
+                transaction_id: transactionId || CheckoutRequestID 
+              })
+              .eq('id', orderId);
+
+            if (updateError) {
+              console.error('Manual order update failed:', updateError);
+            } else {
+              console.log('Order status updated manually to paid');
+            }
           }
         }
       }
     } else {
       console.error('No CheckoutRequestID found in callback data');
-      return new Response('Invalid callback - no CheckoutRequestID', { 
-        status: 400,
-        headers: corsHeaders
-      });
     }
 
     return new Response('OK', { 
@@ -169,8 +217,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing M-Pesa callback:', error);
     console.error('Error stack:', error.stack);
-    return new Response('Internal Server Error', { 
-      status: 500,
+    
+    // Always return 200 OK to M-Pesa to avoid retries
+    return new Response('OK', { 
+      status: 200,
       headers: corsHeaders
     });
   }

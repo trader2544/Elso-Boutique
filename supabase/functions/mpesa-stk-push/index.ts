@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +29,11 @@ serve(async (req) => {
         }
       );
     }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get M-Pesa credentials from Supabase secrets - trim whitespace
     const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY')?.trim();
@@ -141,6 +147,32 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Step 4: Create initial transaction record in database
+    console.log('Creating initial transaction record...');
+    const initialTransactionData = {
+      order_id: orderId,
+      phone_number: formattedPhone,
+      amount: Math.ceil(amount),
+      checkout_request_id: stkData.CheckoutRequestID,
+      merchant_request_id: stkData.MerchantRequestID || null,
+      response_code: stkData.ResponseCode || null,
+      response_description: stkData.ResponseDescription || null,
+      status: 'pending',
+      customer_message: stkData.CustomerMessage || null,
+    };
+
+    const { data: transactionResult, error: transactionError } = await supabase
+      .from('mpesa_transactions')
+      .insert(initialTransactionData)
+      .select();
+
+    if (transactionError) {
+      console.error('Error creating initial transaction record:', transactionError);
+      // Don't fail the STK push if database insert fails
+    } else {
+      console.log('Initial transaction record created:', transactionResult);
     }
 
     // Success response
