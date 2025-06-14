@@ -1,5 +1,5 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -34,38 +34,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          // Defer cart refresh to prevent deadlocks
-          setTimeout(() => {
-            refreshCart();
-          }, 0);
-        } else {
-          setCartItems([]);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        refreshCart();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const refreshCart = async () => {
+  const refreshCart = useCallback(async () => {
     if (!user) {
       setCartItems([]);
       return;
     }
 
+    console.log("Refreshing cart for user:", user.id);
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -82,14 +57,50 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         `)
         .eq("user_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching cart items:", error);
+        throw error;
+      }
+      
+      console.log("Cart items fetched:", data);
       setCartItems(data || []);
     } catch (error) {
-      console.error("Error fetching cart items:", error);
+      console.error("Error refreshing cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh cart",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          // Use setTimeout to prevent potential race conditions
+          setTimeout(() => {
+            refreshCart();
+          }, 100);
+        } else {
+          setCartItems([]);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        refreshCart();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [refreshCart]);
 
   const addToCart = async (productId: string) => {
     if (!user) {
@@ -103,17 +114,42 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setIsLoading(true);
     try {
+      // First, check if the product exists and is in stock
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .select("name, in_stock")
+        .eq("id", productId)
+        .single();
+
+      if (productError) {
+        throw new Error("Product not found");
+      }
+
+      if (!product.in_stock) {
+        toast({
+          title: "Out of Stock",
+          description: "This product is currently out of stock",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Check if item already exists in cart
       const existingItem = cartItems.find(item => item.products.id === productId);
       
       if (existingItem) {
-        // Update quantity
+        // Update quantity instead of showing error
         const { error } = await supabase
           .from("cart_items")
           .update({ quantity: existingItem.quantity + 1 })
           .eq("id", existingItem.id);
 
         if (error) throw error;
+        
+        toast({
+          title: "Quantity Updated",
+          description: `Added another ${product.name} to your cart`,
+        });
       } else {
         // Insert new item
         const { error } = await supabase
@@ -125,18 +161,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           });
 
         if (error) throw error;
+        
+        toast({
+          title: "Added to Cart",
+          description: `${product.name} has been added to your cart`,
+        });
       }
 
       await refreshCart();
-      toast({
-        title: "Success",
-        description: "Item added to cart",
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding to cart:", error);
       toast({
         title: "Error",
-        description: "Failed to add item to cart",
+        description: error.message || "Failed to add item to cart",
         variant: "destructive",
       });
     } finally {
@@ -153,16 +190,30 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         .eq("id", itemId);
 
       if (error) throw error;
+      
+      toast({
+        title: "Item Removed",
+        description: "Item has been removed from your cart",
+      });
+      
       await refreshCart();
     } catch (error) {
       console.error("Error removing from cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item from cart",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (quantity < 1) {
+      await removeFromCart(itemId);
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -175,6 +226,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       await refreshCart();
     } catch (error) {
       console.error("Error updating quantity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
