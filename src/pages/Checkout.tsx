@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -20,6 +19,7 @@ const Checkout = () => {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
   const [promptTimer, setPromptTimer] = useState(30);
+  const [showBackToShop, setShowBackToShop] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -63,9 +63,13 @@ const Checkout = () => {
       setShowPaymentPrompt(false);
       setPaymentStatus(null);
       setPromptTimer(30);
+      // Show back to shop button after prompt disappears
+      if (!paymentStatus || paymentStatus === 'pending') {
+        setShowBackToShop(true);
+      }
     }
     return () => clearInterval(interval);
-  }, [showPaymentPrompt, promptTimer]);
+  }, [showPaymentPrompt, promptTimer, paymentStatus]);
 
   // M-Pesa transaction listener
   useEffect(() => {
@@ -180,6 +184,7 @@ const Checkout = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
+    setShowBackToShop(false); // Hide back to shop button when starting new payment
 
     try {
       if (!customerInfo.phone || !customerInfo.address || !customerInfo.city || !customerInfo.exactLocation) {
@@ -268,6 +273,7 @@ const Checkout = () => {
     setPaymentInProgress(true);
     setShowPaymentPrompt(true);
     setPromptTimer(30);
+    setShowBackToShop(false); // Hide back to shop button when retrying
 
     try {
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -368,6 +374,7 @@ const Checkout = () => {
                   setShowPaymentPrompt(false);
                   setPaymentStatus(null);
                   setPromptTimer(30);
+                  setShowBackToShop(true);
                 }}
                 className="absolute top-4 left-4 rounded-full p-2 hover:bg-gray-100"
               >
@@ -403,6 +410,35 @@ const Checkout = () => {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Back to Shop Button */}
+      {showBackToShop && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden">
+            <CardContent className="p-8 text-center">
+              <ShoppingBag className="w-16 h-16 text-pink-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-pink-700 mb-2">Continue Shopping?</h3>
+              <p className="text-gray-600 mb-6">Your order is being processed. Would you like to continue shopping?</p>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => navigate("/")}
+                  className="w-full bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 rounded-full"
+                >
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  Back to Shop
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBackToShop(false)}
+                  className="w-full border-pink-200 text-pink-700 hover:bg-pink-50 rounded-full"
+                >
+                  Stay Here
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

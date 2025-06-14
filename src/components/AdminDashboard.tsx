@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, Users, DollarSign, Package, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ShoppingBag, Users, DollarSign, Package, TrendingUp, Search } from "lucide-react";
 
 interface DashboardStats {
   totalSales: number;
@@ -27,6 +28,9 @@ const AdminDashboard = () => {
     salesByStatus: { paid: 0, pending: 0, cancelled: 0 }
   });
   const [loading, setLoading] = useState(true);
+  const [searchOrderId, setSearchOrderId] = useState("");
+  const [searchedOrder, setSearchedOrder] = useState<any>(null);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -91,6 +95,44 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchOrderById = async () => {
+    if (!searchOrderId.trim()) return;
+    
+    setSearching(true);
+    try {
+      const { data: orderData, error } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          profiles (
+            full_name,
+            email,
+            phone
+          )
+        `)
+        .eq("id", searchOrderId.trim())
+        .single();
+
+      if (error) {
+        console.error("Order not found:", error);
+        setSearchedOrder(null);
+        return;
+      }
+
+      setSearchedOrder(orderData);
+    } catch (error) {
+      console.error("Error searching for order:", error);
+      setSearchedOrder(null);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchOrderId("");
+    setSearchedOrder(null);
   };
 
   if (loading) {
@@ -161,6 +203,120 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Search */}
+      <Card className="shadow-lg border-pink-200">
+        <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
+          <CardTitle className="text-pink-700">Search Order by ID</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 md:p-6">
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Enter order ID..."
+              value={searchOrderId}
+              onChange={(e) => setSearchOrderId(e.target.value)}
+              className="flex-1"
+              onKeyPress={(e) => e.key === 'Enter' && searchOrderById()}
+            />
+            <button
+              onClick={searchOrderById}
+              disabled={searching || !searchOrderId.trim()}
+              className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:bg-gray-300 flex items-center gap-2"
+            >
+              {searching ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              Search
+            </button>
+            {searchedOrder && (
+              <button
+                onClick={clearSearch}
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {searchedOrder && (
+            <div className="bg-white rounded-lg border border-pink-200 p-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 text-lg">Order #{searchedOrder.id.slice(-8)}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                    <span>{new Date(searchedOrder.created_at).toLocaleDateString()}</span>
+                    <span>• KSh {Number(searchedOrder.total_price).toLocaleString()}</span>
+                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                      searchedOrder.status === 'paid' ? 'bg-green-100 text-green-800' :
+                      searchedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      searchedOrder.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                      searchedOrder.status === 'delivered' ? 'bg-purple-100 text-purple-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {searchedOrder.status.charAt(0).toUpperCase() + searchedOrder.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Details */}
+              {searchedOrder.profiles && (
+                <div className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-lg border border-blue-100">
+                  <h5 className="text-sm font-medium text-blue-700 mb-3">👤 Customer Details</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600 font-medium">Name: </span>
+                      <span className="text-gray-900">{searchedOrder.profiles.full_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 font-medium">Email: </span>
+                      <span className="text-gray-900">{searchedOrder.profiles.email}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 font-medium">Phone: </span>
+                      <span className="text-gray-900">{searchedOrder.customer_phone || searchedOrder.profiles.phone || 'N/A'}</span>
+                    </div>
+                    {searchedOrder.delivery_location && (
+                      <div className="sm:col-span-2">
+                        <span className="text-gray-600 font-medium">Delivery Address: </span>
+                        <span className="text-gray-900">{searchedOrder.delivery_location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Products List */}
+              {searchedOrder.products && Array.isArray(searchedOrder.products) && (
+                <div className="bg-gradient-to-r from-purple-50 to-white p-4 rounded-lg border border-purple-100">
+                  <h5 className="text-sm font-medium text-purple-700 mb-3">📦 Products ({searchedOrder.products.length})</h5>
+                  <div className="space-y-2">
+                    {searchedOrder.products.map((product: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center text-sm bg-white p-2 rounded border">
+                        <span className="text-gray-700 flex-1">
+                          {product.name} 
+                          <span className="text-purple-600 ml-1">×{product.quantity}</span>
+                        </span>
+                        <span className="text-purple-600 font-medium">
+                          KSh {(product.price * product.quantity).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {searchOrderId && !searchedOrder && !searching && (
+            <div className="text-center py-4">
+              <p className="text-gray-500">No order found with that ID</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Orders and Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">

@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 
 const HeroSection = () => {
   return (
-    <section className="relative bg-gradient-to-r from-pink-600 to-purple-600 text-white py-16 md:py-24">
-      <div className="absolute inset-0 bg-black opacity-20"></div>
+    <section className="relative bg-gradient-to-r from-pink-300 to-pink-400 text-white py-16 md:py-24">
+      <div className="absolute inset-0 bg-black opacity-10"></div>
       <div className="container mx-auto px-4 relative z-10">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
