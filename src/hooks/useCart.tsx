@@ -39,7 +39,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Defer cart refresh to prevent deadlocks
           setTimeout(() => {
             refreshCart();
           }, 0);
@@ -49,7 +48,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -103,40 +101,50 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setIsLoading(true);
     try {
-      // Check if item already exists in cart
+      // First, check if item already exists in current cart state
       const existingItem = cartItems.find(item => item.products.id === productId);
       
       if (existingItem) {
-        // Update quantity
+        // Item exists, increment quantity
         const { error } = await supabase
           .from("cart_items")
           .update({ quantity: existingItem.quantity + 1 })
           .eq("id", existingItem.id);
 
         if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Item quantity updated in cart",
+        });
       } else {
-        // Insert new item
+        // Item doesn't exist, insert new item
+        // Use upsert to handle potential race conditions
         const { error } = await supabase
           .from("cart_items")
-          .insert({
+          .upsert({
             user_id: user.id,
             product_id: productId,
             quantity: 1,
+          }, {
+            onConflict: 'user_id,product_id'
           });
 
         if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Item added to cart",
+        });
       }
 
+      // Refresh cart to get updated data
       await refreshCart();
-      toast({
-        title: "Success",
-        description: "Item added to cart",
-      });
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast({
         title: "Error",
-        description: "Failed to add item to cart",
+        description: "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -154,8 +162,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
       await refreshCart();
+      
+      toast({
+        title: "Success",
+        description: "Item removed from cart",
+      });
     } catch (error) {
       console.error("Error removing from cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item from cart",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -175,6 +193,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       await refreshCart();
     } catch (error) {
       console.error("Error updating quantity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
