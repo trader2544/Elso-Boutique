@@ -243,7 +243,7 @@ const Admin = () => {
                                 {/* Show basic customer info when collapsed */}
                                 <div className="mt-2">
                                   <p className="text-sm text-gray-600">
-                                    Customer: {order.profiles?.full_name || order.customer_name || 'N/A'}
+                                    Customer: {order.profiles?.full_name || 'N/A'}
                                   </p>
                                   <p className="text-sm text-gray-600">
                                     Items: {order.products.length}
@@ -260,11 +260,11 @@ const Admin = () => {
                                 <div className="space-y-1 text-sm">
                                   <div>
                                     <span className="text-gray-600 font-medium">Name: </span>
-                                    <span className="text-gray-900">{order.profiles?.full_name || order.customer_name || 'N/A'}</span>
+                                    <span className="text-gray-900">{order.profiles?.full_name || 'N/A'}</span>
                                   </div>
                                   <div>
                                     <span className="text-gray-600 font-medium">Email: </span>
-                                    <span className="text-gray-900">{order.profiles?.email || order.customer_email || 'N/A'}</span>
+                                    <span className="text-gray-900">{order.profiles?.email || 'N/A'}</span>
                                   </div>
                                   <div>
                                     <span className="text-gray-600 font-medium">Phone: </span>
@@ -336,7 +336,7 @@ const Admin = () => {
                                 {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString()}
                               </p>
                               <p className="text-sm text-gray-600 mt-1">
-                                Customer: {order.profiles?.full_name || order.customer_name || 'N/A'} | Items: {order.products.length}
+                                Customer: {order.profiles?.full_name || 'N/A'} | Items: {order.products.length}
                               </p>
                             </div>
                             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
@@ -364,11 +364,11 @@ const Admin = () => {
                               <div className="space-y-2">
                                 <div>
                                   <span className="text-gray-600 font-medium">Full Name: </span>
-                                  <span className="text-gray-900">{order.profiles?.full_name || order.customer_name || 'N/A'}</span>
+                                  <span className="text-gray-900">{order.profiles?.full_name || 'N/A'}</span>
                                 </div>
                                 <div>
                                   <span className="text-gray-600 font-medium">Email: </span>
-                                  <span className="text-gray-900">{order.profiles?.email || order.customer_email || 'N/A'}</span>
+                                  <span className="text-gray-900">{order.profiles?.email || 'N/A'}</span>
                                 </div>
                               </div>
                               <div className="space-y-2">
