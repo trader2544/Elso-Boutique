@@ -54,11 +54,14 @@ serve(async (req) => {
       phoneNumber = phoneItem?.Value;
     }
 
-    // Determine order status based on result code
+    // Determine transaction status based on result code
+    let transactionStatus = 'pending';
     let orderStatus = 'pending';
     if (ResultCode === 0) {
+      transactionStatus = 'completed';
       orderStatus = 'paid';
     } else {
+      transactionStatus = 'failed';
       orderStatus = 'cancelled';
     }
 
@@ -69,12 +72,38 @@ serve(async (req) => {
       transactionId,
       amount,
       phoneNumber,
+      transactionStatus,
       orderStatus
     });
 
+    // Insert or update M-Pesa transaction record
+    if (orderId && phoneNumber && amount) {
+      const { error: transactionError } = await supabase
+        .from('mpesa_transactions')
+        .upsert({
+          order_id: orderId,
+          phone_number: phoneNumber,
+          amount: parseFloat(amount),
+          checkout_request_id: CheckoutRequestID,
+          merchant_request_id: stkCallback.MerchantRequestID,
+          response_code: ResultCode.toString(),
+          response_description: ResultDesc,
+          status: transactionStatus,
+          customer_message: ResultDesc
+        }, {
+          onConflict: 'checkout_request_id'
+        });
+
+      if (transactionError) {
+        console.error('Error inserting/updating M-Pesa transaction:', transactionError);
+      } else {
+        console.log(`M-Pesa transaction recorded with status: ${transactionStatus}`);
+      }
+    }
+
+    // Update order status in database
     if (orderId) {
-      // Update order status in database
-      const { error } = await supabase
+      const { error: orderError } = await supabase
         .from('orders')
         .update({
           status: orderStatus,
@@ -83,8 +112,8 @@ serve(async (req) => {
         })
         .eq('id', orderId);
 
-      if (error) {
-        console.error('Error updating order:', error);
+      if (orderError) {
+        console.error('Error updating order:', orderError);
       } else {
         console.log(`Order ${orderId} updated with status: ${orderStatus}`);
       }

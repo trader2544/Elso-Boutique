@@ -117,12 +117,13 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">E</span>
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
+              alt="ELSO Boutique" 
+              className="h-20 w-auto object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-            ELSO
-          </h1>
           <p className="text-gray-600 mt-2">Welcome to your fashion destination</p>
         </div>
 
