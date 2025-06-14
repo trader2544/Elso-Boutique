@@ -550,27 +550,6 @@ const Checkout = () => {
                 <form onSubmit={handleCheckout} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="sm:col-span-2">
-                      <Label htmlFor="phone" className="text-pink-700 font-semibold text-xs flex items-center mb-1">
-                        <Phone className="w-3 h-3 mr-1" />
-                        M-Pesa Phone Number *
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={customerInfo.phone}
-                        onChange={handlePhoneChange}
-                        placeholder="+254700000000"
-                        required
-                        disabled={paymentInProgress}
-                        className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-lg py-2 text-xs bg-white/50 backdrop-blur-sm"
-                      />
-                      <p className="text-xs text-pink-600 mt-1 flex items-center">
-                        <CreditCard className="w-2 h-2 mr-1" />
-                        Enter your phone number for M-Pesa payment
-                      </p>
-                    </div>
-                    
-                    <div className="sm:col-span-2">
                       <Label htmlFor="address" className="text-pink-700 font-semibold text-xs flex items-center mb-1">
                         <MapPin className="w-3 h-3 mr-1" />
                         Delivery Address *
@@ -626,25 +605,49 @@ const Checkout = () => {
                     </div>
                   )}
 
-                  {!paymentInProgress && (
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white shadow-2xl py-2 rounded-lg text-xs font-bold backdrop-blur-xl border border-pink-300/20"
-                      disabled={processing}
-                    >
-                      {processing ? (
-                        <div className="flex items-center justify-center">
-                          <div className="inline-block animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-2"></div>
-                          Processing Payment...
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center">
-                          <CreditCard className="w-3 h-3 mr-2" />
-                          Pay with M-Pesa - KSh {getFinalTotal().toLocaleString()}
-                        </div>
-                      )}
-                    </Button>
-                  )}
+                  {/* Phone Number Field - Moved to just before payment button */}
+                  <div className="space-y-3 pt-3 border-t border-pink-100/20">
+                    <div>
+                      <Label htmlFor="phone" className="text-pink-700 font-semibold text-xs flex items-center mb-1">
+                        <Phone className="w-3 h-3 mr-1" />
+                        M-Pesa Phone Number *
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={handlePhoneChange}
+                        placeholder="+254700000000"
+                        required
+                        disabled={paymentInProgress}
+                        className="border-green-200 focus:border-green-400 focus:ring-green-400 rounded-lg py-2 text-xs bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="text-xs text-green-600 mt-1 flex items-center">
+                        <CreditCard className="w-2 h-2 mr-1" />
+                        This number will receive an STK push for payment
+                      </p>
+                    </div>
+
+                    {!paymentInProgress && (
+                      <Button
+                        type="submit"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white shadow-2xl py-2 rounded-lg text-xs font-bold"
+                        disabled={processing}
+                      >
+                        {processing ? (
+                          <div className="flex items-center justify-center">
+                            <div className="inline-block animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-2"></div>
+                            Processing Payment...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <CreditCard className="w-3 h-3 mr-2" />
+                            Pay with M-Pesa - KSh {getFinalTotal().toLocaleString()}
+                          </div>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </div>
             </div>
