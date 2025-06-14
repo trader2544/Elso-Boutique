@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative bg-gradient-to-br from-pink-50 via-pink-25 to-white h-[60vh] md:h-[65vh] flex items-center overflow-hidden">
+    <section className="relative bg-gradient-to-br from-pink-50 via-pink-25 to-white h-[50vh] md:h-[65vh] flex items-center overflow-hidden">
       {/* Background Image without Pink Overlay */}
       <div className="absolute inset-0 z-0">
         <img
@@ -20,9 +20,9 @@ const HeroSection = () => {
       <div className="container mx-auto px-4 relative z-10 h-full">
         <div className="flex items-center h-full">
           {/* Left-aligned Content */}
-          <div className="text-left max-w-xl pb-12 md:pb-8">
+          <div className="text-left max-w-xl pb-8 md:pb-8">
             {/* Main Heading */}
-            <div className="mb-3 md:mb-4">
+            <div className="mb-2 md:mb-4">
               <h1 className="text-xl md:text-4xl lg:text-5xl font-bold mb-1 md:mb-2 leading-tight">
                 <span className="text-white drop-shadow-lg">Elevate Your</span>
                 <br />
@@ -38,12 +38,12 @@ const HeroSection = () => {
             </div>
 
             {/* Subtitle */}
-            <p className="text-white/90 text-xs md:text-base lg:text-lg mb-3 md:mb-4 max-w-md drop-shadow-md">
+            <p className="text-white/90 text-xs md:text-base lg:text-lg mb-2 md:mb-4 max-w-md drop-shadow-md">
               Curated Collections for the Modern Connoisseur
             </p>
 
             {/* About Button */}
-            <div className="mb-4 md:mb-6">
+            <div className="mb-3 md:mb-6">
               <Link to="/about">
                 <Button 
                   size="lg" 
