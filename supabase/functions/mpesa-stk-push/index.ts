@@ -30,11 +30,6 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Get M-Pesa credentials from Supabase secrets - trim whitespace
     const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY')?.trim();
     const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET')?.trim();
@@ -149,33 +144,8 @@ serve(async (req) => {
       );
     }
 
-    // Step 4: Create initial transaction record in database
-    console.log('Creating initial transaction record...');
-    const initialTransactionData = {
-      order_id: orderId,
-      phone_number: formattedPhone,
-      amount: Math.ceil(amount),
-      checkout_request_id: stkData.CheckoutRequestID,
-      merchant_request_id: stkData.MerchantRequestID || null,
-      response_code: stkData.ResponseCode || null,
-      response_description: stkData.ResponseDescription || null,
-      status: 'pending',
-      customer_message: stkData.CustomerMessage || null,
-    };
-
-    const { data: transactionResult, error: transactionError } = await supabase
-      .from('mpesa_transactions')
-      .insert(initialTransactionData)
-      .select();
-
-    if (transactionError) {
-      console.error('Error creating initial transaction record:', transactionError);
-      // Don't fail the STK push if database insert fails
-    } else {
-      console.log('Initial transaction record created:', transactionResult);
-    }
-
-    // Success response
+    // Success response - do not create any database records yet
+    // Only the callback will create records for successful transactions
     const response = {
       success: true,
       message: 'STK Push sent successfully',
@@ -186,7 +156,7 @@ serve(async (req) => {
       customerMessage: stkData.CustomerMessage
     };
 
-    console.log('STK Push successful:', response);
+    console.log('STK Push successful, waiting for callback to confirm payment:', response);
 
     return new Response(
       JSON.stringify(response),
