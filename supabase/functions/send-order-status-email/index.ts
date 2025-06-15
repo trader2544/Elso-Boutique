@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from "npm:resend@2.0.0";
@@ -169,27 +168,46 @@ const generateStatusUpdateEmailHTML = (orderData: EmailData) => {
 };
 
 serve(async (req) => {
+  console.log('🔥 Order status email function called!');
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { orderId, newStatus, oldStatus } = await req.json();
-    console.log('📧 Sending order status update email for order:', orderId, 'Status:', oldStatus, '→', newStatus);
+    const requestBody = await req.text();
+    console.log('Raw request body:', requestBody);
+    
+    const { orderId, newStatus, oldStatus } = JSON.parse(requestBody);
+    console.log('📧 Processing order status update email');
+    console.log('Order ID:', orderId);
+    console.log('Status change:', oldStatus, '→', newStatus);
 
     // Check if RESEND_API_KEY is available
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
       console.error('❌ RESEND_API_KEY is not set');
-      throw new Error('Email service not configured');
+      throw new Error('Email service not configured - RESEND_API_KEY missing');
     }
+    console.log('✅ RESEND_API_KEY is configured');
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Supabase configuration missing');
+      throw new Error('Supabase configuration missing');
+    }
+    
+    console.log('✅ Supabase configuration found');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch order details with user profile
+    console.log('📋 Fetching order details for:', orderId);
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -199,12 +217,20 @@ serve(async (req) => {
       .eq('id', orderId)
       .single();
 
-    if (orderError || !order) {
+    if (orderError) {
       console.error('❌ Error fetching order:', orderError);
+      throw new Error(`Order fetch failed: ${orderError.message}`);
+    }
+    
+    if (!order) {
+      console.error('❌ Order not found:', orderId);
       throw new Error('Order not found');
     }
 
-    console.log('📋 Order data fetched:', order);
+    console.log('✅ Order data fetched successfully');
+    console.log('Customer email:', order.profiles.email);
+    console.log('Customer name:', order.profiles.full_name);
+    console.log('Order products:', order.products);
 
     // Prepare email data
     const emailData: EmailData = {
@@ -220,6 +246,7 @@ serve(async (req) => {
     };
 
     // Generate email HTML
+    console.log('📝 Generating email HTML');
     const emailHTML = generateStatusUpdateEmailHTML(emailData);
 
     // Determine subject based on status
@@ -238,22 +265,28 @@ serve(async (req) => {
       }
     };
 
+    const emailSubject = getEmailSubject(newStatus, orderId.slice(0, 8));
+    console.log('📧 Email subject:', emailSubject);
+
     // Send email using Resend with verified domain
+    console.log('📤 Sending email via Resend...');
     const emailResponse = await resend.emails.send({
       from: "Elso Atelier <team@elso-atelier.com>",
       to: [emailData.userEmail],
-      subject: getEmailSubject(newStatus, orderId.slice(0, 8)),
+      subject: emailSubject,
       html: emailHTML,
     });
 
-    console.log('✅ Order status update email sent successfully:', emailResponse);
+    console.log('✅ Order status update email sent successfully');
+    console.log('Email response:', emailResponse);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Order status update email sent successfully',
         emailId: emailResponse.data?.id || 'unknown',
-        status: `${oldStatus} → ${newStatus}`
+        status: `${oldStatus} → ${newStatus}`,
+        recipient: emailData.userEmail
       }),
       {
         status: 200,
@@ -265,11 +298,13 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error('❌ Error sending order status update email:', error);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        details: 'Please check that your domain is verified at resend.com/domains'
+        details: 'Check function logs for more details. Ensure RESEND_API_KEY is set and domain is verified at resend.com/domains'
       }),
       {
         status: 500,
