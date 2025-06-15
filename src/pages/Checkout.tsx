@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle, XCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Clock, Home } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Clock, Home, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -72,7 +73,7 @@ const Checkout = () => {
 
   // Listen for order status changes - ONLY show success when order is actually marked as "paid"
   useEffect(() => {
-    if (!currentOrderId) return;
+    if (!currentOrderId || paymentStatus !== 'pending') return;
 
     console.log("Setting up real-time order status listener for order:", currentOrderId);
     
@@ -90,7 +91,8 @@ const Checkout = () => {
           console.log('Real-time order status UPDATE:', payload);
           const order = payload.new;
           
-          if (order.status === 'paid') {
+          // ONLY update to success if the order status is actually "paid"
+          if (order.status === 'paid' && paymentStatus === 'pending') {
             console.log('Order confirmed as PAID - showing success');
             setPaymentStatus('success');
             setPaymentInProgress(false);
@@ -120,7 +122,7 @@ const Checkout = () => {
       console.log("Cleaning up real-time order status listener");
       supabase.removeChannel(channel);
     };
-  }, [currentOrderId, toast, user, refreshCart]);
+  }, [currentOrderId, toast, user, refreshCart, paymentStatus]);
 
   // Auto-show payment prompt when payment is in progress
   useEffect(() => {
@@ -170,6 +172,20 @@ const Checkout = () => {
 
   const getFinalTotal = () => {
     return getTotalPrice() + deliveryFee;
+  };
+
+  const handleCancelPayment = () => {
+    console.log("User cancelled payment");
+    setPaymentInProgress(false);
+    setPaymentStatus(null);
+    setShowPaymentPrompt(false);
+    setProcessing(false);
+    setPromptTimer(120);
+    
+    toast({
+      title: "Payment Cancelled",
+      description: "Payment request cancelled. You can try again when ready.",
+    });
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -421,6 +437,18 @@ const Checkout = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <div></div>
+                    <Button
+                      onClick={handleCancelPayment}
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100/30 p-1 rounded-full"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
                   <div className="w-16 h-16 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
                     <div className="inline-block animate-spin rounded-full h-10 w-10 border-2 border-pink-300/30 border-t-pink-500"></div>
                   </div>
@@ -439,6 +467,13 @@ const Checkout = () => {
                         style={{ width: `${(promptTimer / 120) * 100}%` }}
                       ></div>
                     </div>
+                    <Button
+                      onClick={handleCancelPayment}
+                      variant="outline"
+                      className="w-full mt-3 border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-2 rounded-lg text-sm font-semibold backdrop-blur-xl"
+                    >
+                      Cancel Payment
+                    </Button>
                   </div>
                   <div className="bg-blue-50/30 backdrop-blur-sm p-3 rounded-lg">
                     <p className="text-blue-700 text-sm font-medium">⏳ Waiting for payment confirmation</p>
