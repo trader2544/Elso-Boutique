@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -7,12 +8,41 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Log all incoming requests for debugging
+  console.log('🔔 CALLBACK REQUEST RECEIVED:');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const callbackData = await req.json();
+    // Log the raw request body for debugging
+    const rawBody = await req.text();
+    console.log('📥 RAW CALLBACK BODY:', rawBody);
+
+    if (!rawBody) {
+      console.log('⚠️ Empty callback body received');
+      return new Response('OK', { 
+        status: 200,
+        headers: corsHeaders
+      });
+    }
+
+    let callbackData;
+    try {
+      callbackData = JSON.parse(rawBody);
+    } catch (parseError) {
+      console.error('❌ Failed to parse callback JSON:', parseError);
+      console.log('Raw body was:', rawBody);
+      return new Response('OK', { 
+        status: 200,
+        headers: corsHeaders
+      });
+    }
+
     console.log('🔔 LIVE M-Pesa callback received:', JSON.stringify(callbackData, null, 2));
 
     // Initialize Supabase client
@@ -20,20 +50,24 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { Body } = callbackData;
+    // Handle different callback structures that Safaricom might send
+    let stkCallback;
     
-    if (!Body) {
-      console.error('❌ Invalid LIVE callback structure - no Body');
-      return new Response('OK', { 
-        status: 200,
-        headers: corsHeaders
-      });
+    if (callbackData.Body?.stkCallback) {
+      stkCallback = callbackData.Body.stkCallback;
+    } else if (callbackData.stkCallback) {
+      stkCallback = callbackData.stkCallback;
+    } else if (callbackData.Body) {
+      stkCallback = callbackData.Body;
+    } else {
+      stkCallback = callbackData;
     }
 
-    const { stkCallback } = Body;
+    console.log('📱 Extracted stkCallback:', JSON.stringify(stkCallback, null, 2));
 
     if (!stkCallback) {
-      console.error('❌ Invalid LIVE callback structure - no stkCallback');
+      console.error('❌ Invalid LIVE callback structure - no stkCallback found');
+      console.log('Available keys in callbackData:', Object.keys(callbackData));
       return new Response('OK', { 
         status: 200,
         headers: corsHeaders
@@ -48,6 +82,14 @@ serve(async (req) => {
       ResultDesc,
       MerchantRequestID
     });
+
+    if (!CheckoutRequestID) {
+      console.error('❌ No CheckoutRequestID found in callback');
+      return new Response('OK', { 
+        status: 200,
+        headers: corsHeaders
+      });
+    }
 
     // Check if this is a successful transaction (ResultCode 0 means success)
     const isSuccessful = (ResultCode === 0 || ResultCode === '0');
@@ -188,7 +230,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('✅ LIVE M-Pesa callback processing completed');
+    console.log('✅ LIVE M-Pesa callback processing completed successfully');
 
     return new Response('OK', { 
       status: 200,
