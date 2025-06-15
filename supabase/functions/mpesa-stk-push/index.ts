@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// M-Pesa API endpoints
-const MPESA_BASE_URL = "https://sandbox.safaricom.co.ke"; // Use https://api.safaricom.co.ke for production
+// M-Pesa API endpoints - CHANGED TO PRODUCTION
+const MPESA_BASE_URL = "https://api.safaricom.co.ke"; // Production URL
 const TOKEN_URL = `${MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`;
 const STK_PUSH_URL = `${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`;
 
@@ -58,7 +58,7 @@ serve(async (req) => {
       formattedPhone = '254' + formattedPhone;
     }
 
-    console.log('🚀 Processing STK Push for:', {
+    console.log('🚀 Processing LIVE STK Push for:', {
       amount,
       phoneNumber: formattedPhone,
       orderId,
@@ -121,7 +121,7 @@ serve(async (req) => {
       throw new Error('Failed to obtain access token');
     }
 
-    console.log('✅ OAuth token obtained successfully');
+    console.log('✅ OAuth token obtained successfully for LIVE environment');
 
     // Step 2: Generate password and timestamp
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
@@ -144,7 +144,7 @@ serve(async (req) => {
       TransactionDesc: `Payment for order ${orderId.slice(-8)}`
     };
 
-    console.log('📱 STK Push payload:', {
+    console.log('📱 LIVE STK Push payload:', {
       ...stkPushPayload,
       Password: '[HIDDEN]',
       CallBackURL: callbackUrl
@@ -161,10 +161,10 @@ serve(async (req) => {
 
     const stkData = await stkResponse.json();
     
-    console.log('📱 M-Pesa STK Push response:', stkData);
+    console.log('📱 M-Pesa LIVE STK Push response:', stkData);
 
     if (!stkResponse.ok || stkData.errorCode) {
-      console.error('❌ STK Push failed:', stkData);
+      console.error('❌ LIVE STK Push failed:', stkData);
       
       // Handle specific M-Pesa errors with user-friendly messages
       let errorMessage = 'STK Push failed';
@@ -190,7 +190,7 @@ serve(async (req) => {
     }
 
     // Step 4: Record the STK push request (NOT a successful transaction yet)
-    console.log('💾 Recording STK push request as PENDING in database...');
+    console.log('💾 Recording LIVE STK push request as PENDING in database...');
     
     const transactionData = {
       order_id: orderId,
@@ -206,7 +206,7 @@ serve(async (req) => {
       updated_at: new Date().toISOString()
     };
 
-    console.log('💾 STK push data to insert:', transactionData);
+    console.log('💾 LIVE STK push data to insert:', transactionData);
 
     const { data: transactionResult, error: transactionError } = await supabase
       .from('mpesa_transactions')
@@ -214,21 +214,21 @@ serve(async (req) => {
       .select();
 
     if (transactionError) {
-      console.error('❌ Error inserting STK push record:', transactionError);
+      console.error('❌ Error inserting LIVE STK push record:', transactionError);
       // Continue even if we can't record the transaction - the callback will handle it
     } else {
-      console.log('✅ STK push request recorded successfully:', transactionResult);
+      console.log('✅ LIVE STK push request recorded successfully:', transactionResult);
     }
 
     // 🚨 CRITICAL: DO NOT UPDATE ORDER STATUS HERE 
     // Order status should ONLY be updated when callback confirms payment
-    console.log('⚠️ IMPORTANT: Order status will remain PENDING until payment is confirmed via callback');
+    console.log('⚠️ IMPORTANT: Order status will remain PENDING until payment is confirmed via LIVE callback');
     console.log('🔗 Callback URL configured:', callbackUrl);
 
     // Success response
     const response = {
       success: true,
-      message: 'STK Push sent successfully',
+      message: 'LIVE STK Push sent successfully',
       checkoutRequestID: stkData.CheckoutRequestID,
       merchantRequestID: stkData.MerchantRequestID,
       responseCode: stkData.ResponseCode,
@@ -237,7 +237,7 @@ serve(async (req) => {
       callbackUrl: callbackUrl
     };
 
-    console.log('🎯 STK Push sent successfully, waiting for payment confirmation via callback:', response);
+    console.log('🎯 LIVE STK Push sent successfully, waiting for payment confirmation via callback:', response);
 
     return new Response(
       JSON.stringify(response),
@@ -247,7 +247,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Error in STK Push:', error);
+    console.error('❌ Error in LIVE STK Push:', error);
     
     return new Response(
       JSON.stringify({ 
