@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const callbackData = await req.json();
-    console.log('M-Pesa callback received:', JSON.stringify(callbackData, null, 2));
+    console.log('🔔 M-Pesa callback received:', JSON.stringify(callbackData, null, 2));
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -23,7 +23,7 @@ serve(async (req) => {
     const { Body } = callbackData;
     
     if (!Body) {
-      console.error('Invalid callback structure - no Body');
+      console.error('❌ Invalid callback structure - no Body');
       return new Response('OK', { 
         status: 200,
         headers: corsHeaders
@@ -33,7 +33,7 @@ serve(async (req) => {
     const { stkCallback } = Body;
 
     if (!stkCallback) {
-      console.error('Invalid callback structure - no stkCallback');
+      console.error('❌ Invalid callback structure - no stkCallback');
       return new Response('OK', { 
         status: 200,
         headers: corsHeaders
@@ -42,7 +42,7 @@ serve(async (req) => {
 
     const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata, MerchantRequestID } = stkCallback;
 
-    console.log('Processing callback with:', {
+    console.log('📱 Processing M-Pesa callback:', {
       CheckoutRequestID,
       ResultCode,
       ResultDesc,
@@ -52,7 +52,7 @@ serve(async (req) => {
     // Check if this is a successful transaction (ResultCode 0 means success)
     const isSuccessful = (ResultCode === 0 || ResultCode === '0');
     
-    console.log('Payment result:', {
+    console.log('💰 Payment result analysis:', {
       isSuccessful,
       ResultCode,
       ResultDesc
@@ -65,26 +65,36 @@ serve(async (req) => {
     let phoneNumber = 'unknown';
 
     if (CallbackMetadata?.Item && Array.isArray(CallbackMetadata.Item)) {
-      console.log('Processing CallbackMetadata items:', CallbackMetadata.Item);
+      console.log('🔍 Processing CallbackMetadata items:', CallbackMetadata.Item);
       
       for (const item of CallbackMetadata.Item) {
+        console.log('📋 Processing metadata item:', item);
+        
         if (item.Name === 'AccountReference' && item.Value) {
-          orderId = item.Value.toString().replace('ORDER_', '');
-          console.log('Extracted order ID from metadata:', orderId);
+          // Extract order ID from AccountReference (format: ORDER_uuid)
+          const accountRef = item.Value.toString();
+          if (accountRef.startsWith('ORDER_')) {
+            orderId = accountRef.replace('ORDER_', '');
+          } else {
+            orderId = accountRef;
+          }
+          console.log('🆔 Extracted order ID from AccountReference:', orderId);
         } else if (item.Name === 'MpesaReceiptNumber' && item.Value) {
           transactionId = item.Value.toString();
-          console.log('Extracted transaction ID:', transactionId);
+          console.log('🧾 Extracted M-Pesa receipt number:', transactionId);
         } else if (item.Name === 'Amount' && item.Value) {
           amount = parseFloat(item.Value.toString()) || 0;
-          console.log('Extracted amount from metadata:', amount);
+          console.log('💵 Extracted amount:', amount);
         } else if (item.Name === 'PhoneNumber' && item.Value) {
           phoneNumber = item.Value.toString();
-          console.log('Extracted phone number from metadata:', phoneNumber);
+          console.log('📞 Extracted phone number:', phoneNumber);
         }
       }
+    } else {
+      console.log('⚠️ No CallbackMetadata items found - payment might have failed');
     }
 
-    // Update the transaction record with the callback result
+    // Prepare transaction update data
     const updateData = {
       merchant_request_id: MerchantRequestID || null,
       response_code: ResultCode?.toString() || '1',
@@ -95,11 +105,12 @@ serve(async (req) => {
     };
 
     if (isSuccessful && transactionId) {
-      updateData.merchant_request_id = transactionId;
+      updateData.transaction_id = transactionId;
     }
 
-    console.log('Updating transaction with callback data:', updateData);
+    console.log('💾 Updating M-Pesa transaction with callback data:', updateData);
 
+    // Update the transaction record
     const { data: transactionResult, error: transactionError } = await supabase
       .from('mpesa_transactions')
       .update(updateData)
@@ -107,66 +118,77 @@ serve(async (req) => {
       .select();
 
     if (transactionError) {
-      console.error('Error updating transaction:', transactionError);
+      console.error('❌ Error updating M-Pesa transaction:', transactionError);
     } else {
-      console.log('Transaction updated successfully:', transactionResult);
+      console.log('✅ M-Pesa transaction updated successfully:', transactionResult);
     }
 
-    // CRITICAL: ONLY update order status to 'paid' if payment was actually successful
-    // This is the ONLY place where orders should be marked as paid
+    // 🚨 CRITICAL: ONLY update order status to 'paid' if payment was actually successful
     if (isSuccessful && orderId !== 'unknown') {
       console.log('🎉 PAYMENT CONFIRMED SUCCESSFUL - Updating order status to PAID for order:', orderId);
       
-      // First check current order status to log the change
-      const { data: currentOrder } = await supabase
+      // Check if order exists first
+      const { data: existingOrder } = await supabase
         .from('orders')
-        .select('status')
+        .select('id, status')
         .eq('id', orderId)
         .single();
       
-      console.log('Current order status before update:', currentOrder?.status);
-      
-      const { data: orderUpdateResult, error: orderUpdateError } = await supabase
-        .from('orders')
-        .update({ 
-          status: 'paid',
-          transaction_id: transactionId || CheckoutRequestID || `callback_${Date.now()}`
-        })
-        .eq('id', orderId)
-        .select();
-
-      if (orderUpdateError) {
-        console.error('❌ ERROR updating order status to paid:', orderUpdateError);
+      if (!existingOrder) {
+        console.error('❌ Order not found with ID:', orderId);
       } else {
-        console.log('✅ ORDER STATUS SUCCESSFULLY UPDATED TO PAID:', orderUpdateResult);
-      }
-
-    } else if (!isSuccessful) {
-      console.log('❌ Payment failed or cancelled - order status remains pending. Result:', ResultDesc);
-      
-      // Keep order status as pending for failed payments so user can retry
-      if (orderId !== 'unknown') {
-        console.log('Ensuring order status remains pending for retry for order:', orderId);
+        console.log('📋 Current order status before update:', existingOrder.status);
         
+        // Update order to paid status
         const { data: orderUpdateResult, error: orderUpdateError } = await supabase
           .from('orders')
           .update({ 
-            status: 'pending' // Keep as pending so user can retry payment
+            status: 'paid',
+            transaction_id: transactionId || CheckoutRequestID || `mpesa_${Date.now()}`
           })
           .eq('id', orderId)
           .select();
 
         if (orderUpdateError) {
-          console.error('Error ensuring order status remains pending:', orderUpdateError);
+          console.error('❌ ERROR updating order status to paid:', orderUpdateError);
         } else {
-          console.log('Order status kept as pending for retry:', orderUpdateResult);
+          console.log('✅ ORDER STATUS SUCCESSFULLY UPDATED TO PAID:', orderUpdateResult);
+          console.log('🔔 Order update should trigger real-time notification to frontend');
+        }
+      }
+
+    } else if (!isSuccessful) {
+      console.log('❌ Payment failed or was cancelled - keeping order as pending for retry');
+      console.log('📝 Result details:', {
+        ResultCode,
+        ResultDesc,
+        orderId
+      });
+      
+      // Optionally update order with failure info but keep status as pending for retry
+      if (orderId !== 'unknown') {
+        const { error: orderNoteError } = await supabase
+          .from('orders')
+          .update({ 
+            // Keep status as pending so user can retry
+            transaction_id: `failed_${CheckoutRequestID || Date.now()}`
+          })
+          .eq('id', orderId);
+
+        if (orderNoteError) {
+          console.error('Error updating order with failure info:', orderNoteError);
         }
       }
     } else {
-      console.log('⚠️ Payment callback processed but no order ID found or payment not successful');
+      console.log('⚠️ Payment callback processed but conditions not met for order update');
+      console.log('🔍 Debug info:', {
+        isSuccessful,
+        orderId,
+        hasOrderId: orderId !== 'unknown'
+      });
     }
 
-    console.log('Callback processing completed');
+    console.log('✅ M-Pesa callback processing completed');
 
     return new Response('OK', { 
       status: 200,
@@ -174,10 +196,13 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('❌ Error processing M-Pesa callback:', error);
-    console.error('Error stack:', error.stack);
+    console.error('❌ CRITICAL ERROR processing M-Pesa callback:', error);
+    console.error('📊 Error details:', {
+      message: error.message,
+      stack: error.stack
+    });
     
-    // Always return 200 OK to M-Pesa to avoid retries
+    // Always return 200 OK to M-Pesa to avoid retries for malformed requests
     return new Response('OK', { 
       status: 200,
       headers: corsHeaders

@@ -93,7 +93,7 @@ const Checkout = () => {
           
           // ONLY update to success if the order status is actually "paid"
           if (order.status === 'paid' && paymentStatus === 'pending') {
-            console.log('Order confirmed as PAID - showing success');
+            console.log('🎉 Order confirmed as PAID via real-time update - showing success');
             setPaymentStatus('success');
             setPaymentInProgress(false);
             setProcessing(false);
@@ -181,6 +181,7 @@ const Checkout = () => {
     setShowPaymentPrompt(false);
     setProcessing(false);
     setPromptTimer(120);
+    setCurrentOrderId(null); // Reset current order ID to allow retry
     
     toast({
       title: "Payment Cancelled",
@@ -292,6 +293,7 @@ const Checkout = () => {
       if (stkError) throw stkError;
 
       if (stkResponse.success) {
+        console.log('🔄 Payment retry STK push sent successfully');
         toast({
           title: "Payment Request Sent Again! 📱",
           description: "Please check your phone and complete the M-Pesa payment.",

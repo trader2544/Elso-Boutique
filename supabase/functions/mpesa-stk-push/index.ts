@@ -71,20 +71,23 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check for recent pending transactions for this phone number
+    // Check for recent pending transactions for this phone number (only check last 1 minute for retries)
+    const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
     const { data: recentTransactions } = await supabase
       .from('mpesa_transactions')
       .select('*')
       .eq('phone_number', formattedPhone)
       .eq('status', 'pending')
-      .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString()); // Last 2 minutes
+      .gte('created_at', oneMinuteAgo);
 
     if (recentTransactions && recentTransactions.length > 0) {
       console.log('❌ Recent pending transaction found for this phone number, blocking duplicate request');
+      console.log('🕐 Recent transactions:', recentTransactions);
       return new Response(
         JSON.stringify({ 
           error: 'Transaction in progress',
-          details: 'Please wait for the current transaction to complete before initiating a new one.'
+          details: 'Please wait for the current transaction to complete before initiating a new one.',
+          errorCode: '500.001.1001'
         }),
         { 
           status: 429,
@@ -124,7 +127,9 @@ serve(async (req) => {
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
     const password = btoa(`${shortcode}${passkey}${timestamp}`);
 
-    // Step 3: Make STK Push request
+    // Step 3: Make STK Push request with correct callback URL
+    const callbackUrl = `https://vpqjobkdwrbdxnvwnuke.supabase.co/functions/v1/mpesa-callback`;
+    
     const stkPushPayload = {
       BusinessShortCode: shortcode,
       Password: password,
@@ -134,14 +139,15 @@ serve(async (req) => {
       PartyA: formattedPhone,
       PartyB: tillNumber,
       PhoneNumber: formattedPhone,
-      CallBackURL: `https://vpqjobkdwrbdxnvwnuke.supabase.co/functions/v1/mpesa-callback`,
+      CallBackURL: callbackUrl,
       AccountReference: `ORDER_${orderId}`,
       TransactionDesc: `Payment for order ${orderId.slice(-8)}`
     };
 
     console.log('📱 STK Push payload:', {
       ...stkPushPayload,
-      Password: '[HIDDEN]'
+      Password: '[HIDDEN]',
+      CallBackURL: callbackUrl
     });
 
     const stkResponse = await fetch(STK_PUSH_URL, {
@@ -217,6 +223,7 @@ serve(async (req) => {
     // 🚨 CRITICAL: DO NOT UPDATE ORDER STATUS HERE 
     // Order status should ONLY be updated when callback confirms payment
     console.log('⚠️ IMPORTANT: Order status will remain PENDING until payment is confirmed via callback');
+    console.log('🔗 Callback URL configured:', callbackUrl);
 
     // Success response
     const response = {
@@ -226,7 +233,8 @@ serve(async (req) => {
       merchantRequestID: stkData.MerchantRequestID,
       responseCode: stkData.ResponseCode,
       responseDescription: stkData.ResponseDescription,
-      customerMessage: stkData.CustomerMessage
+      customerMessage: stkData.CustomerMessage,
+      callbackUrl: callbackUrl
     };
 
     console.log('🎯 STK Push sent successfully, waiting for payment confirmation via callback:', response);
