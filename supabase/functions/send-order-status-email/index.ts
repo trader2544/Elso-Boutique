@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from "npm:resend@2.0.0";
@@ -168,36 +169,39 @@ const generateStatusUpdateEmailHTML = (orderData: EmailData) => {
 };
 
 serve(async (req) => {
-  // Always log that the function was called
+  // Always log that the function was called with timestamp
+  const timestamp = new Date().toISOString();
   console.log('🔥🔥🔥 EMAIL FUNCTION CALLED! 🔥🔥🔥');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Request method:', req.method);
-  console.log('Request URL:', req.url);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  console.log('📅 Timestamp:', timestamp);
+  console.log('🌐 Request method:', req.method);
+  console.log('📍 Request URL:', req.url);
+  console.log('📋 Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
+    console.log('✅ Handling OPTIONS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('📧 Processing order status update email request...');
+    
     const requestBody = await req.text();
-    console.log('📧 Raw request body received:', requestBody);
+    console.log('📦 Raw request body received:', requestBody);
     
     if (!requestBody || requestBody.trim() === '') {
-      console.error('❌ Empty request body');
+      console.error('❌ Empty request body received');
       throw new Error('Request body is empty');
     }
     
     const { orderId, newStatus, oldStatus } = JSON.parse(requestBody);
-    console.log('📧 Processing order status update email');
-    console.log('Order ID:', orderId);
-    console.log('Status change:', oldStatus, '→', newStatus);
+    console.log('📧 Parsed request data:');
+    console.log('  Order ID:', orderId);
+    console.log('  Status change:', oldStatus, '→', newStatus);
 
     // Check if RESEND_API_KEY is available
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
-      console.error('❌ RESEND_API_KEY is not set');
+      console.error('❌ RESEND_API_KEY environment variable is not set');
       throw new Error('Email service not configured - RESEND_API_KEY missing');
     }
     console.log('✅ RESEND_API_KEY is configured');
@@ -208,14 +212,16 @@ serve(async (req) => {
     
     if (!supabaseUrl || !supabaseKey) {
       console.error('❌ Supabase configuration missing');
+      console.error('  SUPABASE_URL present:', !!supabaseUrl);
+      console.error('  SUPABASE_SERVICE_ROLE_KEY present:', !!supabaseKey);
       throw new Error('Supabase configuration missing');
     }
     
     console.log('✅ Supabase configuration found');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch order details with user profile
-    console.log('📋 Fetching order details for:', orderId);
+    // Fetch order details with user profile (using registered email from profiles)
+    console.log('📋 Fetching order details with user profile for order:', orderId);
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -227,23 +233,27 @@ serve(async (req) => {
 
     if (orderError) {
       console.error('❌ Error fetching order:', orderError);
+      console.error('  Error message:', orderError.message);
+      console.error('  Error details:', orderError.details);
+      console.error('  Error hint:', orderError.hint);
       throw new Error(`Order fetch failed: ${orderError.message}`);
     }
     
     if (!order) {
-      console.error('❌ Order not found:', orderId);
+      console.error('❌ Order not found for ID:', orderId);
       throw new Error('Order not found');
     }
 
     console.log('✅ Order data fetched successfully');
-    console.log('Customer email:', order.profiles.email);
-    console.log('Customer name:', order.profiles.full_name);
-    console.log('Order products:', order.products);
+    console.log('📧 Customer email (from profiles):', order.profiles.email);
+    console.log('👤 Customer name:', order.profiles.full_name);
+    console.log('📦 Order products count:', order.products?.length || 0);
+    console.log('💰 Order total:', order.total_price);
 
     // Prepare email data
     const emailData: EmailData = {
       orderId: order.id,
-      userEmail: order.profiles.email,
+      userEmail: order.profiles.email, // Using registered email from profiles table
       userName: order.profiles.full_name || 'Valued Customer',
       products: order.products,
       totalPrice: order.total_price,
@@ -253,8 +263,10 @@ serve(async (req) => {
       oldStatus,
     };
 
+    console.log('📝 Email data prepared for:', emailData.userEmail);
+
     // Generate email HTML
-    console.log('📝 Generating email HTML');
+    console.log('🎨 Generating email HTML content...');
     const emailHTML = generateStatusUpdateEmailHTML(emailData);
 
     // Determine subject based on status
@@ -278,6 +290,10 @@ serve(async (req) => {
 
     // Send email using Resend with verified domain
     console.log('📤 Sending email via Resend...');
+    console.log('  From: Elso Atelier <team@elso-atelier.com>');
+    console.log('  To:', emailData.userEmail);
+    console.log('  Subject:', emailSubject);
+    
     const emailResponse = await resend.emails.send({
       from: "Elso Atelier <team@elso-atelier.com>",
       to: [emailData.userEmail],
@@ -285,8 +301,9 @@ serve(async (req) => {
       html: emailHTML,
     });
 
-    console.log('✅ Order status update email sent successfully');
-    console.log('Email response:', emailResponse);
+    console.log('✅ Order status update email sent successfully!');
+    console.log('📬 Email response:', emailResponse);
+    console.log('📧 Email ID:', emailResponse.data?.id || 'unknown');
 
     return new Response(
       JSON.stringify({ 
@@ -294,7 +311,8 @@ serve(async (req) => {
         message: 'Order status update email sent successfully',
         emailId: emailResponse.data?.id || 'unknown',
         status: `${oldStatus} → ${newStatus}`,
-        recipient: emailData.userEmail
+        recipient: emailData.userEmail,
+        timestamp: timestamp
       }),
       {
         status: 200,
@@ -306,12 +324,16 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error('❌ Error sending order status update email:', error);
-    console.error('Error stack:', error.stack);
+    console.error('🔍 Error name:', error.name);
+    console.error('💬 Error message:', error.message);
+    console.error('📚 Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
+        errorName: error.name,
+        timestamp: timestamp,
         details: 'Check function logs for more details. Ensure RESEND_API_KEY is set and domain is verified at resend.com/domains'
       }),
       {
