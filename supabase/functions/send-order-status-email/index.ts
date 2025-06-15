@@ -168,8 +168,11 @@ const generateStatusUpdateEmailHTML = (orderData: EmailData) => {
 };
 
 serve(async (req) => {
-  console.log('🔥 Order status email function called!');
+  // Always log that the function was called
+  console.log('🔥🔥🔥 EMAIL FUNCTION CALLED! 🔥🔥🔥');
+  console.log('Timestamp:', new Date().toISOString());
   console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
   console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
@@ -179,7 +182,12 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.text();
-    console.log('Raw request body:', requestBody);
+    console.log('📧 Raw request body received:', requestBody);
+    
+    if (!requestBody || requestBody.trim() === '') {
+      console.error('❌ Empty request body');
+      throw new Error('Request body is empty');
+    }
     
     const { orderId, newStatus, oldStatus } = JSON.parse(requestBody);
     console.log('📧 Processing order status update email');
