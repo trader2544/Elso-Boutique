@@ -110,6 +110,13 @@ serve(async (req) => {
     const { orderId } = await req.json();
     console.log('📧 Sending order confirmation email for order:', orderId);
 
+    // Check if RESEND_API_KEY is available
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error('❌ RESEND_API_KEY is not set');
+      throw new Error('Email service not configured');
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -146,9 +153,9 @@ serve(async (req) => {
     // Generate email HTML
     const emailHTML = generateOrderEmailHTML(emailData);
 
-    // Send email using Resend
+    // Send email using Resend - Use a verified domain email
     const emailResponse = await resend.emails.send({
-      from: "Orders <orders@resend.dev>",
+      from: "Elso Atelier <noreply@resend.dev>",
       to: [emailData.userEmail],
       subject: `Order Confirmation - #${orderId.slice(0, 8)}`,
       html: emailHTML,
@@ -160,7 +167,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Order confirmation email sent successfully',
-        emailId: emailResponse.id
+        emailId: emailResponse.data?.id || 'unknown'
       }),
       {
         status: 200,
@@ -175,7 +182,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message,
+        details: 'Please check that your domain is verified at resend.com/domains'
       }),
       {
         status: 500,
