@@ -231,6 +231,24 @@ const Checkout = () => {
 
       console.log("Order created with pending status:", orderData);
       setCurrentOrderId(orderData.id);
+
+      // Send order confirmation email
+      try {
+        console.log("📧 Sending order confirmation email...");
+        const { error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
+          body: { orderId: orderData.id },
+        });
+        
+        if (emailError) {
+          console.error("❌ Error sending order confirmation email:", emailError);
+          // Don't throw error - order should still proceed even if email fails
+        } else {
+          console.log("✅ Order confirmation email sent successfully");
+        }
+      } catch (emailError) {
+        console.error("❌ Failed to send order confirmation email:", emailError);
+        // Don't throw error - order should still proceed even if email fails
+      }
       
       // Send STK push request
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -252,7 +270,7 @@ const Checkout = () => {
         
         toast({
           title: "Payment Request Sent! 📱",
-          description: "Please check your phone and complete the M-Pesa payment.",
+          description: "Please check your phone and complete the M-Pesa payment. Order confirmation email sent!",
         });
       } else {
         // Handle specific error cases
