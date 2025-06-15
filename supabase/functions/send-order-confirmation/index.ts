@@ -153,9 +153,10 @@ serve(async (req) => {
     // Generate email HTML
     const emailHTML = generateOrderEmailHTML(emailData);
 
-    // Send email using Resend - Use a verified domain email
+    // Send email using Resend - Replace with your verified domain
+    // IMPORTANT: Change 'noreply@yourdomain.com' to use your verified domain
     const emailResponse = await resend.emails.send({
-      from: "Elso Atelier <noreply@resend.dev>",
+      from: "Elso Atelier <noreply@yourdomain.com>", // ⚠️ UPDATE THIS WITH YOUR VERIFIED DOMAIN
       to: [emailData.userEmail],
       subject: `Order Confirmation - #${orderId.slice(0, 8)}`,
       html: emailHTML,
@@ -183,7 +184,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        details: 'Please check that your domain is verified at resend.com/domains'
+        details: 'Please check that your domain is verified at resend.com/domains and update the from email address'
       }),
       {
         status: 500,
