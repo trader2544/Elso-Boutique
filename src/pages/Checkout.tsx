@@ -16,7 +16,6 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [paymentInProgress, setPaymentInProgress] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
@@ -49,59 +48,6 @@ const Checkout = () => {
   useEffect(() => {
     calculateDeliveryFee();
   }, [customerInfo.city, customerInfo.exactLocation]);
-
-  // Listen for order status changes - ONLY show success when order is actually marked as "paid"
-  useEffect(() => {
-    if (!currentOrderId || paymentStatus !== 'pending') return;
-
-    console.log("Setting up real-time order status listener for order:", currentOrderId);
-    
-    const channel = supabase
-      .channel('order-status-tracking')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${currentOrderId}`,
-        },
-        async (payload) => {
-          console.log('Real-time order status UPDATE:', payload);
-          const order = payload.new;
-          
-          // ONLY update to success if the order status is actually "paid"
-          if (order.status === 'paid' && paymentStatus === 'pending') {
-            console.log('🎉 Order confirmed as PAID via real-time update - showing success');
-            setPaymentStatus('success');
-            setPaymentInProgress(false);
-            setProcessing(false);
-            setShowPaymentPrompt(true);
-            
-            // Clear cart when payment is confirmed
-            const { error: clearCartError } = await supabase
-              .from("cart_items")
-              .delete()
-              .eq("user_id", user!.id);
-
-            if (!clearCartError) {
-              await refreshCart();
-            }
-            
-            toast({
-              title: "Payment Confirmed! 🎉",
-              description: "Your payment has been received and your order is confirmed!",
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log("Cleaning up real-time order status listener");
-      supabase.removeChannel(channel);
-    };
-  }, [currentOrderId, toast, user, refreshCart, paymentStatus]);
 
   // Auto-show payment prompt when payment is in progress
   useEffect(() => {
@@ -153,17 +99,17 @@ const Checkout = () => {
   };
 
   const handlePaymentCompleted = () => {
-    console.log("User indicated payment is completed");
+    console.log("User indicated payment is completed - no automatic status update");
     setPaymentInProgress(false);
     setShowPaymentPrompt(false);
     setProcessing(false);
     setCurrentOrderId(null);
     
-    // Navigate to order history with message
+    // Navigate to order history with message about manual verification
     navigate("/profile", { 
       state: { 
         showOrderHistory: true,
-        message: "If your order status shows 'Pending' and you have completed payment, don't worry! Our admin will reconcile and process your order soon. If payment failed, please retry placing the order."
+        message: "Payment completion noted. Your order status will be updated once payment is verified through our callback system or manually by admin."
       }
     });
   };
@@ -171,7 +117,6 @@ const Checkout = () => {
   const handleCancelPayment = () => {
     console.log("User cancelled payment");
     setPaymentInProgress(false);
-    setPaymentStatus(null);
     setShowPaymentPrompt(false);
     setProcessing(false);
     setCurrentOrderId(null);
@@ -206,7 +151,7 @@ const Checkout = () => {
 
       const deliveryLocation = `${customerInfo.address}, ${customerInfo.exactLocation}, ${customerInfo.city}`;
 
-      // Create order with 'pending' status
+      // Create order with 'pending' status - only callback or admin can change this
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -234,13 +179,11 @@ const Checkout = () => {
         
         if (emailError) {
           console.error("❌ Error sending order confirmation email:", emailError);
-          // Don't throw error - order should still proceed even if email fails
         } else {
           console.log("✅ Order confirmation email sent successfully");
         }
       } catch (emailError) {
         console.error("❌ Failed to send order confirmation email:", emailError);
-        // Don't throw error - order should still proceed even if email fails
       }
       
       // Send STK push request
@@ -255,9 +198,8 @@ const Checkout = () => {
       if (stkError) throw stkError;
 
       if (stkResponse.success) {
-        console.log("STK push sent successfully, order remains pending until callback confirms payment");
+        console.log("STK push sent successfully, order will remain pending until callback or admin update");
         setPaymentInProgress(true);
-        setPaymentStatus('pending');
         setProcessing(false);
         
         toast({
@@ -265,7 +207,6 @@ const Checkout = () => {
           description: "Please check your phone and complete the M-Pesa payment. Order confirmation email sent!",
         });
       } else {
-        // Handle specific error cases
         if (stkResponse.errorCode === '500.001.1001') {
           throw new Error("A transaction is already in progress for this number. Please wait a few minutes and try again.");
         } else {
@@ -288,7 +229,6 @@ const Checkout = () => {
 
     setProcessing(true);
     setPaymentInProgress(true);
-    setPaymentStatus('pending');
 
     try {
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -319,7 +259,6 @@ const Checkout = () => {
       console.error("Error retrying payment:", error);
       setProcessing(false);
       setPaymentInProgress(false);
-      setPaymentStatus(null);
       toast({
         title: "Error",
         description: error.message || "Failed to retry payment",
@@ -397,74 +336,55 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl relative">
-      {/* Simple Payment Status Prompt - No timer, just loading and button */}
+      {/* Payment Status Prompt - No automatic status updates */}
       {(showPaymentPrompt || paymentInProgress) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
           <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
             <div className="p-6 text-center">
-              {paymentStatus === 'success' ? (
-                <div className="space-y-4">
-                  <div className="w-16 h-16 bg-green-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-10 h-10 text-green-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-green-700 mb-2">Payment Confirmed!</h3>
-                    <p className="text-gray-700 text-sm mb-4">Your payment has been received and your order is confirmed!</p>
-                  </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                  <div></div>
                   <Button
-                    onClick={handleGoToHomepage}
-                    className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-green-300/20"
+                    onClick={handleCancelPayment}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-500 hover:text-gray-700 hover:bg-gray-100/30 p-1 rounded-full"
                   >
-                    <Home className="w-4 h-4 mr-2" />
-                    Go to Homepage
+                    <X className="w-4 h-4" />
                   </Button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <div></div>
-                    <Button
-                      onClick={handleCancelPayment}
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100/30 p-1 rounded-full"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="w-16 h-16 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
-                    <div className="inline-block animate-spin rounded-full h-10 w-10 border-2 border-pink-300/30 border-t-pink-500"></div>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-pink-700 mb-2">Waiting for Payment</h3>
-                    <p className="text-gray-700 text-sm mb-4">Please complete the M-Pesa payment on your phone.</p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Button
-                      onClick={handlePaymentCompleted}
-                      className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-green-300/20"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      I've Completed Payment
-                    </Button>
-                    <Button
-                      onClick={handleRetryPayment}
-                      disabled={processing}
-                      variant="outline"
-                      className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-3 rounded-lg text-sm font-semibold backdrop-blur-xl"
-                    >
-                      {processing ? "Sending..." : "Retry Payment"}
-                    </Button>
-                  </div>
-                  
-                  <div className="bg-blue-50/30 backdrop-blur-sm p-3 rounded-lg">
-                    <p className="text-blue-700 text-sm font-medium">💡 Payment Instructions</p>
-                    <p className="text-blue-600 text-xs">1. Check your phone for M-Pesa prompt<br/>2. Enter your M-Pesa PIN<br/>3. Click "I've Completed Payment" above</p>
-                  </div>
+                
+                <div className="w-16 h-16 bg-pink-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
+                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-2 border-pink-300/30 border-t-pink-500"></div>
                 </div>
-              )}
+                <div>
+                  <h3 className="text-lg font-bold text-pink-700 mb-2">Waiting for Payment</h3>
+                  <p className="text-gray-700 text-sm mb-4">Please complete the M-Pesa payment on your phone.</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <Button
+                    onClick={handlePaymentCompleted}
+                    className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-green-300/20"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    I've Completed Payment
+                  </Button>
+                  <Button
+                    onClick={handleRetryPayment}
+                    disabled={processing}
+                    variant="outline"
+                    className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-3 rounded-lg text-sm font-semibold backdrop-blur-xl"
+                  >
+                    {processing ? "Sending..." : "Retry Payment"}
+                  </Button>
+                </div>
+                
+                <div className="bg-blue-50/30 backdrop-blur-sm p-3 rounded-lg">
+                  <p className="text-blue-700 text-sm font-medium">💡 Payment Instructions</p>
+                  <p className="text-blue-600 text-xs">1. Check your phone for M-Pesa prompt<br/>2. Enter your M-Pesa PIN<br/>3. Click "I've Completed Payment" above</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

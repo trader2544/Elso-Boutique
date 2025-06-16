@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -18,6 +20,7 @@ interface Product {
   category: string;
   image_url: string | null;
   in_stock: boolean;
+  stock_status: string;
 }
 
 interface NewProduct {
@@ -27,6 +30,7 @@ interface NewProduct {
   previous_price: string;
   category: string;
   image_url: string;
+  stock_status: string;
 }
 
 const AdminProducts = () => {
@@ -38,11 +42,19 @@ const AdminProducts = () => {
     previous_price: "",
     category: "",
     image_url: "",
+    stock_status: "stocked",
   });
   const [categories, setCategories] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const { toast } = useToast();
+
+  const stockStatusOptions = [
+    { value: "out_of_stock", label: "Out of Stock", color: "text-red-600" },
+    { value: "few_units_left", label: "Few Units Left", color: "text-orange-600" },
+    { value: "stocked", label: "In Stock", color: "text-green-600" },
+    { value: "flash_sale", label: "Flash Sale", color: "text-purple-600" },
+  ];
 
   useEffect(() => {
     fetchProducts();
@@ -92,6 +104,8 @@ const AdminProducts = () => {
           previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
           category: newProduct.category,
           image_url: newProduct.image_url || null,
+          stock_status: newProduct.stock_status,
+          in_stock: newProduct.stock_status !== "out_of_stock",
         });
 
       if (error) throw error;
@@ -108,6 +122,7 @@ const AdminProducts = () => {
         previous_price: "",
         category: "",
         image_url: "",
+        stock_status: "stocked",
       });
       setIsAddingProduct(false);
 
@@ -136,7 +151,8 @@ const AdminProducts = () => {
           previous_price: editingProduct.previous_price,
           category: editingProduct.category,
           image_url: editingProduct.image_url,
-          in_stock: editingProduct.in_stock,
+          stock_status: editingProduct.stock_status,
+          in_stock: editingProduct.stock_status !== "out_of_stock",
         })
         .eq("id", editingProduct.id);
 
@@ -183,6 +199,16 @@ const AdminProducts = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const getStockStatusLabel = (status: string) => {
+    const option = stockStatusOptions.find(opt => opt.value === status);
+    return option ? option.label : status;
+  };
+
+  const getStockStatusColor = (status: string) => {
+    const option = stockStatusOptions.find(opt => opt.value === status);
+    return option ? option.color : "text-gray-600";
   };
 
   return (
@@ -268,6 +294,21 @@ const AdminProducts = () => {
                         className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="stock_status" className="text-pink-700 text-sm">Stock Status</Label>
+                    <Select value={newProduct.stock_status} onValueChange={(value) => setNewProduct({ ...newProduct, stock_status: value })}>
+                      <SelectTrigger className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1">
+                        <SelectValue placeholder="Select stock status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stockStatusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <span className={option.color}>{option.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="description" className="text-pink-700 text-sm">Description</Label>
@@ -359,6 +400,18 @@ const AdminProducts = () => {
                         placeholder="Previous price"
                       />
                     </div>
+                    <Select value={editingProduct.stock_status} onValueChange={(value) => setEditingProduct({ ...editingProduct, stock_status: value })}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stockStatusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <span className={option.color}>{option.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Textarea
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
@@ -404,6 +457,9 @@ const AdminProducts = () => {
                     </div>
                     <h3 className="font-medium text-gray-900 mb-1 text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-pink-600 mb-1">{product.category}</p>
+                    <p className={`text-xs font-medium mb-1 ${getStockStatusColor(product.stock_status)}`}>
+                      {getStockStatusLabel(product.stock_status)}
+                    </p>
                     <p className="text-xs font-medium text-pink-600 mb-2">
                       KSh {product.price.toLocaleString()}
                       {product.previous_price && (

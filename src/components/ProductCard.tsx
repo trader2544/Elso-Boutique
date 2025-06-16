@@ -15,6 +15,7 @@ interface Product {
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
+  stock_status: string;
 }
 
 interface ProductCardProps {
@@ -37,6 +38,19 @@ const ProductCard = ({ product }: ProductCardProps) => {
       await removeFromWishlist(product.id);
     } else {
       await addToWishlist(product.id);
+    }
+  };
+
+  const getStockStatusBadge = () => {
+    switch (product.stock_status) {
+      case "out_of_stock":
+        return <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">Out of Stock</span>;
+      case "few_units_left":
+        return <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-medium">Few Left</span>;
+      case "flash_sale":
+        return <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">Flash Sale</span>;
+      default:
+        return null;
     }
   };
 
@@ -65,6 +79,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
         >
           <Heart className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
         </Button>
+        {getStockStatusBadge() && (
+          <div className="absolute top-2 left-2">
+            {getStockStatusBadge()}
+          </div>
+        )}
       </div>
       
       <div className="p-3 md:p-4">
@@ -97,10 +116,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
           onClick={handleAddToCart}
           className="w-full rounded-lg bg-pink-500 hover:bg-pink-600 text-xs md:text-sm py-1.5 md:py-2" 
           size="sm"
-          disabled={!product.in_stock}
+          disabled={!product.in_stock || product.stock_status === "out_of_stock"}
         >
           <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
-          {product.in_stock ? "Add to Cart" : "Out of Stock"}
+          {product.stock_status === "out_of_stock" ? "Out of Stock" : "Add to Cart"}
         </Button>
       </div>
     </div>

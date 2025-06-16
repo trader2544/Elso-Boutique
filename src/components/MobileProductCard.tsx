@@ -19,6 +19,7 @@ interface Product {
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
+  stock_status: string;
 }
 
 interface MobileProductCardProps {
@@ -55,6 +56,19 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
     navigate(`/product/${product.id}`);
   };
 
+  const getStockStatusBadge = () => {
+    switch (product.stock_status) {
+      case "out_of_stock":
+        return <span className="bg-red-100 text-red-600 text-[9px] px-1.5 py-0.5 rounded-full font-medium">Out</span>;
+      case "few_units_left":
+        return <span className="bg-orange-100 text-orange-600 text-[9px] px-1.5 py-0.5 rounded-full font-medium">Few</span>;
+      case "flash_sale":
+        return <span className="bg-purple-100 text-purple-600 text-[9px] px-1.5 py-0.5 rounded-full font-medium">Sale</span>;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Card 
       className="overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer h-full bg-white border border-gray-100"
@@ -84,6 +98,11 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
         >
           <Heart className="w-3 h-3" fill={isInWishlist(product.id) ? "currentColor" : "none"} />
         </Button>
+        {getStockStatusBadge() && (
+          <div className="absolute top-1.5 left-1.5">
+            {getStockStatusBadge()}
+          </div>
+        )}
       </div>
       
       <CardContent className="p-2.5">
@@ -114,10 +133,10 @@ const MobileProductCard = ({ product }: MobileProductCardProps) => {
           onClick={handleAddToCart}
           className="w-full h-6 text-[10px] font-medium bg-pink-500 hover:bg-pink-600 rounded-md"
           size="sm"
-          disabled={!product.in_stock || isAddingToCart}
+          disabled={!product.in_stock || product.stock_status === "out_of_stock" || isAddingToCart}
         >
           <ShoppingCart className="w-2.5 h-2.5 mr-1" />
-          {isAddingToCart ? "Adding..." : product.in_stock ? "Add to Cart" : "Out of Stock"}
+          {isAddingToCart ? "Adding..." : product.stock_status === "out_of_stock" ? "Out of Stock" : "Add to Cart"}
         </Button>
       </CardContent>
     </Card>
