@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const Admin = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [openOrders, setOpenOrders] = useState<Set<string>>(new Set());
   const [syncing, setSyncing] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -174,6 +176,16 @@ const Admin = () => {
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    const currentOrder = orders.find(order => order.id === orderId);
+    if (!currentOrder) return;
+
+    const oldStatus = currentOrder.status;
+    
+    // Don't update if status is the same
+    if (oldStatus === newStatus) return;
+
+    setUpdatingStatus(orderId);
+    
     try {
       const { error } = await supabase
         .from("orders")
@@ -182,9 +194,31 @@ const Admin = () => {
 
       if (error) throw error;
 
+      // Send status update email when admin manually changes status
+      try {
+        console.log("📧 Sending status update email for manual status change...");
+        const { error: emailError } = await supabase.functions.invoke('send-order-status-email', {
+          body: { 
+            orderId,
+            newStatus,
+            oldStatus 
+          },
+        });
+        
+        if (emailError) {
+          console.error("❌ Error sending status update email:", emailError);
+          // Don't throw error - status update should still proceed even if email fails
+        } else {
+          console.log("✅ Status update email sent successfully");
+        }
+      } catch (emailError) {
+        console.error("❌ Failed to send status update email:", emailError);
+        // Don't throw error - status update should still proceed even if email fails
+      }
+
       toast({
         title: "Success",
-        description: "Order status updated successfully",
+        description: `Order status updated to ${newStatus}. Customer has been notified via email.`,
       });
 
       await fetchOrders();
@@ -195,6 +229,8 @@ const Admin = () => {
         description: "Failed to update order status",
         variant: "destructive",
       });
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -404,10 +440,11 @@ const Admin = () => {
 
                               {/* Status Update */}
                               <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Update Status:</label>
+                                <label className="text-sm font-medium text-gray-700">Update Status (sends email to customer):</label>
                                 <select
                                   value={order.status}
                                   onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                                  disabled={updatingStatus === order.id}
                                   className="w-full text-sm border border-pink-200 rounded-lg px-3 py-2 focus:border-pink-400 bg-white"
                                 >
                                   <option value="pending">Pending</option>
@@ -416,6 +453,12 @@ const Admin = () => {
                                   <option value="delivered">Delivered</option>
                                   <option value="cancelled">Cancelled</option>
                                 </select>
+                                {updatingStatus === order.id && (
+                                  <div className="text-xs text-gray-500 flex items-center">
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-600 mr-2"></div>
+                                    Updating status and sending email...
+                                  </div>
+                                )}
                               </div>
 
                               {order.transaction_id && (
@@ -449,6 +492,7 @@ const Admin = () => {
                               <select
                                 value={order.status}
                                 onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                                disabled={updatingStatus === order.id}
                                 className="text-sm border border-pink-200 rounded-lg px-2 py-1 focus:border-pink-400 w-full sm:w-auto bg-white"
                               >
                                 <option value="pending">Pending</option>
@@ -457,6 +501,12 @@ const Admin = () => {
                                 <option value="delivered">Delivered</option>
                                 <option value="cancelled">Cancelled</option>
                               </select>
+                              {updatingStatus === order.id && (
+                                <div className="text-xs text-gray-500 flex items-center">
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-600 mr-2"></div>
+                                  Updating...
+                                </div>
+                              )}
                             </div>
                           </div>
 

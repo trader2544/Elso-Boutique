@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Users, ShoppingCart, Settings } from "lucide-react";
@@ -11,13 +12,15 @@ const AdminDashboard = () => {
   const [customersCount, setCustomersCount] = useState(0);
 
   // Placeholder data - replace with actual data fetching
-  useState(() => {
+  useEffect(() => {
     // Simulate fetching data
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       setProductsCount(125);
       setOrdersCount(450);
       setCustomersCount(320);
     }, 500);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (

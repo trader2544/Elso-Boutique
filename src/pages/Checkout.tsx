@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle, XCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Clock, Home, X } from "lucide-react";
+import { ArrowLeft, CheckCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Home, X, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -17,9 +16,8 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [paymentInProgress, setPaymentInProgress] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
-  const [promptTimer, setPromptTimer] = useState(120);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -51,25 +49,6 @@ const Checkout = () => {
   useEffect(() => {
     calculateDeliveryFee();
   }, [customerInfo.city, customerInfo.exactLocation]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (showPaymentPrompt && promptTimer > 0 && paymentStatus === 'pending') {
-      interval = setInterval(() => {
-        setPromptTimer(prev => prev - 1);
-      }, 1000);
-    } else if (promptTimer === 0 && paymentStatus === 'pending') {
-      setPaymentStatus('failed');
-      setShowPaymentPrompt(false);
-      setPaymentInProgress(false);
-      toast({
-        title: "Payment Timeout",
-        description: "Payment request timed out. The order status will remain pending until payment is completed.",
-        variant: "destructive",
-      });
-    }
-    return () => clearInterval(interval);
-  }, [showPaymentPrompt, promptTimer, paymentStatus, toast]);
 
   // Listen for order status changes - ONLY show success when order is actually marked as "paid"
   useEffect(() => {
@@ -128,7 +107,6 @@ const Checkout = () => {
   useEffect(() => {
     if (paymentInProgress && !showPaymentPrompt) {
       setShowPaymentPrompt(true);
-      setPromptTimer(120);
     }
   }, [paymentInProgress, showPaymentPrompt]);
 
@@ -174,14 +152,29 @@ const Checkout = () => {
     return getTotalPrice() + deliveryFee;
   };
 
+  const handlePaymentCompleted = () => {
+    console.log("User indicated payment is completed");
+    setPaymentInProgress(false);
+    setShowPaymentPrompt(false);
+    setProcessing(false);
+    setCurrentOrderId(null);
+    
+    // Navigate to order history with message
+    navigate("/profile", { 
+      state: { 
+        showOrderHistory: true,
+        message: "If your order status shows 'Pending' and you have completed payment, don't worry! Our admin will reconcile and process your order soon. If payment failed, please retry placing the order."
+      }
+    });
+  };
+
   const handleCancelPayment = () => {
     console.log("User cancelled payment");
     setPaymentInProgress(false);
     setPaymentStatus(null);
     setShowPaymentPrompt(false);
     setProcessing(false);
-    setPromptTimer(120);
-    setCurrentOrderId(null); // Reset current order ID to allow retry
+    setCurrentOrderId(null);
     
     toast({
       title: "Payment Cancelled",
@@ -265,7 +258,6 @@ const Checkout = () => {
         console.log("STK push sent successfully, order remains pending until callback confirms payment");
         setPaymentInProgress(true);
         setPaymentStatus('pending');
-        setPromptTimer(120);
         setProcessing(false);
         
         toast({
@@ -297,7 +289,6 @@ const Checkout = () => {
     setProcessing(true);
     setPaymentInProgress(true);
     setPaymentStatus('pending');
-    setPromptTimer(120);
 
     try {
       const { data: stkResponse, error: stkError } = await supabase.functions.invoke('mpesa-stk-push', {
@@ -328,7 +319,7 @@ const Checkout = () => {
       console.error("Error retrying payment:", error);
       setProcessing(false);
       setPaymentInProgress(false);
-      setPaymentStatus('failed');
+      setPaymentStatus(null);
       toast({
         title: "Error",
         description: error.message || "Failed to retry payment",
@@ -406,7 +397,7 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl relative">
-      {/* Enhanced Payment Status Prompt - Only shows real status */}
+      {/* Simple Payment Status Prompt - No timer, just loading and button */}
       {(showPaymentPrompt || paymentInProgress) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
           <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
@@ -427,33 +418,6 @@ const Checkout = () => {
                     <Home className="w-4 h-4 mr-2" />
                     Go to Homepage
                   </Button>
-                </div>
-              ) : paymentStatus === 'failed' ? (
-                <div className="space-y-4">
-                  <div className="w-16 h-16 bg-red-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
-                    <XCircle className="w-10 h-10 text-red-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-red-700 mb-2">Payment Timeout</h3>
-                    <p className="text-gray-700 text-sm mb-4">Payment request timed out. Your order is still pending - you can retry payment.</p>
-                  </div>
-                  <div className="space-y-3">
-                    <Button
-                      onClick={handleRetryPayment}
-                      disabled={processing}
-                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-pink-300/20"
-                    >
-                      {processing ? "Sending..." : "Retry Payment"}
-                    </Button>
-                    <Button
-                      onClick={handleGoToHomepage}
-                      variant="outline"
-                      className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-3 rounded-lg text-sm font-semibold backdrop-blur-xl"
-                    >
-                      <Home className="w-4 h-4 mr-2" />
-                      Go to Homepage
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -476,28 +440,28 @@ const Checkout = () => {
                     <h3 className="text-lg font-bold text-pink-700 mb-2">Waiting for Payment</h3>
                     <p className="text-gray-700 text-sm mb-4">Please complete the M-Pesa payment on your phone.</p>
                   </div>
-                  <div className="bg-pink-50/30 backdrop-blur-sm p-4 rounded-lg">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <Clock className="w-4 h-4 text-pink-600" />
-                      <span className="text-pink-700 font-semibold text-lg">{promptTimer}s remaining</span>
-                    </div>
-                    <div className="w-full bg-pink-200/30 rounded-full h-2">
-                      <div 
-                        className="bg-pink-500 h-2 rounded-full transition-all duration-1000"
-                        style={{ width: `${(promptTimer / 120) * 100}%` }}
-                      ></div>
-                    </div>
+                  
+                  <div className="space-y-3">
                     <Button
-                      onClick={handleCancelPayment}
-                      variant="outline"
-                      className="w-full mt-3 border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-2 rounded-lg text-sm font-semibold backdrop-blur-xl"
+                      onClick={handlePaymentCompleted}
+                      className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-green-300/20"
                     >
-                      Cancel Payment
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      I've Completed Payment
+                    </Button>
+                    <Button
+                      onClick={handleRetryPayment}
+                      disabled={processing}
+                      variant="outline"
+                      className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-3 rounded-lg text-sm font-semibold backdrop-blur-xl"
+                    >
+                      {processing ? "Sending..." : "Retry Payment"}
                     </Button>
                   </div>
+                  
                   <div className="bg-blue-50/30 backdrop-blur-sm p-3 rounded-lg">
-                    <p className="text-blue-700 text-sm font-medium">⏳ Waiting for payment confirmation</p>
-                    <p className="text-blue-600 text-xs">Your order will be confirmed only after successful payment!</p>
+                    <p className="text-blue-700 text-sm font-medium">💡 Payment Instructions</p>
+                    <p className="text-blue-600 text-xs">1. Check your phone for M-Pesa prompt<br/>2. Enter your M-Pesa PIN<br/>3. Click "I've Completed Payment" above</p>
                   </div>
                 </div>
               )}
