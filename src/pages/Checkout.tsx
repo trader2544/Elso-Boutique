@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Home, X, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle, ShoppingBag, MapPin, Phone, CreditCard, Truck, Shield, Home, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -17,6 +17,7 @@ const Checkout = () => {
   const [paymentInProgress, setPaymentInProgress] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [showPaymentPrompt, setShowPaymentPrompt] = useState(false);
+  const [showCompletionButtons, setShowCompletionButtons] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     phone: "+254",
     address: "",
@@ -49,7 +50,6 @@ const Checkout = () => {
     calculateDeliveryFee();
   }, [customerInfo.city, customerInfo.exactLocation]);
 
-  // Auto-show payment prompt when payment is in progress
   useEffect(() => {
     if (paymentInProgress && !showPaymentPrompt) {
       setShowPaymentPrompt(true);
@@ -99,18 +99,15 @@ const Checkout = () => {
   };
 
   const handlePaymentCompleted = () => {
-    console.log("User indicated payment is completed - no automatic status update");
+    console.log("Payment completion noted - order remains pending for admin/callback verification");
     setPaymentInProgress(false);
     setShowPaymentPrompt(false);
     setProcessing(false);
-    setCurrentOrderId(null);
+    setShowCompletionButtons(true);
     
-    // Navigate to order history with message about manual verification
-    navigate("/profile", { 
-      state: { 
-        showOrderHistory: true,
-        message: "Payment completion noted. Your order status will be updated once payment is verified through our callback system or manually by admin."
-      }
+    toast({
+      title: "Payment Noted",
+      description: "Thank you! Your payment has been noted. Order status will be updated once verified.",
     });
   };
 
@@ -127,10 +124,21 @@ const Checkout = () => {
     });
   };
 
+  const handleBackToShop = () => {
+    navigate("/");
+  };
+
+  const handleViewOrderHistory = () => {
+    navigate("/profile", { 
+      state: { 
+        showOrderHistory: true 
+      }
+    });
+  };
+
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevent duplicate submissions
     if (processing || paymentInProgress) {
       return;
     }
@@ -267,10 +275,6 @@ const Checkout = () => {
     }
   };
 
-  const handleGoToHomepage = () => {
-    navigate("/");
-  };
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
     const digits = value.replace(/\D/g, '');
@@ -310,7 +314,7 @@ const Checkout = () => {
     );
   }
 
-  if (cartItems.length === 0 && !paymentInProgress) {
+  if (cartItems.length === 0 && !paymentInProgress && !showCompletionButtons) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl flex items-center justify-center p-2">
         <div className="w-full max-w-xs mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden">
@@ -336,8 +340,8 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl relative">
-      {/* Payment Status Prompt - No automatic status updates */}
-      {(showPaymentPrompt || paymentInProgress) && (
+      {/* Payment Status Prompt - Updated to show completion buttons */}
+      {(showPaymentPrompt || paymentInProgress) && !showCompletionButtons && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
           <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
             <div className="p-6 text-center">
@@ -367,7 +371,6 @@ const Checkout = () => {
                     onClick={handlePaymentCompleted}
                     className="w-full bg-gradient-to-r from-green-500/80 to-green-400/80 hover:from-green-600/80 hover:to-green-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-green-300/20"
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
                     I've Completed Payment
                   </Button>
                   <Button
@@ -390,6 +393,42 @@ const Checkout = () => {
         </div>
       )}
 
+      {/* Payment Completion Buttons */}
+      {showCompletionButtons && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
+          <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden animate-scale-in">
+            <div className="p-6 text-center">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-green-100/30 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto">
+                  <div className="text-green-600 text-2xl">✓</div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-green-700 mb-2">Payment Noted</h3>
+                  <p className="text-gray-700 text-sm mb-4">Your order is being processed. Status will be updated once payment is verified.</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleBackToShop}
+                    className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-3 rounded-lg text-sm font-semibold backdrop-blur-xl border border-pink-300/20"
+                  >
+                    <Home className="w-4 h-4 mr-2" />
+                    Back to Shop
+                  </Button>
+                  <Button
+                    onClick={handleViewOrderHistory}
+                    variant="outline"
+                    className="w-full border-gray-200/50 text-gray-700 hover:bg-gray-50/30 py-3 rounded-lg text-sm font-semibold backdrop-blur-xl"
+                  >
+                    View Order History
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/5 backdrop-blur-2xl border-b border-white/10">
         <div className="container mx-auto px-2 py-2">
@@ -397,7 +436,7 @@ const Checkout = () => {
             <Button
               variant="ghost"
               onClick={() => navigate("/cart")}
-              disabled={paymentInProgress}
+              disabled={paymentInProgress || showCompletionButtons}
               className="flex items-center space-x-1 hover:bg-pink-50/20 rounded-lg px-2 py-1 backdrop-blur-xl"
             >
               <ArrowLeft className="w-3 h-3 text-pink-600" />
@@ -436,7 +475,7 @@ const Checkout = () => {
                         onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
                         placeholder="Street address, building, apartment number"
                         required
-                        disabled={paymentInProgress}
+                        disabled={paymentInProgress || showCompletionButtons}
                         className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-lg py-2 text-xs bg-white/50 backdrop-blur-sm"
                       />
                     </div>
@@ -451,7 +490,7 @@ const Checkout = () => {
                         onChange={(e) => setCustomerInfo({ ...customerInfo, city: e.target.value })}
                         placeholder="Kisumu, Nairobi, Mombasa, etc."
                         required
-                        disabled={paymentInProgress}
+                        disabled={paymentInProgress || showCompletionButtons}
                         className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-lg py-2 text-xs bg-white/50 backdrop-blur-sm"
                       />
                     </div>
@@ -466,7 +505,7 @@ const Checkout = () => {
                         onChange={(e) => setCustomerInfo({ ...customerInfo, exactLocation: e.target.value })}
                         placeholder="CBD, town center, specific area"
                         required
-                        disabled={paymentInProgress}
+                        disabled={paymentInProgress || showCompletionButtons}
                         className="border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-lg py-2 text-xs bg-white/50 backdrop-blur-sm"
                       />
                     </div>
@@ -494,7 +533,7 @@ const Checkout = () => {
                         onChange={handlePhoneChange}
                         placeholder="+254700000000"
                         required
-                        disabled={paymentInProgress}
+                        disabled={paymentInProgress || showCompletionButtons}
                         className="border-green-200 focus:border-green-400 focus:ring-green-400 rounded-lg py-2 text-xs bg-white/50 backdrop-blur-sm"
                       />
                       <p className="text-xs text-green-600 mt-1 flex items-center">
@@ -503,7 +542,7 @@ const Checkout = () => {
                       </p>
                     </div>
 
-                    {!paymentInProgress && (
+                    {!paymentInProgress && !showCompletionButtons && (
                       <Button
                         type="submit"
                         className="w-full bg-green-600 hover:bg-green-700 text-white shadow-2xl py-2 rounded-lg text-xs font-bold"
