@@ -83,19 +83,7 @@ const AdminDashboard = () => {
           <AdminProducts />
         </TabsContent>
 
-        <TabsContent value="orders">
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Orders Management</h2>
-            <p>This is where you manage orders.</p>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="customers">
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Customers Management</h2>
-            <p>This is where you manage customers.</p>
-          </div>
-        </TabsContent>
+        
 
         <TabsContent value="settings">
           <MpesaUrlRegistration />
