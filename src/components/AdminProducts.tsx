@@ -5,8 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -20,7 +18,6 @@ interface Product {
   category: string;
   image_url: string | null;
   in_stock: boolean;
-  stock_status: string;
 }
 
 interface NewProduct {
@@ -30,7 +27,6 @@ interface NewProduct {
   previous_price: string;
   category: string;
   image_url: string;
-  stock_status: string;
 }
 
 const AdminProducts = () => {
@@ -42,19 +38,11 @@ const AdminProducts = () => {
     previous_price: "",
     category: "",
     image_url: "",
-    stock_status: "stocked",
   });
   const [categories, setCategories] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const { toast } = useToast();
-
-  const stockStatusOptions = [
-    { value: "stocked", label: "In Stock", color: "bg-green-100 text-green-800" },
-    { value: "few_units_left", label: "Few Units Left", color: "bg-yellow-100 text-yellow-800" },
-    { value: "out_of_stock", label: "Out of Stock", color: "bg-red-100 text-red-800" },
-    { value: "flash_sale", label: "Flash Sale", color: "bg-purple-100 text-purple-800" },
-  ];
 
   useEffect(() => {
     fetchProducts();
@@ -104,7 +92,6 @@ const AdminProducts = () => {
           previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
           category: newProduct.category,
           image_url: newProduct.image_url || null,
-          stock_status: newProduct.stock_status,
         });
 
       if (error) throw error;
@@ -121,7 +108,6 @@ const AdminProducts = () => {
         previous_price: "",
         category: "",
         image_url: "",
-        stock_status: "stocked",
       });
       setIsAddingProduct(false);
 
@@ -151,7 +137,6 @@ const AdminProducts = () => {
           category: editingProduct.category,
           image_url: editingProduct.image_url,
           in_stock: editingProduct.in_stock,
-          stock_status: editingProduct.stock_status,
         })
         .eq("id", editingProduct.id);
 
@@ -198,15 +183,6 @@ const AdminProducts = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const getStockStatusBadge = (status: string) => {
-    const statusConfig = stockStatusOptions.find(option => option.value === status);
-    return (
-      <Badge className={statusConfig?.color || "bg-gray-100 text-gray-800"}>
-        {statusConfig?.label || status}
-      </Badge>
-    );
   };
 
   return (
@@ -292,24 +268,6 @@ const AdminProducts = () => {
                         className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="stock_status" className="text-pink-700 text-sm">Stock Status</Label>
-                    <Select
-                      value={newProduct.stock_status}
-                      onValueChange={(value) => setNewProduct({ ...newProduct, stock_status: value })}
-                    >
-                      <SelectTrigger className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1">
-                        <SelectValue placeholder="Select stock status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockStatusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="description" className="text-pink-700 text-sm">Description</Label>
@@ -401,21 +359,6 @@ const AdminProducts = () => {
                         placeholder="Previous price"
                       />
                     </div>
-                    <Select
-                      value={editingProduct.stock_status}
-                      onValueChange={(value) => setEditingProduct({ ...editingProduct, stock_status: value })}
-                    >
-                      <SelectTrigger className="text-xs h-8">
-                        <SelectValue placeholder="Stock status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockStatusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Textarea
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
@@ -461,9 +404,6 @@ const AdminProducts = () => {
                     </div>
                     <h3 className="font-medium text-gray-900 mb-1 text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-pink-600 mb-1">{product.category}</p>
-                    <div className="mb-2">
-                      {getStockStatusBadge(product.stock_status)}
-                    </div>
                     <p className="text-xs font-medium text-pink-600 mb-2">
                       KSh {product.price.toLocaleString()}
                       {product.previous_price && (
