@@ -332,20 +332,7 @@ const Admin = () => {
               <CardHeader className="bg-gradient-to-r from-pink-50 to-white">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-pink-700">Order Management ({orders.length})</CardTitle>
-                  <Button
-                    onClick={syncMpesaTransactions}
-                    disabled={syncing}
-                    size="sm"
-                    variant="outline"
-                    className="border-pink-200 text-pink-700 hover:bg-pink-50"
-                  >
-                    {syncing ? (
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-600 mr-2"></div>
-                    ) : (
-                      <RefreshCw className="h-3 w-3 mr-2" />
-                    )}
-                    Sync M-Pesa
-                  </Button>
+                  
                 </div>
               </CardHeader>
               <CardContent className="p-4 md:p-6">
