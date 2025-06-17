@@ -37,32 +37,6 @@ const AdminDashboard = () => {
             <p className="text-gray-500">Total Products</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <ShoppingCart className="w-4 h-4 text-gray-500" />
-              <span>Orders</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{ordersCount}</div>
-            <p className="text-gray-500">Total Orders</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-gray-500" />
-              <span>Customers</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{customersCount}</div>
-            <p className="text-gray-500">Total Customers</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Tabs defaultValue="products" className="space-y-6">
