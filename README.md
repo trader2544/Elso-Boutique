@@ -1,73 +1,83 @@
-# Welcome to your Lovable project
+# Elso Boutique
 
-## Project info
+Elso Boutique is a modern e-commerce platform focused on delivering premium women's fashion, jewelry, accessories, and beauty products, primarily serving Kisumu, Kenya.
 
-**URL**: https://lovable.dev/projects/4e996639-1e55-4585-abe6-2a47220751b8
+## Project Overview
 
-## How can I edit this code?
+This project provides an online storefront for ELSO Boutique, enabling users to browse products, manage their carts and wishlists, place orders, and complete secure payments using M-Pesa mobile money integration.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- Product catalog for women's fashion, jewelry, accessories, and beauty products
+- User authentication and profile management
+- Shopping cart and persistent cart storage
+- Wishlist functionality
+- Product reviews and ratings
+- Order management and tracking
+- Secure payments via M-Pesa (mobile money)
+- Admin panel for product and order management
+- Responsive UI for mobile and desktop
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4e996639-1e55-4585-abe6-2a47220751b8) and start prompting.
+## Technologies Used
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend:** Vite, React, TypeScript, shadcn-ui, Tailwind CSS
+- **Backend & Database:** Supabase (PostgreSQL, Auth, Storage)
+- **Payments Integration:** M-Pesa (Safaricom)
+- **Deployment:** Vercel or similar platforms
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- [Node.js & npm](https://github.com/nvm-sh/nvm#installing-and-updating) installed
 
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd elso-chic-commerce
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Editing the Code
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+You can edit the codebase using your preferred IDE locally, or directly on GitHub via the web interface or Codespaces.
 
-**Use GitHub Codespaces**
+- To use Codespaces:  
+  Go to your repository page, click the "Code" button, switch to the "Codespaces" tab, and launch a new codespace for cloud-based development.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Database Schema
 
-## What technologies are used for this project?
+- Users, products, orders, cart items, reviews, and M-Pesa transactions are managed in Supabase/PostgreSQL.
+- Row Level Security (RLS) is enabled for all main tables to protect user data.
 
-This project is built with:
+## Payment Integration
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- M-Pesa payments are integrated for secure, mobile-friendly checkout experiences.
+- Transactions are securely recorded and tracked in the database.
 
-## How can I deploy this project?
+## Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/4e996639-1e55-4585-abe6-2a47220751b8) and click on Share -> Publish.
+Deploy using your preferred platform (e.g., Vercel) or via your own infrastructure.
 
-## Can I connect a custom domain to my Lovable project?
+## Custom Domain
 
-Yes, you can!
+You can connect a custom domain to your deployed storefront via your deployment platform's settings.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is proprietary and intended for use by Elso Boutique and its operators.
+
+---
+
+**For questions or support, please contact:**  
+Elso Boutique, Kisumu, Kenya  
+Customer Service: +254 745 242174
