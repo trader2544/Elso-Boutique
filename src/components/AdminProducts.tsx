@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Minus, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 
@@ -21,6 +21,7 @@ interface Product {
   image_url: string | null;
   in_stock: boolean;
   stock_status: string;
+  quantity: number;
 }
 
 interface NewProduct {
@@ -31,6 +32,7 @@ interface NewProduct {
   category: string;
   image_url: string;
   stock_status: string;
+  quantity: string;
 }
 
 const AdminProducts = () => {
@@ -43,10 +45,12 @@ const AdminProducts = () => {
     category: "",
     image_url: "",
     stock_status: "stocked",
+    quantity: "0",
   });
   const [categories, setCategories] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [quantityUpdates, setQuantityUpdates] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
 
   const stockStatusOptions = [
@@ -105,7 +109,8 @@ const AdminProducts = () => {
           category: newProduct.category,
           image_url: newProduct.image_url || null,
           stock_status: newProduct.stock_status,
-          in_stock: newProduct.stock_status !== "out_of_stock",
+          quantity: parseInt(newProduct.quantity) || 0,
+          in_stock: (parseInt(newProduct.quantity) || 0) > 0,
         });
 
       if (error) throw error;
@@ -123,6 +128,7 @@ const AdminProducts = () => {
         category: "",
         image_url: "",
         stock_status: "stocked",
+        quantity: "0",
       });
       setIsAddingProduct(false);
 
@@ -152,7 +158,8 @@ const AdminProducts = () => {
           category: editingProduct.category,
           image_url: editingProduct.image_url,
           stock_status: editingProduct.stock_status,
-          in_stock: editingProduct.stock_status !== "out_of_stock",
+          quantity: editingProduct.quantity,
+          in_stock: editingProduct.quantity > 0,
         })
         .eq("id", editingProduct.id);
 
@@ -171,6 +178,55 @@ const AdminProducts = () => {
       toast({
         title: "Error",
         description: "Failed to update product",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateQuantity = async (productId: string, operation: 'add' | 'subtract') => {
+    const quantityChange = parseInt(quantityUpdates[productId] || '1');
+    
+    if (!quantityChange || quantityChange <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid quantity",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('update_product_quantity', {
+        product_id: productId,
+        quantity_change: quantityChange,
+        operation: operation
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; product_name?: string; old_quantity?: number; new_quantity?: number };
+
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error');
+      }
+
+      toast({
+        title: "Success",
+        description: `${result.product_name}: ${result.old_quantity} → ${result.new_quantity} units`,
+      });
+
+      // Clear the quantity input for this product
+      setQuantityUpdates(prev => ({
+        ...prev,
+        [productId]: ''
+      }));
+
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update quantity",
         variant: "destructive",
       });
     }
@@ -270,7 +326,7 @@ const AdminProducts = () => {
                       ))}
                     </datalist>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <Label htmlFor="price" className="text-pink-700 text-sm">Price (KSh)</Label>
                       <Input
@@ -291,6 +347,17 @@ const AdminProducts = () => {
                         step="0.01"
                         value={newProduct.previous_price}
                         onChange={(e) => setNewProduct({ ...newProduct, previous_price: e.target.value })}
+                        className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="quantity" className="text-pink-700 text-sm">Initial Quantity</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="0"
+                        value={newProduct.quantity}
+                        onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
                         className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                       />
                     </div>
@@ -400,18 +467,28 @@ const AdminProducts = () => {
                         placeholder="Previous price"
                       />
                     </div>
-                    <Select value={editingProduct.stock_status} onValueChange={(value) => setEditingProduct({ ...editingProduct, stock_status: value })}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockStatusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <span className={option.color}>{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-2 gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editingProduct.quantity}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) || 0 })}
+                        className="text-xs h-8"
+                        placeholder="Quantity"
+                      />
+                      <Select value={editingProduct.stock_status} onValueChange={(value) => setEditingProduct({ ...editingProduct, stock_status: value })}>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stockStatusOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <span className={option.color}>{option.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Textarea
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
@@ -460,6 +537,10 @@ const AdminProducts = () => {
                     <p className={`text-xs font-medium mb-1 ${getStockStatusColor(product.stock_status)}`}>
                       {getStockStatusLabel(product.stock_status)}
                     </p>
+                    <div className="flex items-center gap-1 mb-2">
+                      <Package className="w-3 h-3 text-gray-500" />
+                      <span className="text-xs font-medium text-gray-700">{product.quantity} units</span>
+                    </div>
                     <p className="text-xs font-medium text-pink-600 mb-2">
                       KSh {product.price.toLocaleString()}
                       {product.previous_price && (
@@ -468,6 +549,38 @@ const AdminProducts = () => {
                         </span>
                       )}
                     </p>
+                    
+                    {/* Quantity Management */}
+                    <div className="border-t pt-2 mb-2">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Qty"
+                          value={quantityUpdates[product.id] || ''}
+                          onChange={(e) => setQuantityUpdates(prev => ({
+                            ...prev,
+                            [product.id]: e.target.value
+                          }))}
+                          className="text-xs h-6 flex-1"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => updateQuantity(product.id, 'add')}
+                          className="bg-green-600 hover:bg-green-700 h-6 px-2"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => updateQuantity(product.id, 'subtract')}
+                          className="bg-orange-600 hover:bg-orange-700 h-6 px-2"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="flex gap-1">
                       <Button
                         variant="outline"

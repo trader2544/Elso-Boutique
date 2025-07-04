@@ -151,6 +151,7 @@ export type Database = {
           name: string
           previous_price: number | null
           price: number
+          quantity: number
           rating: number | null
           review_count: number | null
           stock_status: string | null
@@ -165,6 +166,7 @@ export type Database = {
           name: string
           previous_price?: number | null
           price: number
+          quantity?: number
           rating?: number | null
           review_count?: number | null
           stock_status?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           name?: string
           previous_price?: number | null
           price?: number
+          quantity?: number
           rating?: number | null
           review_count?: number | null
           stock_status?: string | null
@@ -214,6 +217,57 @@ export type Database = {
           wishlist?: string[] | null
         }
         Relationships: []
+      }
+      quantity_logs: {
+        Row: {
+          admin_id: string | null
+          change_amount: number
+          created_at: string
+          id: string
+          new_quantity: number
+          operation: string
+          previous_quantity: number
+          product_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          change_amount: number
+          created_at?: string
+          id?: string
+          new_quantity: number
+          operation: string
+          previous_quantity: number
+          product_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          change_amount?: number
+          created_at?: string
+          id?: string
+          new_quantity?: number
+          operation?: string
+          previous_quantity?: number
+          product_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quantity_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quantity_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
@@ -338,6 +392,10 @@ export type Database = {
       text_to_bytea: {
         Args: { data: string }
         Returns: string
+      }
+      update_product_quantity: {
+        Args: { product_id: string; quantity_change: number; operation: string }
+        Returns: Json
       }
       urlencode: {
         Args: { data: Json } | { string: string } | { string: string }
