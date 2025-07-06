@@ -1,15 +1,20 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, ShoppingCart } from "lucide-react";
+import { Package, ShoppingCart, BarChart } from "lucide-react";
 import AdminProducts from "./AdminProducts";
+import AdminAnalytics from "./AdminAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AdminDashboard = () => {
   return (
     <div>
       {/* Tabs Section */}
-      <Tabs defaultValue="products" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="analytics" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Products
@@ -19,6 +24,10 @@ const AdminDashboard = () => {
             Orders
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="analytics">
+          <AdminAnalytics />
+        </TabsContent>
 
         <TabsContent value="products">
           <AdminProducts />
