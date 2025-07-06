@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ interface Product {
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
+  stock_status: string | null;
+  quantity: number;
 }
 
 const Index = () => {
