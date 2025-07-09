@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, ShoppingCart, Star, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
   id: string;
@@ -30,12 +31,13 @@ interface Review {
   created_at: string;
   profiles: {
     full_name: string;
-  };
+  } | null;
 }
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -235,18 +237,18 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className={`container mx-auto px-4 py-4 ${isMobile ? 'max-w-sm' : ''}`}>
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className="mb-6"
+          className={`mb-4 ${isMobile ? 'text-sm' : ''}`}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
           Back to Products
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <div className="aspect-square bg-white rounded-lg shadow-md overflow-hidden">
+        <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-8`}>
+          <div className={`${isMobile ? 'aspect-square' : 'aspect-square'} bg-white rounded-lg shadow-md overflow-hidden`}>
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -260,29 +262,29 @@ const ProductDetail = () => {
             )}
           </div>
 
-          <div className="space-y-6">
+          <div className={`space-y-4 ${isMobile ? 'px-2' : 'space-y-6'}`}>
             <div>
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-              <p className="text-gray-600 mb-4">{product.description}</p>
+              <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold mb-2`}>{product.name}</h1>
+              <p className={`text-gray-600 mb-4 ${isMobile ? 'text-sm' : ''}`}>{product.description}</p>
               
-              <div className="flex items-center space-x-4 mb-4">
-                <span className="text-3xl font-bold text-pink-600">
+              <div className={`flex items-center space-x-4 mb-4 ${isMobile ? 'space-x-2' : ''}`}>
+                <span className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-pink-600`}>
                   KSh {product.price.toLocaleString()}
                 </span>
                 {product.previous_price && (
-                  <span className="text-xl text-gray-500 line-through">
+                  <span className={`${isMobile ? 'text-lg' : 'text-xl'} text-gray-500 line-through`}>
                     KSh {product.previous_price.toLocaleString()}
                   </span>
                 )}
               </div>
 
               {product.rating && (
-                <div className="flex items-center space-x-2 mb-4">
+                <div className={`flex items-center space-x-2 mb-4 ${isMobile ? 'space-x-1' : ''}`}>
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-5 h-5 ${
+                        className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${
                           i < Math.floor(product.rating!)
                             ? "text-yellow-400 fill-current"
                             : "text-gray-300"
@@ -290,46 +292,53 @@ const ProductDetail = () => {
                       />
                     ))}
                   </div>
-                  <span className="text-gray-600">
+                  <span className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>
                     {product.rating} ({product.review_count} reviews)
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <label className="font-medium">Quantity:</label>
+            <div className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+              <div className={`flex items-center space-x-4 ${isMobile ? 'space-x-2' : ''}`}>
+                <label className={`font-medium ${isMobile ? 'text-sm' : ''}`}>Quantity:</label>
                 <Input
                   type="number"
                   min="1"
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-20"
+                  className={`${isMobile ? 'w-16 h-8 text-sm' : 'w-20'}`}
                 />
               </div>
 
-              <div className="flex space-x-4">
-                <Button onClick={addToCart} className="flex-1">
-                  <ShoppingCart className="w-4 h-4 mr-2" />
+              <div className={`flex space-x-4 ${isMobile ? 'space-x-2' : ''}`}>
+                <Button 
+                  onClick={addToCart} 
+                  className={`flex-1 ${isMobile ? 'text-sm h-10' : ''}`}
+                >
+                  <ShoppingCart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
                   Add to Cart
                 </Button>
-                <Button variant="outline" onClick={addToWishlist}>
-                  <Heart className="w-4 h-4" />
+                <Button 
+                  variant="outline" 
+                  onClick={addToWishlist}
+                  className={`${isMobile ? 'h-10 px-3' : ''}`}
+                >
+                  <Heart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                 </Button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Write a Review</CardTitle>
+        <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'}`}>
+          <Card className={`${isMobile ? 'mx-2' : ''}`}>
+            <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
+              <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Write a Review</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 pt-0' : ''}`}>
               <div>
-                <label className="block text-sm font-medium mb-2">Rating</label>
+                <label className={`block font-medium mb-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>Rating</label>
                 <div className="flex space-x-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -337,7 +346,7 @@ const ProductDetail = () => {
                       onClick={() => setNewReview({ ...newReview, rating: star })}
                     >
                       <Star
-                        className={`w-6 h-6 ${
+                        className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} ${
                           star <= newReview.rating
                             ? "text-yellow-400 fill-current"
                             : "text-gray-300"
@@ -349,37 +358,41 @@ const ProductDetail = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Comment</label>
+                <label className={`block font-medium mb-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>Comment</label>
                 <Textarea
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                   placeholder="Share your thoughts about this product..."
+                  className={`${isMobile ? 'text-sm min-h-20' : ''}`}
                 />
               </div>
               
-              <Button onClick={submitReview} className="w-full">
+              <Button 
+                onClick={submitReview} 
+                className={`w-full ${isMobile ? 'text-sm h-10' : ''}`}
+              >
                 Submit Review
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Reviews</CardTitle>
+          <Card className={`${isMobile ? 'mx-2' : ''}`}>
+            <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
+              <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Customer Reviews</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={`${isMobile ? 'pt-0' : ''}`}>
               {reviews.length === 0 ? (
-                <p className="text-gray-600">No reviews yet. Be the first to review!</p>
+                <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>No reviews yet. Be the first to review!</p>
               ) : (
-                <div className="space-y-4">
+                <div className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
                   {reviews.map((review) => (
-                    <div key={review.id} className="border-b pb-4">
-                      <div className="flex items-center space-x-2 mb-2">
+                    <div key={review.id} className={`border-b pb-4 ${isMobile ? 'pb-3' : ''}`}>
+                      <div className={`flex items-center space-x-2 mb-2 ${isMobile ? 'space-x-1 mb-1' : ''}`}>
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${
+                              className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${
                                 i < review.rating
                                   ? "text-yellow-400 fill-current"
                                   : "text-gray-300"
@@ -387,11 +400,16 @@ const ProductDetail = () => {
                             />
                           ))}
                         </div>
-                        <span className="font-medium">{review.profiles.full_name}</span>
-                        <span className="text-sm text-gray-500">
+                        <span className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+                          {review.profiles?.full_name || 'Anonymous'}
+                        </span>
+                        <span className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
+                      {review.comment && (
+                        <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>{review.comment}</p>
+                      )}
                     </div>
                   ))}
                 </div>
