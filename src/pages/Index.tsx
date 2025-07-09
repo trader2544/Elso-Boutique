@@ -299,7 +299,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-pink-200 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-gray-500">
-            <p className="text-xs md:text-sm">&copy; 2024 ELSO BOUTIQUE. All rights reserved.</p>
+            <p className="text-xs md:text-sm">&copy; 2025 ELSO BOUTIQUE. All rights reserved.</p>
             <p className="text-xs mt-2">
               <span className="md:hidden">Powered by </span>
               <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="hover:text-pink-600">
@@ -313,7 +313,7 @@ const Index = () => {
       {/* WhatsApp Hover Button - Global */}
       <div className="fixed bottom-6 right-6 z-50">
         <a
-          href="https://wa.me/254773482210"
+          href="https://wa.me/254745242174"
           target="_blank"
           rel="noopener noreferrer"
           className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center group"
