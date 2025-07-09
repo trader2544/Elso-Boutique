@@ -6,15 +6,21 @@ import { ChevronDown } from "lucide-react";
 const HeroSection = () => {
   return (
     <section className="relative bg-gradient-to-br from-pink-50 via-pink-25 to-white h-[50vh] md:h-[65vh] flex items-center overflow-hidden">
-      {/* Background Image without Pink Overlay */}
+      {/* Video Background */}
       <div className="absolute inset-0 z-0">
-        <img
-          src="/lovable-uploads/6dbb14c3-2b40-46f1-9d1f-eeb627e9ea0b.png"
-          alt="ELSO Boutique Fashion Model"
+        <iframe
+          src="https://streamable.com/e/21wm61?autoplay=1&nocontrols=1&loop=1"
           className="w-full h-full object-cover"
+          style={{
+            border: 'none',
+            transform: 'scale(1.1)', // Slight scale to hide iframe borders
+            transformOrigin: 'center center'
+          }}
+          allow="autoplay"
+          allowFullScreen={false}
         />
         {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="absolute inset-0 bg-black/50"></div>
       </div>
 
       <div className="container mx-auto px-4 relative z-10 h-full">
