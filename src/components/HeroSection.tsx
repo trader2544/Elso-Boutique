@@ -13,8 +13,10 @@ const HeroSection = () => {
           className="w-full h-full object-cover"
           style={{
             border: 'none',
-            transform: 'scale(1.1)', // Slight scale to hide iframe borders
-            transformOrigin: 'center center'
+            transform: 'scale(1.05)', // Optimized scale for better coverage
+            transformOrigin: 'center center',
+            minWidth: '100%',
+            minHeight: '100%'
           }}
           allow="autoplay"
           allowFullScreen={false}
