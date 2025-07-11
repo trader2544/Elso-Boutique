@@ -6,20 +6,16 @@ import { ChevronDown } from "lucide-react";
 const HeroSection = () => {
   return (
     <section className="relative bg-gradient-to-br from-pink-50 via-pink-25 to-white h-[50vh] md:h-[65vh] flex items-center overflow-hidden">
-      {/* Video Background */}
+      {/* Image Background */}
       <div className="absolute inset-0 z-0">
-        <iframe
-          src="https://streamable.com/e/21wm61?autoplay=1&nocontrols=1&loop=1"
+        <img
+          src="/lovable-uploads/f31b7d7e-2d2b-4958-978a-94e9c415c10a.png"
+          alt="ELSO Boutique Hero"
           className="w-full h-full object-cover"
           style={{
-            border: 'none',
-            transform: 'scale(1.05)', // Optimized scale for better coverage
-            transformOrigin: 'center center',
             minWidth: '100%',
             minHeight: '100%'
           }}
-          allow="autoplay"
-          allowFullScreen={false}
         />
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/50"></div>
@@ -50,16 +46,28 @@ const HeroSection = () => {
               Curated Collections for the Modern Connoisseur
             </p>
 
-            {/* About Button */}
-            <div className="mb-3 md:mb-6">
+            {/* Buttons */}
+            <div className="mb-3 md:mb-6 flex flex-col sm:flex-row gap-3">
               <Link to="/about">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white px-5 md:px-8 py-2 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-pink-200"
+                  className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white px-5 md:px-8 py-2 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-pink-200 w-full sm:w-auto"
                 >
                   About Us
                 </Button>
               </Link>
+              <a
+                href="https://wa.me/254745242174"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-600 hover:to-green-500 text-white px-5 md:px-8 py-2 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-green-200 w-full sm:w-auto"
+                >
+                  Contact
+                </Button>
+              </a>
             </div>
           </div>
         </div>
