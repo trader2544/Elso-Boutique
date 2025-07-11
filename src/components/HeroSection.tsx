@@ -47,11 +47,11 @@ const HeroSection = () => {
             </p>
 
             {/* Buttons */}
-            <div className="mb-3 md:mb-6 flex flex-col sm:flex-row gap-3">
+            <div className="mb-3 md:mb-6 flex flex-col sm:flex-row gap-2 md:gap-3">
               <Link to="/about">
                 <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white px-5 md:px-8 py-2 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-pink-200 w-full sm:w-auto"
+                  size="sm" 
+                  className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-pink-200 w-full sm:w-auto"
                 >
                   About Us
                 </Button>
@@ -62,8 +62,8 @@ const HeroSection = () => {
                 rel="noopener noreferrer"
               >
                 <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-600 hover:to-green-500 text-white px-5 md:px-8 py-2 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-green-200 w-full sm:w-auto"
+                  size="sm" 
+                  className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-600 hover:to-green-500 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-green-200 w-full sm:w-auto"
                 >
                   Contact
                 </Button>
