@@ -48,10 +48,10 @@ const HeroSection = () => {
 
             {/* Buttons */}
             <div className="mb-3 md:mb-6 flex flex-col sm:flex-row gap-2 md:gap-3">
-              <Link to="/about">
+              <Link to="/about" className="w-full sm:w-auto">
                 <Button 
                   size="sm" 
-                  className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-pink-200 w-full sm:w-auto"
+                  className="bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white py-2 px-0 md:px-8 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-pink-200 w-full text-center"
                 >
                   About Us
                 </Button>
@@ -60,10 +60,11 @@ const HeroSection = () => {
                 href="https://wa.me/254745242174"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="w-full sm:w-auto"
               >
                 <Button 
                   size="sm" 
-                  className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-600 hover:to-green-500 text-white px-3 py-1.5 md:px-8 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-green-200 w-full sm:w-auto"
+                  className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-600 hover:to-green-500 text-white py-2 px-0 md:px-8 md:py-3 rounded-full font-semibold text-xs md:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-green-200 w-full text-center"
                 >
                   Contact
                 </Button>
