@@ -2,7 +2,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { User as SupabaseUser } from "@supabase/supabase-js";
+import { useAuth } from "@/hooks/useAuth";
 
 interface WishlistContextType {
   wishlistItems: string[];
@@ -15,17 +15,16 @@ const WishlistContext = createContext<WishlistContextType | null>(null);
 
 export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   const [wishlistItems, setWishlistItems] = useState<string[]>([]);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const { user, loading } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) {
-        fetchWishlist();
-      }
-    });
-  }, []);
+    if (!loading && user) {
+      fetchWishlist();
+    } else if (!loading && !user) {
+      setWishlistItems([]);
+    }
+  }, [user, loading]);
 
   const fetchWishlist = async () => {
     if (!user) return;
@@ -37,15 +36,38 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
         .eq("id", user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: user.id,
+              email: user.email || "",
+              full_name: user.user_metadata?.full_name || "",
+              phone: user.user_metadata?.phone || "",
+              role: "user",
+              wishlist: []
+            });
+          
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+          }
+          setWishlistItems([]);
+          return;
+        }
+        throw error;
+      }
       setWishlistItems(data?.wishlist || []);
     } catch (error) {
       console.error("Error fetching wishlist:", error);
+      setWishlistItems([]);
     }
   };
 
   const addToWishlist = async (productId: string) => {
     if (!user) {
+      console.log("No user found when trying to add to wishlist");
       toast({
         title: "Please sign in",
         description: "You need to be signed in to add items to wishlist",
