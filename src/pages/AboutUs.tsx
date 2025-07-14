@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,10 +112,10 @@ I'm interested in placing a bulk order. Please let me know how we can proceed!`;
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-center">
                 <div className="space-y-4 md:space-y-6">
                   <p className="text-gray-800 leading-relaxed text-base md:text-lg font-medium">
-                    ESLO Boutique is a luxury fashion house based in Kisumu, Kenya, dedicated to crafting timeless, elegant designs for the modern woman. We specialize in bespoke bridal gowns, evening wear, red-carpet looks, and ready-to-wear outfits.
+                    ELSO is a chic and classy fashion boutique based in Kisumu, Kenya. ELSO specializes in elegant ladies' outfits, luxurious handbags, and stunning jewelry pieces designed to elevate every woman's style. We curate timeless, high-quality fashion essentials that blend sophistication with modern trends—perfect for women who love to feel confident, stylish, and empowered.
                   </p>
                   <p className="text-gray-800 leading-relaxed text-base md:text-lg font-medium">
-                    Every piece is custom-made with precision, creativity, and quality craftsmanship to ensure you not only look stunning but feel confident and empowered.
+                    Whether you're dressing up for a special occasion or curating your everyday wardrobe, ELSO ensures you stand out with grace and glamour.
                   </p>
                   <div className="flex items-center space-x-4 pt-2 md:pt-4">
                     <div className="flex items-center">
