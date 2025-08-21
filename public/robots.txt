@@ -3,12 +3,12 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://elso.lovable.app/sitemap.xml
+Sitemap: https://elso-boutique.com/sitemap.xml
 
 # Optimize crawling
 Crawl-delay: 1
 
-# Block admin areas
+# Block admin areas for security
 Disallow: /admin
 Disallow: /checkout
 
@@ -20,4 +20,23 @@ User-agent: Twitterbot
 Allow: /
 
 User-agent: LinkedInBot
+Allow: /
+
+User-agent: InstagramBot
+Allow: /
+
+User-agent: TikTokBot
+Allow: /
+
+# Allow Google bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Googlebot-News
+Allow: /
+
+User-agent: Googlebot-Video
 Allow: /
