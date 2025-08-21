@@ -1,49 +1,74 @@
 
-import { Helmet } from 'react-helmet-async';
+import { useEffect } from 'react';
 
 interface SEOHeadProps {
   title?: string;
   description?: string;
-  canonical?: string;
-  ogImage?: string;
-  ogType?: string;
   keywords?: string;
-  noindex?: boolean;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  canonical?: string;
 }
 
 export const SEOHead = ({
-  title = "ELSO Boutique - Premium Women's Fashion & Beauty in Kisumu, Kenya",
-  description = "ELSO Boutique offers premium women's fashion, jewelry, accessories, and beauty products in Kisumu, Kenya. Shop trendy items with quality guarantee.",
-  canonical,
-  ogImage = "https://elso-boutique.com/lovable-uploads/3942f446-3594-43a8-b602-0e80b80bdd8c.png",
-  ogType = "website",
-  keywords = "women fashion Kenya, jewelry Kisumu, beauty products Kenya, accessories Kenya, boutique Kisumu",
-  noindex = false
+  title = "ELSO Boutique - Premium Fashion & Style",
+  description = "Discover premium fashion at ELSO Boutique. Shop the latest trends in women's clothing, accessories, and more. Free shipping on orders over KSh 5000.",
+  keywords = "fashion, boutique, women's clothing, style, Kenya, premium fashion, dresses, accessories",
+  ogTitle,
+  ogDescription,
+  ogImage = "/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png",
+  canonical
 }: SEOHeadProps) => {
-  const fullCanonical = canonical ? `https://elso-boutique.com${canonical}` : undefined;
-  
-  return (
-    <Helmet>
-      <title>{title}</title>
-      <meta name="description" content={description} />
-      <meta name="keywords" content={keywords} />
-      {noindex && <meta name="robots" content="noindex, nofollow" />}
-      {fullCanonical && <link rel="canonical" href={fullCanonical} />}
-      
-      {/* Open Graph */}
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:type" content={ogType} />
-      <meta property="og:image" content={ogImage} />
-      {fullCanonical && <meta property="og:url" content={fullCanonical} />}
-      
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
-    </Helmet>
-  );
-};
+  useEffect(() => {
+    // Update document title
+    document.title = title;
 
-export default SEOHead;
+    // Update meta tags
+    const updateMetaTag = (name: string, content: string, property?: string) => {
+      const selector = property ? `meta[property="${property}"]` : `meta[name="${name}"]`;
+      let meta = document.querySelector(selector) as HTMLMetaElement;
+      
+      if (!meta) {
+        meta = document.createElement('meta');
+        if (property) {
+          meta.setAttribute('property', property);
+        } else {
+          meta.setAttribute('name', name);
+        }
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    // Basic meta tags
+    updateMetaTag('description', description);
+    updateMetaTag('keywords', keywords);
+
+    // Open Graph tags
+    updateMetaTag('', ogTitle || title, 'og:title');
+    updateMetaTag('', ogDescription || description, 'og:description');
+    updateMetaTag('', ogImage, 'og:image');
+    updateMetaTag('', 'website', 'og:type');
+    updateMetaTag('', 'https://elso-boutique.com', 'og:url');
+
+    // Twitter Card tags
+    updateMetaTag('twitter:card', 'summary_large_image');
+    updateMetaTag('twitter:title', ogTitle || title);
+    updateMetaTag('twitter:description', ogDescription || description);
+    updateMetaTag('twitter:image', ogImage);
+
+    // Canonical URL
+    if (canonical) {
+      let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+      if (!canonicalLink) {
+        canonicalLink = document.createElement('link');
+        canonicalLink.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalLink);
+      }
+      canonicalLink.setAttribute('href', canonical);
+    }
+  }, [title, description, keywords, ogTitle, ogDescription, ogImage, canonical]);
+
+  return null;
+};
