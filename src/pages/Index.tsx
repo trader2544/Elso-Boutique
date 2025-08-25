@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import HeroSection from "@/components/HeroSection";
 import ProductCard from "@/components/ProductCard";
 import MobileProductCard from "@/components/MobileProductCard";
 import FloatingBackground from "@/components/FloatingBackground";
-import { SearchBar } from "@/components/SearchBar";
+import SearchBar from "@/components/SearchBar";
 import { SEOHead } from "@/components/SEOHead";
 import ShopByCategory from "@/components/ShopByCategory";
 import FeaturedProducts from "@/components/FeaturedProducts";

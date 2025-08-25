@@ -3,15 +3,15 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ProductCard from "./ProductCard";
 import MobileProductCard from "./MobileProductCard";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  previous_price: number | null;
-  image_url: string | null;
+  previous_price?: number;
+  image_url: string;
   in_stock: boolean;
   stock_status: string;
   quantity: number;
@@ -20,10 +20,14 @@ interface Product {
   category: string;
 }
 
-const FeaturedProducts = () => {
+interface FeaturedProductsProps {
+  onAddToCart: (productId: string) => Promise<void>;
+}
+
+const FeaturedProducts = ({ onAddToCart }: FeaturedProductsProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -31,53 +35,63 @@ const FeaturedProducts = () => {
 
   const fetchFeaturedProducts = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_featured_products');
-      
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          *,
+          categories (name)
+        `)
+        .eq("is_featured", true)
+        .order("created_at", { ascending: false })
+        .limit(8);
+
       if (error) throw error;
-      setProducts(data || []);
+
+      const transformedProducts = data?.map(product => ({
+        ...product,
+        category: product.categories?.name || product.category || 'Uncategorized'
+      })) || [];
+
+      setProducts(transformedProducts);
     } catch (error) {
       console.error("Error fetching featured products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load featured products",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-pink-700 mb-4">Featured Products</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-gray-200 rounded-lg h-64 animate-pulse"></div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
+  if (loading || products.length === 0) {
+    return null;
   }
 
-  if (products.length === 0) return null;
-
   return (
-    <section className="py-12 bg-white">
+    <section className="py-16 bg-white/80 backdrop-blur-sm">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-pink-700 mb-4">Featured Products</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Discover our handpicked selection of premium beauty products
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-pink-700 mb-4">
+            Featured Products
+          </h2>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Discover our handpicked selection of premium fashion items
           </p>
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
-            isMobile ? (
-              <MobileProductCard key={product.id} product={product} />
-            ) : (
-              <ProductCard key={product.id} product={product} />
-            )
+            <div key={product.id}>
+              <div className="hidden sm:block">
+                <ProductCard product={product} onAddToCart={() => onAddToCart(product.id)} />
+              </div>
+              <div className="block sm:hidden">
+                <MobileProductCard product={product} onAddToCart={() => onAddToCart(product.id)} />
+              </div>
+            </div>
           ))}
         </div>
       </div>
