@@ -8,6 +8,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/hooks/useCart";
 import { WishlistProvider } from "@/hooks/useWishlist";
 import FloatingBackground from "@/components/FloatingBackground";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -23,9 +25,10 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 relative">
+    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-pink-50 relative flex flex-col">
       <FloatingBackground />
-      <main className="relative z-10">
+      <Header />
+      <main className="relative z-10 flex-grow">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/product/:id" element={<ProductDetail />} />
@@ -39,6 +42,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }

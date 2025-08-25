@@ -18,6 +18,7 @@ interface Product {
   rating: number;
   review_count: number;
   category: string;
+  is_featured: boolean;
 }
 
 interface FeaturedProductsProps {

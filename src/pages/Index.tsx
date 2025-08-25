@@ -178,8 +178,7 @@ const Index = () => {
         description={categoryParam ? `Shop ${categoryParam} collection at ELSO Boutique` : "Discover premium fashion at ELSO Boutique. Shop the latest trends in women's clothing, accessories, and more."}
         keywords={categoryParam ? `${categoryParam}, fashion, boutique, women's clothing` : "fashion, boutique, women's clothing, style, Kenya, premium fashion"}
       />
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-        <FloatingBackground />
+      <div className="bg-gradient-to-br from-pink-50 via-white to-purple-50">
         <div className="relative z-10">
           {!categoryParam && <HeroSection />}
           
