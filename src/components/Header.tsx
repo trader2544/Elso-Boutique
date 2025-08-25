@@ -8,17 +8,14 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useState } from 'react';
 
 const Header = () => {
-  const { user, logout } = useAuth();
-  const { items: cartItems } = useCart();
-  const { items: wishlistItems } = useWishlist();
+  const { user, signOut } = useAuth();
+  const { cartItems, cartCount } = useCart();
+  const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-  const wishlistItemCount = wishlistItems.length;
-
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate('/');
   };
 
@@ -72,9 +69,9 @@ const Header = () => {
             {/* Wishlist */}
             <Link to="/wishlist" className="relative text-gray-700 hover:text-pink-600 transition-colors">
               <Heart size={20} />
-              {wishlistItemCount > 0 && (
+              {wishlistItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {wishlistItemCount}
+                  {wishlistItems.length}
                 </span>
               )}
             </Link>
@@ -82,9 +79,9 @@ const Header = () => {
             {/* Cart */}
             <Link to="/cart" className="relative text-gray-700 hover:text-pink-600 transition-colors">
               <ShoppingCart size={20} />
-              {cartItemCount > 0 && (
+              {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartItemCount}
+                  {cartCount}
                 </span>
               )}
             </Link>
