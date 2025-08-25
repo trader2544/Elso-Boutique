@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit, Save, X, Minus, Package } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2, Edit, Save, X, Minus, Package, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 
@@ -18,10 +18,17 @@ interface Product {
   price: number;
   previous_price: number | null;
   category: string;
+  category_id: string | null;
   image_url: string | null;
   in_stock: boolean;
   stock_status: string;
   quantity: number;
+  is_featured: boolean;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 interface NewProduct {
@@ -29,25 +36,27 @@ interface NewProduct {
   description: string;
   price: string;
   previous_price: string;
-  category: string;
+  category_id: string;
   image_url: string;
   stock_status: string;
   quantity: string;
+  is_featured: boolean;
 }
 
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [newProduct, setNewProduct] = useState<NewProduct>({
     name: "",
     description: "",
     price: "",
     previous_price: "",
-    category: "",
+    category_id: "",
     image_url: "",
     stock_status: "stocked",
     quantity: "0",
+    is_featured: false,
   });
-  const [categories, setCategories] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [quantityUpdates, setQuantityUpdates] = useState<{[key: string]: string}>({});
@@ -69,11 +78,23 @@ const AdminProducts = () => {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          categories (
+            name
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      
+      // Transform the data to include category name in the category field
+      const productsWithCategory = data?.map(product => ({
+        ...product,
+        category: product.categories?.name || product.category || 'Uncategorized'
+      })) || [];
+      
+      setProducts(productsWithCategory);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -82,14 +103,12 @@ const AdminProducts = () => {
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from("products")
-        .select("category")
-        .order("category");
+        .from("categories")
+        .select("id, name")
+        .order("name");
 
       if (error) throw error;
-      
-      const uniqueCategories = Array.from(new Set(data?.map(p => p.category) || []));
-      setCategories(uniqueCategories);
+      setCategories(data || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
@@ -106,11 +125,12 @@ const AdminProducts = () => {
           description: newProduct.description,
           price: parseFloat(newProduct.price),
           previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
-          category: newProduct.category,
+          category_id: newProduct.category_id || null,
           image_url: newProduct.image_url || null,
           stock_status: newProduct.stock_status,
           quantity: parseInt(newProduct.quantity) || 0,
           in_stock: (parseInt(newProduct.quantity) || 0) > 0,
+          is_featured: newProduct.is_featured,
         });
 
       if (error) throw error;
@@ -125,15 +145,15 @@ const AdminProducts = () => {
         description: "",
         price: "",
         previous_price: "",
-        category: "",
+        category_id: "",
         image_url: "",
         stock_status: "stocked",
         quantity: "0",
+        is_featured: false,
       });
       setIsAddingProduct(false);
 
       await fetchProducts();
-      await fetchCategories();
     } catch (error) {
       console.error("Error adding product:", error);
       toast({
@@ -155,11 +175,12 @@ const AdminProducts = () => {
           description: editingProduct.description,
           price: editingProduct.price,
           previous_price: editingProduct.previous_price,
-          category: editingProduct.category,
+          category_id: editingProduct.category_id,
           image_url: editingProduct.image_url,
           stock_status: editingProduct.stock_status,
           quantity: editingProduct.quantity,
           in_stock: editingProduct.quantity > 0,
+          is_featured: editingProduct.is_featured,
         })
         .eq("id", editingProduct.id);
 
@@ -172,7 +193,6 @@ const AdminProducts = () => {
 
       setEditingProduct(null);
       await fetchProducts();
-      await fetchCategories();
     } catch (error) {
       console.error("Error updating product:", error);
       toast({
@@ -215,7 +235,6 @@ const AdminProducts = () => {
         description: `${result.product_name}: ${result.old_quantity} → ${result.new_quantity} units`,
       });
 
-      // Clear the quantity input for this product
       setQuantityUpdates(prev => ({
         ...prev,
         [productId]: ''
@@ -312,19 +331,18 @@ const AdminProducts = () => {
                   </div>
                   <div>
                     <Label htmlFor="category" className="text-pink-700 text-sm">Category</Label>
-                    <Input
-                      id="category"
-                      value={newProduct.category}
-                      onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                      list="categories"
-                      required
-                      className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
-                    />
-                    <datalist id="categories">
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat} />
-                      ))}
-                    </datalist>
+                    <Select value={newProduct.category_id} onValueChange={(value) => setNewProduct({ ...newProduct, category_id: value })}>
+                      <SelectTrigger className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
@@ -376,6 +394,17 @@ const AdminProducts = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="is_featured"
+                      checked={newProduct.is_featured}
+                      onCheckedChange={(checked) => setNewProduct({ ...newProduct, is_featured: checked as boolean })}
+                    />
+                    <Label htmlFor="is_featured" className="text-pink-700 text-sm flex items-center gap-1">
+                      <Star className="w-3 h-3" />
+                      Featured Product
+                    </Label>
                   </div>
                   <div>
                     <Label htmlFor="description" className="text-pink-700 text-sm">Description</Label>
@@ -443,12 +472,21 @@ const AdminProducts = () => {
                       className="text-xs h-8"
                       placeholder="Product name"
                     />
-                    <Input
-                      value={editingProduct.category}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
-                      className="text-xs h-8"
-                      placeholder="Category"
-                    />
+                    <Select 
+                      value={editingProduct.category_id || ""} 
+                      onValueChange={(value) => setEditingProduct({ ...editingProduct, category_id: value })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="grid grid-cols-2 gap-1">
                       <Input
                         type="number"
@@ -489,6 +527,17 @@ const AdminProducts = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit_featured_${editingProduct.id}`}
+                        checked={editingProduct.is_featured}
+                        onCheckedChange={(checked) => setEditingProduct({ ...editingProduct, is_featured: checked as boolean })}
+                      />
+                      <Label htmlFor={`edit_featured_${editingProduct.id}`} className="text-xs flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        Featured
+                      </Label>
+                    </div>
                     <Textarea
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
@@ -519,7 +568,7 @@ const AdminProducts = () => {
                 ) : (
                   // View Mode
                   <div>
-                    <div className="w-full h-24 mb-2 rounded-lg overflow-hidden bg-pink-50">
+                    <div className="w-full h-24 mb-2 rounded-lg overflow-hidden bg-pink-50 relative">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -529,6 +578,11 @@ const AdminProducts = () => {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <span className="text-pink-300 text-xs">No image</span>
+                        </div>
+                      )}
+                      {product.is_featured && (
+                        <div className="absolute top-1 right-1 bg-yellow-500 rounded-full p-1">
+                          <Star className="w-3 h-3 text-white" />
                         </div>
                       )}
                     </div>

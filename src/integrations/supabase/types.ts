@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_exports: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          export_type: string
+          file_url: string | null
+          id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          export_type: string
+          file_url?: string | null
+          id?: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          export_type?: string
+          file_url?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_exports_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           created_at: string | null
@@ -52,6 +90,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       mpesa_transactions: {
         Row: {
@@ -148,11 +213,13 @@ export type Database = {
       products: {
         Row: {
           category: string
+          category_id: string | null
           created_at: string | null
           description: string | null
           id: string
           image_url: string | null
           in_stock: boolean | null
+          is_featured: boolean | null
           name: string
           previous_price: number | null
           price: number
@@ -163,11 +230,13 @@ export type Database = {
         }
         Insert: {
           category: string
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           in_stock?: boolean | null
+          is_featured?: boolean | null
           name: string
           previous_price?: number | null
           price: number
@@ -178,11 +247,13 @@ export type Database = {
         }
         Update: {
           category?: string
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           in_stock?: boolean | null
+          is_featured?: boolean | null
           name?: string
           previous_price?: number | null
           price?: number
@@ -191,7 +262,15 @@ export type Database = {
           review_count?: number | null
           stock_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -316,6 +395,50 @@ export type Database = {
           },
         ]
       }
+      stock_batches: {
+        Row: {
+          batch_number: string
+          cost_price: number | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          product_id: string | null
+          quantity: number
+          received_date: string
+          supplier: string | null
+        }
+        Insert: {
+          batch_number: string
+          cost_price?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          received_date?: string
+          supplier?: string | null
+        }
+        Update: {
+          batch_number?: string
+          cost_price?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          received_date?: string
+          supplier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -333,6 +456,41 @@ export type Database = {
           order_id: string
           order_status: string
           should_be_paid: boolean
+        }[]
+      }
+      get_featured_products: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          category: string
+          description: string
+          id: string
+          image_url: string
+          in_stock: boolean
+          name: string
+          previous_price: number
+          price: number
+          quantity: number
+          rating: number
+          review_count: number
+          stock_status: string
+        }[]
+      }
+      get_products_by_category: {
+        Args: { category_name: string }
+        Returns: {
+          category: string
+          description: string
+          id: string
+          image_url: string
+          in_stock: boolean
+          is_featured: boolean
+          name: string
+          previous_price: number
+          price: number
+          quantity: number
+          rating: number
+          review_count: number
+          stock_status: string
         }[]
       }
       http: {
