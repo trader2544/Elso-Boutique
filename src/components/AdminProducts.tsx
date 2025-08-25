@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,10 @@ const AdminProducts = () => {
     e.preventDefault();
     
     try {
+      // Get category name for the category field
+      const selectedCategory = categories.find(cat => cat.id === newProduct.category_id);
+      const categoryName = selectedCategory?.name || 'Uncategorized';
+      
       const { error } = await supabase
         .from("products")
         .insert({
@@ -125,6 +130,7 @@ const AdminProducts = () => {
           description: newProduct.description,
           price: parseFloat(newProduct.price),
           previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
+          category: categoryName,
           category_id: newProduct.category_id || null,
           image_url: newProduct.image_url || null,
           stock_status: newProduct.stock_status,
@@ -168,6 +174,10 @@ const AdminProducts = () => {
     if (!editingProduct) return;
 
     try {
+      // Get category name for the category field
+      const selectedCategory = categories.find(cat => cat.id === editingProduct.category_id);
+      const categoryName = selectedCategory?.name || editingProduct.category || 'Uncategorized';
+
       const { error } = await supabase
         .from("products")
         .update({
@@ -175,6 +185,7 @@ const AdminProducts = () => {
           description: editingProduct.description,
           price: editingProduct.price,
           previous_price: editingProduct.previous_price,
+          category: categoryName,
           category_id: editingProduct.category_id,
           image_url: editingProduct.image_url,
           stock_status: editingProduct.stock_status,

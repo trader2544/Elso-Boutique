@@ -86,7 +86,7 @@ const AdminAnalytics = () => {
       const totalProducts = products?.length || 0;
       const totalUsers = users?.length || 0;
       const totalOrders = orders?.length || 0;
-      const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+      const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_price || 0), 0) || 0;
       
       const lowStockProducts = products?.filter(p => p.quantity <= 5).length || 0;
       
@@ -131,7 +131,7 @@ const AdminAnalytics = () => {
         
         salesTrend.push({
           date: date.toISOString().split('T')[0],
-          revenue: dayOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0),
+          revenue: dayOrders.reduce((sum, order) => sum + (order.total_price || 0), 0),
           orders: dayOrders.length
         });
       }

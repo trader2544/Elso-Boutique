@@ -1,23 +1,25 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import HeroSection from "@/components/HeroSection";
 import ProductCard from "@/components/ProductCard";
 import MobileProductCard from "@/components/MobileProductCard";
-import SearchBar from "@/components/SearchBar";
+import FloatingBackground from "@/components/FloatingBackground";
+import { SearchBar } from "@/components/SearchBar";
+import { SEOHead } from "@/components/SEOHead";
 import ShopByCategory from "@/components/ShopByCategory";
 import FeaturedProducts from "@/components/FeaturedProducts";
-import SEOHead from "@/components/SEOHead";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  previous_price: number | null;
-  image_url: string | null;
+  previous_price?: number;
+  image_url: string;
   in_stock: boolean;
   stock_status: string;
   quantity: number;
@@ -29,160 +31,207 @@ interface Product {
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
-  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  // Get category from URL params
-  const categoryFromUrl = searchParams.get('category');
+  const categoryParam = searchParams.get('category');
 
   useEffect(() => {
-    if (categoryFromUrl) {
-      setSelectedCategory(categoryFromUrl);
-      fetchProductsByCategory(categoryFromUrl);
-    } else {
-      fetchProducts();
-    }
-  }, [categoryFromUrl]);
+    fetchProducts();
+  }, [categoryParam]);
+
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select(`
           *,
           categories (name)
         `)
-        .eq("in_stock", true)
         .order("created_at", { ascending: false });
 
+      // If category is specified, filter by category
+      if (categoryParam) {
+        query = query.eq('categories.name', categoryParam);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-      
-      const productsWithCategory = data?.map(product => ({
+
+      const transformedProducts = data?.map(product => ({
         ...product,
         category: product.categories?.name || product.category || 'Uncategorized'
       })) || [];
-      
-      setProducts(productsWithCategory);
+
+      setProducts(transformedProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProductsByCategory = async (categoryName: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.rpc('get_products_by_category', {
-        category_name: categoryName
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive",
       });
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error("Error fetching products by category:", error);
-      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filterProducts = () => {
+    let filtered = products;
 
-  const handleClearCategory = () => {
-    setSelectedCategory("");
-    window.history.pushState({}, '', '/');
-    fetchProducts();
+    if (searchTerm) {
+      filtered = products.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredProducts(filtered);
   };
+
+  const addToCart = async (productId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Check if item already exists in cart
+      const { data: existingItem, error: fetchError } = await supabase
+        .from("cart_items")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        throw fetchError;
+      }
+
+      if (existingItem) {
+        // Update quantity
+        const { error: updateError } = await supabase
+          .from("cart_items")
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq("id", existingItem.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new item
+        const { error: insertError } = await supabase
+          .from("cart_items")
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+            quantity: 1,
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Item added to cart",
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+        <FloatingBackground />
+        <div className="relative z-10">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">Loading...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <SEOHead />
+      <SEOHead 
+        title={categoryParam ? `${categoryParam} - ELSO Boutique` : "ELSO Boutique - Premium Fashion & Style"}
+        description={categoryParam ? `Shop ${categoryParam} collection at ELSO Boutique` : "Discover premium fashion at ELSO Boutique. Shop the latest trends in women's clothing, accessories, and more."}
+        keywords={categoryParam ? `${categoryParam}, fashion, boutique, women's clothing` : "fashion, boutique, women's clothing, style, Kenya, premium fashion"}
+      />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-        <HeroSection />
-        
-        {/* Shop by Category Section - Only show if not filtering by category */}
-        {!selectedCategory && <ShopByCategory />}
-        
-        {/* Featured Products Section - Only show if not filtering by category */}
-        {!selectedCategory && <FeaturedProducts />}
-        
-        {/* Products Section */}
-        <section className="py-8">
-          <div className="container mx-auto px-4">
-            {/* Category Header and Search */}
-            <div className="flex flex-col gap-4 mb-6">
-              {selectedCategory && (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-pink-700">
-                      {selectedCategory} Products
-                    </h2>
-                    <p className="text-gray-600">
-                      Showing {filteredProducts.length} products
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleClearCategory}
-                    className="text-pink-600 hover:text-pink-800 underline text-sm"
-                  >
-                    View All Products
-                  </button>
-                </div>
-              )}
-              
-              <SearchBar 
-                searchTerm={searchTerm} 
-                onSearchChange={setSearchTerm}
-                placeholder={selectedCategory ? `Search in ${selectedCategory}...` : "Search products..."}
+        <FloatingBackground />
+        <div className="relative z-10">
+          {!categoryParam && <HeroSection />}
+          
+          {!categoryParam && <ShopByCategory />}
+          
+          {!categoryParam && <FeaturedProducts onAddToCart={addToCart} />}
+          
+          <div className="container mx-auto px-4 py-8">
+            {categoryParam && (
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-center text-pink-700 mb-4">
+                  {categoryParam} Collection
+                </h1>
+                <p className="text-center text-gray-600 mb-6">
+                  Discover our curated selection of {categoryParam.toLowerCase()} items
+                </p>
+              </div>
+            )}
+            
+            <div className="mb-8">
+              <SearchBar
+                onSearch={setSearchTerm}
+                placeholder={categoryParam ? `Search in ${categoryParam}...` : "Search products..."}
               />
             </div>
 
-            {/* Products Grid */}
-            {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-gray-200 rounded-lg h-64 animate-pulse"></div>
-                ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+              {filteredProducts.map((product) => (
+                <div key={product.id}>
+                  <div className="hidden sm:block">
+                    <ProductCard product={product} onAddToCart={() => addToCart(product.id)} />
+                  </div>
+                  <div className="block sm:hidden">
+                    <MobileProductCard product={product} onAddToCart={() => addToCart(product.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                  {searchTerm ? 'No products found' : categoryParam ? `No ${categoryParam.toLowerCase()} products available` : 'No products available'}
+                </h3>
+                <p className="text-gray-500">
+                  {searchTerm ? 'Try adjusting your search terms' : 'Check back later for new arrivals!'}
+                </p>
               </div>
-            ) : (
-              <>
-                {filteredProducts.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {filteredProducts.map((product) => (
-                      isMobile ? (
-                        <MobileProductCard key={product.id} product={product} />
-                      ) : (
-                        <ProductCard key={product.id} product={product} />
-                      )
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                      {searchTerm ? "No products found matching your search" : 
-                       selectedCategory ? `No products found in ${selectedCategory}` : 
-                       "No products available"}
-                    </h3>
-                    <p className="text-gray-500">
-                      {searchTerm ? "Try adjusting your search terms" : 
-                       selectedCategory ? "Check back later for new arrivals" : 
-                       "Check back later for new products"}
-                    </p>
-                  </div>
-                )}
-              </>
             )}
           </div>
-        </section>
+        </div>
       </div>
     </>
   );
