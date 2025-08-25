@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, User, Search, Menu, X } from 'lucide-react';
+import { ShoppingCart, Heart, User, Search, Menu, X, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -13,6 +14,26 @@ const Header = () => {
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        setIsAdmin(profile?.role === 'admin');
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminRole();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -66,6 +87,13 @@ const Header = () => {
               <Search size={20} />
             </button>
 
+            {/* Admin icon - only show for admin users */}
+            {isAdmin && (
+              <Link to="/admin" className="text-gray-700 hover:text-pink-600 transition-colors">
+                <Settings size={20} />
+              </Link>
+            )}
+
             {/* Wishlist */}
             <Link to="/wishlist" className="relative text-gray-700 hover:text-pink-600 transition-colors">
               <Heart size={20} />
@@ -97,7 +125,7 @@ const Header = () => {
                     <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600">
                       My Profile
                     </Link>
-                    {user.email === 'admin@elso.com' && (
+                    {isAdmin && (
                       <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600">
                         Admin Panel
                       </Link>
@@ -145,6 +173,15 @@ const Header = () => {
               >
                 About
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="text-gray-700 hover:text-pink-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin Panel
+                </Link>
+              )}
               <div className="border-t border-pink-100 pt-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Categories</p>
                 {categories.map((category) => (
