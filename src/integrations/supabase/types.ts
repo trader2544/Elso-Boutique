@@ -439,6 +439,33 @@ export type Database = {
           },
         ]
       }
+      testimonials: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          images: string[]
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          images?: string[]
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          images?: string[]
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
