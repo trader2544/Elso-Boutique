@@ -1,16 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import HeroSection from "@/components/HeroSection";
-import ShopByCategory from "@/components/ShopByCategory";
-import FeaturedProducts from "@/components/FeaturedProducts";
-import ProductCard from "@/components/ProductCard";
-import MobileProductCard from "@/components/MobileProductCard";
-import TestimonialsCarousel from "@/components/TestimonialsCarousel";
+import { HeroSection } from "@/components/HeroSection";
+import { ShopByCategory } from "@/components/ShopByCategory";
+import { FeaturedProducts } from "@/components/FeaturedProducts";
+import { ProductCard } from "@/components/ProductCard";
+import { MobileProductCard } from "@/components/MobileProductCard";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/hooks/use-mobile";
 import { SEOHead } from "@/components/SEOHead";
 import { Product } from "@/types/product";
 
@@ -22,7 +23,7 @@ const Index = () => {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const isMobile = useMobile();
 
   const categoryId = searchParams.get("category");
   const searchQuery = searchParams.get("search");

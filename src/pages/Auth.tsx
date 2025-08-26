@@ -250,7 +250,7 @@ const Auth = () => {
       </div>
       
       {/* CSS for heartbeat animation */}
-      <style>{`
+      <style jsx>{`
         @keyframes heartbeat {
           0%, 100% {
             transform: scale(1);
