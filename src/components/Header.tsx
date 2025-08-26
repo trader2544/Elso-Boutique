@@ -18,8 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useScrollDirection } from "@/hooks/useScrollDirection";
-import { useMobile } from "@/hooks/use-mobile";
-import { SearchBar } from "@/components/SearchBar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import SearchBar from "@/components/SearchBar";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ const Header = () => {
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const scrollDirection = useScrollDirection();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -244,16 +244,16 @@ const Header = () => {
                       <SearchBar />
                     </div>
 
-                    {/* Categories for Mobile */}
+                    {/* Categories for Mobile - Improved Layout */}
                     <div className="space-y-3">
                       <h3 className="font-semibold text-sm uppercase tracking-wide text-gray-500">Categories</h3>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
                         {categories.map((category) => (
                           <Link
                             key={category.id}
                             to={`/?category=${category.id}`}
                             onClick={() => setIsMenuOpen(false)}
-                            className="p-2 text-sm border rounded-md hover:bg-gray-50 transition-colors text-center"
+                            className="block w-full p-3 text-sm border rounded-md hover:bg-gray-50 transition-colors text-left bg-white shadow-sm"
                           >
                             {category.name}
                           </Link>

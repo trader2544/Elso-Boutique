@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductCard } from "@/components/ProductCard";
-import { MobileProductCard } from "@/components/MobileProductCard";
+import ProductCard from "@/components/ProductCard";
+import MobileProductCard from "@/components/MobileProductCard";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useToast } from "@/hooks/use-toast";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Product } from "@/types/product";
 
 const FeaturedProducts = () => {
@@ -15,7 +14,7 @@ const FeaturedProducts = () => {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchFeaturedProducts();
