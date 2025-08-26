@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Mail, Phone, MapPin } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -7,7 +8,7 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-pink-600">Elso Atelier</h3>
+            <h3 className="text-lg font-bold text-pink-600">Elso Boutique</h3>
             <p className="text-gray-600 text-sm">
               Your premier destination for premium women's fashion, jewelry, accessories, and beauty products in Kisumu, Kenya.
             </p>
@@ -27,9 +28,10 @@ const Footer = () => {
             <h4 className="font-semibold text-gray-800">Customer Service</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li><a href="/profile" className="hover:text-pink-600 transition-colors">My Account</a></li>
-              <li><a href="https://wa.me/254745242174" className="hover:text-pink-600 transition-colors">Contact Support</a></li>
-              <li><a href="#" className="hover:text-pink-600 transition-colors">Returns & Exchanges</a></li>
-              <li><a href="#" className="hover:text-pink-600 transition-colors">Shipping Info</a></li>
+              <li><a href="/contact" className="hover:text-pink-600 transition-colors">Contact Us</a></li>
+              <li><a href="/returns-exchanges" className="hover:text-pink-600 transition-colors">Returns & Exchanges</a></li>
+              <li><a href="/shipping-info" className="hover:text-pink-600 transition-colors">Shipping Info</a></li>
+              <li><a href="/privacy-policy" className="hover:text-pink-600 transition-colors">Privacy Policy</a></li>
             </ul>
           </div>
           
@@ -53,16 +55,25 @@ const Footer = () => {
               </a>
             </div>
             <div className="space-y-2 text-sm text-gray-600">
-              <p>📧 elsokisumu@gmail.com</p>
-              <p>📱 +254 745 242174</p>
-              <p>📍 Kisumu, Kenya</p>
+              <div className="flex items-center space-x-2">
+                <Mail className="w-4 h-4 text-pink-500" />
+                <span>elsokisumu@gmail.com</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Phone className="w-4 h-4 text-pink-500" />
+                <span>+254 745 242174</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-4 h-4 text-pink-500" />
+                <span>Kisumu, Kenya</span>
+              </div>
             </div>
           </div>
         </div>
         
         <div className="border-t border-pink-200 mt-8 pt-8 text-center">
           <p className="text-sm text-gray-600">
-            © 2025 Elso Atelier. All rights reserved.
+            © 2025 Elso Boutique. All rights reserved.
           </p>
           <p className="text-xs mt-2">
             Powered by <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="hover:text-pink-600">Telvix</a>

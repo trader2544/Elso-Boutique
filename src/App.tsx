@@ -19,6 +19,10 @@ import Wishlist from "./pages/Wishlist";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AboutUs from "./pages/AboutUs";
+import Contact from "./pages/Contact";
+import ShippingInfo from "./pages/ShippingInfo";
+import ReturnsExchanges from "./pages/ReturnsExchanges";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +43,10 @@ function AppContent() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/shipping-info" element={<ShippingInfo />} />
+          <Route path="/returns-exchanges" element={<ReturnsExchanges />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

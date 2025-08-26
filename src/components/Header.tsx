@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, User, Search, Menu, X, Settings, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Heart, User, Search, Menu, X, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -40,10 +40,6 @@ const Header = () => {
     navigate('/');
   };
 
-  const handleContactClick = () => {
-    window.open('https://wa.me/254700000000', '_blank');
-  };
-
   const categories = [
     { name: 'Dresses', href: '/?category=Dresses' },
     { name: 'Shoes', href: '/?category=Shoes' },
@@ -66,13 +62,7 @@ const Header = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-gray-700 hover:text-pink-600 transition-colors">Home</Link>
             <Link to="/about" className="text-gray-700 hover:text-pink-600 transition-colors">About</Link>
-            <button 
-              onClick={handleContactClick}
-              className="text-gray-700 hover:text-pink-600 transition-colors flex items-center"
-            >
-              <MessageCircle size={16} className="mr-1" />
-              Contact
-            </button>
+            <Link to="/contact" className="text-gray-700 hover:text-pink-600 transition-colors">Contact</Link>
           </nav>
 
           {/* Right side icons */}
@@ -168,16 +158,13 @@ const Header = () => {
               >
                 About
               </Link>
-              <button
-                onClick={() => {
-                  handleContactClick();
-                  setMobileMenuOpen(false);
-                }}
-                className="text-left text-gray-700 hover:text-pink-600 transition-colors flex items-center"
+              <Link
+                to="/contact"
+                className="text-gray-700 hover:text-pink-600 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                <MessageCircle size={16} className="mr-2" />
                 Contact
-              </button>
+              </Link>
               {isAdmin && (
                 <Link
                   to="/admin"
