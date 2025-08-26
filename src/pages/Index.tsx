@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import HeroSection from "@/components/HeroSection";
 import ProductCard from "@/components/ProductCard";
 import MobileProductCard from "@/components/MobileProductCard";
-import FloatingBackground from "@/components/FloatingBackground";
 import SearchBar from "@/components/SearchBar";
 import { SEOHead } from "@/components/SEOHead";
 import ShopByCategory from "@/components/ShopByCategory";
@@ -40,7 +40,13 @@ const Index = () => {
   const categoryParam = searchParams.get('category');
 
   useEffect(() => {
-    fetchProducts();
+    if (categoryParam) {
+      fetchProducts();
+    } else {
+      setProducts([]);
+      setFilteredProducts([]);
+      setLoading(false);
+    }
   }, [categoryParam]);
 
   useEffect(() => {
@@ -158,10 +164,9 @@ const Index = () => {
     }
   };
 
-  if (loading) {
+  if (loading && categoryParam) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-        <FloatingBackground />
         <div className="relative z-10">
           <div className="container mx-auto px-4 py-8">
             <div className="text-center">Loading...</div>
@@ -174,20 +179,24 @@ const Index = () => {
   return (
     <>
       <SEOHead 
-        title={categoryParam ? `${categoryParam} - ELSO Boutique` : "ELSO Boutique - Premium Fashion & Style"}
-        description={categoryParam ? `Shop ${categoryParam} collection at ELSO Boutique` : "Discover premium fashion at ELSO Boutique. Shop the latest trends in women's clothing, accessories, and more."}
+        title={categoryParam ? `${categoryParam} - Elso Boutique` : "Elso Boutique - Premium Fashion & Style"}
+        description={categoryParam ? `Shop ${categoryParam} collection at Elso Boutique` : "Discover premium fashion at Elso Boutique. Shop the latest trends in women's clothing, accessories, and more."}
         keywords={categoryParam ? `${categoryParam}, fashion, boutique, women's clothing` : "fashion, boutique, women's clothing, style, Kenya, premium fashion"}
       />
       <div className="bg-gradient-to-br from-pink-50 via-white to-purple-50">
         <div className="relative z-10">
-          {!categoryParam && <HeroSection />}
+          {/* Only show homepage sections when no category is selected */}
+          {!categoryParam && (
+            <>
+              <HeroSection />
+              <ShopByCategory />
+              <FeaturedProducts onAddToCart={addToCart} />
+            </>
+          )}
           
-          {!categoryParam && <ShopByCategory />}
-          
-          {!categoryParam && <FeaturedProducts onAddToCart={addToCart} />}
-          
-          <div className="container mx-auto px-4 py-8">
-            {categoryParam && (
+          {/* Show category-specific content when category is selected */}
+          {categoryParam && (
+            <div className="container mx-auto px-4 py-8">
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-center text-pink-700 mb-4">
                   {categoryParam} Collection
@@ -196,39 +205,39 @@ const Index = () => {
                   Discover our curated selection of {categoryParam.toLowerCase()} items
                 </p>
               </div>
-            )}
-            
-            <div className="mb-8">
-              <SearchBar
-                onSearch={setSearchTerm}
-                placeholder={categoryParam ? `Search in ${categoryParam}...` : "Search products..."}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {filteredProducts.map((product) => (
-                <div key={product.id}>
-                  <div className="hidden sm:block">
-                    <ProductCard product={product} onAddToCart={() => addToCart(product.id)} />
-                  </div>
-                  <div className="block sm:hidden">
-                    <MobileProductCard product={product} onAddToCart={() => addToCart(product.id)} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-12">
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  {searchTerm ? 'No products found' : categoryParam ? `No ${categoryParam.toLowerCase()} products available` : 'No products available'}
-                </h3>
-                <p className="text-gray-500">
-                  {searchTerm ? 'Try adjusting your search terms' : 'Check back later for new arrivals!'}
-                </p>
+              
+              <div className="mb-8">
+                <SearchBar
+                  onSearch={setSearchTerm}
+                  placeholder={`Search in ${categoryParam}...`}
+                />
               </div>
-            )}
-          </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mb-8">
+                {filteredProducts.map((product) => (
+                  <div key={product.id}>
+                    <div className="hidden sm:block">
+                      <ProductCard product={product} onAddToCart={() => addToCart(product.id)} />
+                    </div>
+                    <div className="block sm:hidden">
+                      <MobileProductCard product={product} onAddToCart={() => addToCart(product.id)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredProducts.length === 0 && (
+                <div className="text-center py-12">
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                    {searchTerm ? 'No products found' : `No ${categoryParam.toLowerCase()} products available`}
+                  </h3>
+                  <p className="text-gray-500">
+                    {searchTerm ? 'Try adjusting your search terms' : 'Check back later for new arrivals!'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </>

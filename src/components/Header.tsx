@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, User, Search, Menu, X, Settings } from 'lucide-react';
+import { ShoppingCart, Heart, User, Search, Menu, X, Settings, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
   const { user, signOut } = useAuth();
-  const { cartItems, cartCount } = useCart();
+  const { cartCount } = useCart();
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,6 +40,10 @@ const Header = () => {
     navigate('/');
   };
 
+  const handleContactClick = () => {
+    window.open('https://wa.me/254700000000', '_blank');
+  };
+
   const categories = [
     { name: 'Dresses', href: '/?category=Dresses' },
     { name: 'Shoes', href: '/?category=Shoes' },
@@ -55,29 +59,20 @@ const Header = () => {
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <Link to="/" className="text-2xl font-bold text-pink-600 hover:text-pink-700 transition-colors">
-            Elso Atelier
+            Elso Boutique
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-gray-700 hover:text-pink-600 transition-colors">Home</Link>
             <Link to="/about" className="text-gray-700 hover:text-pink-600 transition-colors">About</Link>
-            <div className="relative group">
-              <button className="text-gray-700 hover:text-pink-600 transition-colors flex items-center">
-                Shop <span className="ml-1">▼</span>
-              </button>
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                {categories.map((category) => (
-                  <Link
-                    key={category.name}
-                    to={category.href}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600"
-                  >
-                    {category.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
+            <button 
+              onClick={handleContactClick}
+              className="text-gray-700 hover:text-pink-600 transition-colors flex items-center"
+            >
+              <MessageCircle size={16} className="mr-1" />
+              Contact
+            </button>
           </nav>
 
           {/* Right side icons */}
@@ -173,6 +168,16 @@ const Header = () => {
               >
                 About
               </Link>
+              <button
+                onClick={() => {
+                  handleContactClick();
+                  setMobileMenuOpen(false);
+                }}
+                className="text-left text-gray-700 hover:text-pink-600 transition-colors flex items-center"
+              >
+                <MessageCircle size={16} className="mr-2" />
+                Contact
+              </button>
               {isAdmin && (
                 <Link
                   to="/admin"

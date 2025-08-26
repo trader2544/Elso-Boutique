@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,23 +6,26 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Edit, Save, X, Minus, Package, Star } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
+import AdminCategories from "./AdminCategories";
+import StockBatchManagement from "./StockBatchManagement";
 
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  previous_price: number | null;
-  category: string;
-  category_id: string | null;
-  image_url: string | null;
+  previous_price?: number;
+  image_url: string;
   in_stock: boolean;
   stock_status: string;
   quantity: number;
+  rating: number;
+  review_count: number;
+  category: string;
+  category_id: string;
   is_featured: boolean;
 }
 
@@ -32,47 +34,52 @@ interface Category {
   name: string;
 }
 
+interface StockBatch {
+  id: string;
+  batch_number: string;
+  product_id: string;
+  quantity: number;
+  products: {
+    name: string;
+  };
+}
+
 interface NewProduct {
   name: string;
   description: string;
   price: string;
   previous_price: string;
-  category_id: string;
   image_url: string;
-  stock_status: string;
+  category_id: string;
   quantity: string;
   is_featured: boolean;
+  batch_id: string;
 }
 
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stockBatches, setStockBatches] = useState<StockBatch[]>([]);
   const [newProduct, setNewProduct] = useState<NewProduct>({
     name: "",
     description: "",
     price: "",
     previous_price: "",
-    category_id: "",
     image_url: "",
-    stock_status: "stocked",
-    quantity: "0",
+    category_id: "",
+    quantity: "",
     is_featured: false,
+    batch_id: "",
   });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [quantityUpdates, setQuantityUpdates] = useState<{[key: string]: string}>({});
+  const [activeTab, setActiveTab] = useState<"products" | "categories" | "batches">("products");
   const { toast } = useToast();
-
-  const stockStatusOptions = [
-    { value: "out_of_stock", label: "Out of Stock", color: "text-red-600" },
-    { value: "few_units_left", label: "Few Units Left", color: "text-orange-600" },
-    { value: "stocked", label: "In Stock", color: "text-green-600" },
-    { value: "flash_sale", label: "Flash Sale", color: "text-purple-600" },
-  ];
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchStockBatches();
   }, []);
 
   const fetchProducts = async () => {
@@ -81,21 +88,18 @@ const AdminProducts = () => {
         .from("products")
         .select(`
           *,
-          categories (
-            name
-          )
+          categories (name)
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      // Transform the data to include category name in the category field
-      const productsWithCategory = data?.map(product => ({
+      const transformedProducts = data?.map(product => ({
         ...product,
-        category: product.categories?.name || product.category || 'Uncategorized'
+        category: product.categories?.name || 'Uncategorized'
       })) || [];
       
-      setProducts(productsWithCategory);
+      setProducts(transformedProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -115,31 +119,119 @@ const AdminProducts = () => {
     }
   };
 
+  const fetchStockBatches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("stock_batches")
+        .select(`
+          id,
+          batch_number,
+          product_id,
+          quantity,
+          products (name)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setStockBatches(data || []);
+    } catch (error) {
+      console.error("Error fetching stock batches:", error);
+    }
+  };
+
+  const downloadLowStockProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          name,
+          quantity,
+          stock_status,
+          price,
+          categories (name)
+        `)
+        .lte("quantity", 10)
+        .order("quantity", { ascending: true });
+
+      if (error) throw error;
+
+      const csvContent = [
+        ["Product Name", "Quantity", "Status", "Price", "Category"],
+        ...data.map(product => [
+          product.name,
+          product.quantity,
+          product.stock_status,
+          product.price,
+          product.categories?.name || 'Uncategorized'
+        ])
+      ].map(row => row.join(",")).join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `low-stock-products-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Low stock products exported successfully",
+      });
+    } catch (error) {
+      console.error("Error downloading low stock products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export low stock products",
+        variant: "destructive",
+      });
+    }
+  };
+
   const addProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Get category name for the category field
-      const selectedCategory = categories.find(cat => cat.id === newProduct.category_id);
-      const categoryName = selectedCategory?.name || 'Uncategorized';
-      
-      const { error } = await supabase
+      // First, create the product
+      const { data: productData, error: productError } = await supabase
         .from("products")
         .insert({
           name: newProduct.name,
           description: newProduct.description,
           price: parseFloat(newProduct.price),
           previous_price: newProduct.previous_price ? parseFloat(newProduct.previous_price) : null,
-          category: categoryName,
-          category_id: newProduct.category_id || null,
-          image_url: newProduct.image_url || null,
-          stock_status: newProduct.stock_status,
-          quantity: parseInt(newProduct.quantity) || 0,
-          in_stock: (parseInt(newProduct.quantity) || 0) > 0,
+          image_url: newProduct.image_url,
+          category_id: newProduct.category_id,
+          quantity: parseInt(newProduct.quantity),
           is_featured: newProduct.is_featured,
-        });
+          category: categories.find(c => c.id === newProduct.category_id)?.name || '',
+          in_stock: parseInt(newProduct.quantity) > 0,
+          stock_status: parseInt(newProduct.quantity) === 0 ? 'out_of_stock' : 
+                      parseInt(newProduct.quantity) <= 5 ? 'few_units_left' : 'stocked'
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (productError) throw productError;
+
+      // If a batch is selected, update the batch quantity
+      if (newProduct.batch_id && productData) {
+        const selectedBatch = stockBatches.find(b => b.id === newProduct.batch_id);
+        if (selectedBatch) {
+          const newBatchQuantity = selectedBatch.quantity - parseInt(newProduct.quantity);
+          
+          if (newBatchQuantity < 0) {
+            throw new Error("Insufficient quantity in selected batch");
+          }
+
+          const { error: batchError } = await supabase
+            .from("stock_batches")
+            .update({ quantity: newBatchQuantity })
+            .eq("id", newProduct.batch_id);
+
+          if (batchError) throw batchError;
+        }
+      }
 
       toast({
         title: "Success",
@@ -151,20 +243,20 @@ const AdminProducts = () => {
         description: "",
         price: "",
         previous_price: "",
-        category_id: "",
         image_url: "",
-        stock_status: "stocked",
-        quantity: "0",
+        category_id: "",
+        quantity: "",
         is_featured: false,
+        batch_id: "",
       });
       setIsAddingProduct(false);
-
       await fetchProducts();
-    } catch (error) {
+      await fetchStockBatches();
+    } catch (error: any) {
       console.error("Error adding product:", error);
       toast({
         title: "Error",
-        description: "Failed to add product",
+        description: error.message || "Failed to add product",
         variant: "destructive",
       });
     }
@@ -174,10 +266,6 @@ const AdminProducts = () => {
     if (!editingProduct) return;
 
     try {
-      // Get category name for the category field
-      const selectedCategory = categories.find(cat => cat.id === editingProduct.category_id);
-      const categoryName = selectedCategory?.name || editingProduct.category || 'Uncategorized';
-
       const { error } = await supabase
         .from("products")
         .update({
@@ -185,13 +273,10 @@ const AdminProducts = () => {
           description: editingProduct.description,
           price: editingProduct.price,
           previous_price: editingProduct.previous_price,
-          category: categoryName,
-          category_id: editingProduct.category_id,
           image_url: editingProduct.image_url,
-          stock_status: editingProduct.stock_status,
-          quantity: editingProduct.quantity,
-          in_stock: editingProduct.quantity > 0,
+          category_id: editingProduct.category_id,
           is_featured: editingProduct.is_featured,
+          category: categories.find(c => c.id === editingProduct.category_id)?.name || editingProduct.category,
         })
         .eq("id", editingProduct.id);
 
@@ -209,54 +294,6 @@ const AdminProducts = () => {
       toast({
         title: "Error",
         description: "Failed to update product",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const updateQuantity = async (productId: string, operation: 'add' | 'subtract') => {
-    const quantityChange = parseInt(quantityUpdates[productId] || '1');
-    
-    if (!quantityChange || quantityChange <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid quantity",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.rpc('update_product_quantity', {
-        product_id: productId,
-        quantity_change: quantityChange,
-        operation: operation
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; error?: string; product_name?: string; old_quantity?: number; new_quantity?: number };
-
-      if (!result.success) {
-        throw new Error(result.error || 'Unknown error');
-      }
-
-      toast({
-        title: "Success",
-        description: `${result.product_name}: ${result.old_quantity} → ${result.new_quantity} units`,
-      });
-
-      setQuantityUpdates(prev => ({
-        ...prev,
-        [productId]: ''
-      }));
-
-      await fetchProducts();
-    } catch (error) {
-      console.error("Error updating quantity:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update quantity",
         variant: "destructive",
       });
     }
@@ -287,27 +324,65 @@ const AdminProducts = () => {
     }
   };
 
-  const getStockStatusLabel = (status: string) => {
-    const option = stockStatusOptions.find(opt => opt.value === status);
-    return option ? option.label : status;
-  };
+  const availableBatches = stockBatches.filter(batch => 
+    !newProduct.category_id || 
+    categories.find(c => c.id === newProduct.category_id)?.name === batch.products?.name ||
+    batch.quantity > 0
+  );
 
-  const getStockStatusColor = (status: string) => {
-    const option = stockStatusOptions.find(opt => opt.value === status);
-    return option ? option.color : "text-gray-600";
-  };
+  if (activeTab === "categories") {
+    return <AdminCategories />;
+  }
+
+  if (activeTab === "batches") {
+    return <StockBatchManagement />;
+  }
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 border-b border-pink-200 pb-4">
+        <Button
+          variant={activeTab === "products" ? "default" : "outline"}
+          onClick={() => setActiveTab("products")}
+          className="text-sm h-9"
+        >
+          Products
+        </Button>
+        <Button
+          variant={activeTab === "categories" ? "default" : "outline"}
+          onClick={() => setActiveTab("categories")}
+          className="text-sm h-9"
+        >
+          Categories
+        </Button>
+        <Button
+          variant={activeTab === "batches" ? "default" : "outline"}
+          onClick={() => setActiveTab("batches")}
+          className="text-sm h-9"
+        >
+          Stock Batches
+        </Button>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-lg sm:text-xl font-bold text-pink-700">Product Management</h2>
-        <Button
-          onClick={() => setIsAddingProduct(true)}
-          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 w-full sm:w-auto text-sm h-9"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Add Product
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            onClick={downloadLowStockProducts}
+            variant="outline"
+            className="w-full sm:w-auto text-sm h-9"
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Low Stock Report
+          </Button>
+          <Button
+            onClick={() => setIsAddingProduct(true)}
+            className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 w-full sm:w-auto text-sm h-9"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Add Product Form */}
@@ -328,7 +403,7 @@ const AdminProducts = () => {
           </CardHeader>
           <CardContent className="pt-3">
             <form onSubmit={addProduct} className="space-y-3">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="name" className="text-pink-700 text-sm">Product Name</Label>
@@ -355,7 +430,22 @@ const AdminProducts = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="batch" className="text-pink-700 text-sm">Stock Batch (Optional)</Label>
+                    <Select value={newProduct.batch_id} onValueChange={(value) => setNewProduct({ ...newProduct, batch_id: value })}>
+                      <SelectTrigger className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1">
+                        <SelectValue placeholder="Select batch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableBatches.map((batch) => (
+                          <SelectItem key={batch.id} value={batch.id}>
+                            {batch.batch_number} (Qty: {batch.quantity})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label htmlFor="price" className="text-pink-700 text-sm">Price (KSh)</Label>
                       <Input
@@ -369,7 +459,7 @@ const AdminProducts = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="previous_price" className="text-pink-700 text-sm">Previous Price (KSh)</Label>
+                      <Label htmlFor="previous_price" className="text-pink-700 text-sm">Previous Price</Label>
                       <Input
                         id="previous_price"
                         type="number"
@@ -379,56 +469,44 @@ const AdminProducts = () => {
                         className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="quantity" className="text-pink-700 text-sm">Initial Quantity</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        min="0"
-                        value={newProduct.quantity}
-                        onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
-                        className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
-                      />
-                    </div>
                   </div>
                   <div>
-                    <Label htmlFor="stock_status" className="text-pink-700 text-sm">Stock Status</Label>
-                    <Select value={newProduct.stock_status} onValueChange={(value) => setNewProduct({ ...newProduct, stock_status: value })}>
-                      <SelectTrigger className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1">
-                        <SelectValue placeholder="Select stock status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockStatusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <span className={option.color}>{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_featured"
-                      checked={newProduct.is_featured}
-                      onCheckedChange={(checked) => setNewProduct({ ...newProduct, is_featured: checked as boolean })}
+                    <Label htmlFor="quantity" className="text-pink-700 text-sm">Quantity</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="0"
+                      value={newProduct.quantity}
+                      onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
+                      required
+                      className="border-pink-200 focus:border-pink-400 h-9 text-sm mt-1"
                     />
-                    <Label htmlFor="is_featured" className="text-pink-700 text-sm flex items-center gap-1">
-                      <Star className="w-3 h-3" />
-                      Featured Product
-                    </Label>
                   </div>
+                </div>
+                
+                <div className="space-y-3">
                   <div>
                     <Label htmlFor="description" className="text-pink-700 text-sm">Description</Label>
                     <Textarea
                       id="description"
                       value={newProduct.description}
                       onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                      required
-                      rows={3}
+                      rows={4}
                       className="border-pink-200 focus:border-pink-400 text-sm mt-1"
                     />
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_featured"
+                      checked={newProduct.is_featured}
+                      onChange={(e) => setNewProduct({ ...newProduct, is_featured: e.target.checked })}
+                      className="rounded border-pink-200 text-pink-600 focus:ring-pink-500"
+                    />
+                    <Label htmlFor="is_featured" className="text-pink-700 text-sm">Featured Product</Label>
+                  </div>
                 </div>
+                
                 <div>
                   <Label className="text-pink-700 text-sm">Product Image</Label>
                   <ImageUpload
@@ -470,7 +548,7 @@ const AdminProducts = () => {
             {products.map((product) => (
               <div key={product.id} className="border border-pink-200 rounded-lg p-3 hover:shadow-md transition-shadow">
                 {editingProduct?.id === product.id ? (
-                  // Edit Mode
+                  
                   <div className="space-y-2">
                     <ImageUpload
                       onImageUploaded={(url) => setEditingProduct({ ...editingProduct, image_url: url })}
@@ -483,12 +561,37 @@ const AdminProducts = () => {
                       className="text-xs h-8"
                       placeholder="Product name"
                     />
+                    <Textarea
+                      value={editingProduct.description || ''}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                      className="text-xs"
+                      rows={2}
+                      placeholder="Description"
+                    />
+                    <div className="grid grid-cols-2 gap-1">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingProduct.price}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) })}
+                        className="text-xs h-8"
+                        placeholder="Price"
+                      />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingProduct.previous_price || ''}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, previous_price: e.target.value ? parseFloat(e.target.value) : undefined })}
+                        className="text-xs h-8"
+                        placeholder="Previous price"
+                      />
+                    </div>
                     <Select 
-                      value={editingProduct.category_id || ""} 
+                      value={editingProduct.category_id} 
                       onValueChange={(value) => setEditingProduct({ ...editingProduct, category_id: value })}
                     >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select category" />
+                      <SelectTrigger className="text-xs h-8">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((category) => (
@@ -498,64 +601,15 @@ const AdminProducts = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <div className="grid grid-cols-2 gap-1">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editingProduct.price}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) || 0 })}
-                        className="text-xs h-8"
-                        placeholder="Price"
-                      />
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editingProduct.previous_price || ''}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, previous_price: e.target.value ? parseFloat(e.target.value) : null })}
-                        className="text-xs h-8"
-                        placeholder="Previous price"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      <Input
-                        type="number"
-                        min="0"
-                        value={editingProduct.quantity}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) || 0 })}
-                        className="text-xs h-8"
-                        placeholder="Quantity"
-                      />
-                      <Select value={editingProduct.stock_status} onValueChange={(value) => setEditingProduct({ ...editingProduct, stock_status: value })}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {stockStatusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <span className={option.color}>{option.label}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`edit_featured_${editingProduct.id}`}
+                      <input
+                        type="checkbox"
                         checked={editingProduct.is_featured}
-                        onCheckedChange={(checked) => setEditingProduct({ ...editingProduct, is_featured: checked as boolean })}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, is_featured: e.target.checked })}
+                        className="rounded"
                       />
-                      <Label htmlFor={`edit_featured_${editingProduct.id}`} className="text-xs flex items-center gap-1">
-                        <Star className="w-3 h-3" />
-                        Featured
-                      </Label>
+                      <label className="text-xs">Featured</label>
                     </div>
-                    <Textarea
-                      value={editingProduct.description}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                      className="text-xs"
-                      rows={2}
-                      placeholder="Description"
-                    />
                     <div className="flex gap-1">
                       <Button
                         onClick={updateProduct}
@@ -577,9 +631,9 @@ const AdminProducts = () => {
                     </div>
                   </div>
                 ) : (
-                  // View Mode
+                  
                   <div>
-                    <div className="w-full h-24 mb-2 rounded-lg overflow-hidden bg-pink-50 relative">
+                    <div className="w-full h-32 mb-2 rounded-lg overflow-hidden bg-pink-50">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -588,62 +642,28 @@ const AdminProducts = () => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-pink-300 text-xs">No image</span>
-                        </div>
-                      )}
-                      {product.is_featured && (
-                        <div className="absolute top-1 right-1 bg-yellow-500 rounded-full p-1">
-                          <Star className="w-3 h-3 text-white" />
+                          <span className="text-pink-300 text-2xl">📦</span>
                         </div>
                       )}
                     </div>
                     <h3 className="font-medium text-gray-900 mb-1 text-xs line-clamp-2">{product.name}</h3>
-                    <p className="text-xs text-pink-600 mb-1">{product.category}</p>
-                    <p className={`text-xs font-medium mb-1 ${getStockStatusColor(product.stock_status)}`}>
-                      {getStockStatusLabel(product.stock_status)}
-                    </p>
-                    <div className="flex items-center gap-1 mb-2">
-                      <Package className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs font-medium text-gray-700">{product.quantity} units</span>
-                    </div>
-                    <p className="text-xs font-medium text-pink-600 mb-2">
-                      KSh {product.price.toLocaleString()}
-                      {product.previous_price && (
-                        <span className="ml-1 text-xs text-gray-400 line-through">
-                          KSh {product.previous_price.toLocaleString()}
-                        </span>
-                      )}
-                    </p>
-                    
-                    {/* Quantity Management */}
-                    <div className="border-t pt-2 mb-2">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="Qty"
-                          value={quantityUpdates[product.id] || ''}
-                          onChange={(e) => setQuantityUpdates(prev => ({
-                            ...prev,
-                            [product.id]: e.target.value
-                          }))}
-                          className="text-xs h-6 flex-1"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => updateQuantity(product.id, 'add')}
-                          className="bg-green-600 hover:bg-green-700 h-6 px-2"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => updateQuantity(product.id, 'subtract')}
-                          className="bg-orange-600 hover:bg-orange-700 h-6 px-2"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
+                    <p className="text-xs text-gray-600 mb-1 line-clamp-2">{product.description}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-pink-600 font-bold text-sm">KSh {product.price.toLocaleString()}</span>
+                        {product.previous_price && (
+                          <span className="text-gray-400 line-through text-xs ml-1">
+                            KSh {product.previous_price.toLocaleString()}
+                          </span>
+                        )}
                       </div>
+                      {product.is_featured && (
+                        <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Featured</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2">
+                      <p>Category: {product.category}</p>
+                      <p>Stock: {product.quantity} ({product.stock_status})</p>
                     </div>
                     
                     <div className="flex gap-1">
