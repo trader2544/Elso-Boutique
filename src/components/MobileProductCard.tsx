@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -13,7 +16,6 @@ interface Product {
   previous_price: number | null;
   category: string;
   image_url: string | null;
-  images?: string[];
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
@@ -22,21 +24,20 @@ interface Product {
 
 interface MobileProductCardProps {
   product: Product;
-  onAddToCart: (productId: string) => void;
-  onWishlistToggle: (productId: string) => void;
-  isInWishlist: boolean;
 }
 
-const MobileProductCard = ({ product, onAddToCart, onWishlistToggle, isInWishlist }: MobileProductCardProps) => {
+const MobileProductCard = ({ product }: MobileProductCardProps) => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { toast } = useToast();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsAddingToCart(true);
     try {
-      await onAddToCart(product.id);
+      await addToCart(product.id);
     } finally {
       setIsAddingToCart(false);
     }
@@ -44,32 +45,15 @@ const MobileProductCard = ({ product, onAddToCart, onWishlistToggle, isInWishlis
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    onWishlistToggle(product.id);
+    if (isInWishlist(product.id)) {
+      await removeFromWishlist(product.id);
+    } else {
+      await addToWishlist(product.id);
+    }
   };
 
   const handleCardClick = () => {
     navigate(`/product/${product.id}`);
-  };
-
-  const handleMouseEnter = () => {
-    if (product.images && product.images.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex(prev => (prev + 1) % product.images!.length);
-      }, 1000);
-      
-      // Store interval in a way we can clear it
-      (document.getElementById(`mobile-product-${product.id}`) as any)?.setAttribute('data-interval', interval);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    const element = document.getElementById(`mobile-product-${product.id}`);
-    const interval = element?.getAttribute('data-interval');
-    if (interval) {
-      clearInterval(parseInt(interval));
-      element?.removeAttribute('data-interval');
-      setCurrentImageIndex(0);
-    }
   };
 
   const getStockStatusBadge = () => {
@@ -85,22 +69,15 @@ const MobileProductCard = ({ product, onAddToCart, onWishlistToggle, isInWishlis
     }
   };
 
-  const currentImage = product.images && product.images.length > 0 
-    ? product.images[currentImageIndex] 
-    : product.image_url;
-
   return (
     <Card 
-      id={`mobile-product-${product.id}`}
       className="overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer h-full bg-white border border-gray-100"
       onClick={handleCardClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       <div className="aspect-square bg-gray-50 relative">
-        {currentImage ? (
+        {product.image_url ? (
           <img
-            src={currentImage}
+            src={product.image_url}
             alt={product.name}
             className="w-full h-full object-cover"
           />
@@ -114,21 +91,16 @@ const MobileProductCard = ({ product, onAddToCart, onWishlistToggle, isInWishlis
           size="sm"
           onClick={handleWishlistToggle}
           className={`absolute top-1.5 right-1.5 p-1 h-6 w-6 rounded-full ${
-            isInWishlist 
+            isInWishlist(product.id) 
               ? "text-red-500 bg-white/90" 
               : "text-gray-400 bg-white/90"
           } hover:bg-white shadow-sm`}
         >
-          <Heart className="w-3 h-3" fill={isInWishlist ? "currentColor" : "none"} />
+          <Heart className="w-3 h-3" fill={isInWishlist(product.id) ? "currentColor" : "none"} />
         </Button>
         {getStockStatusBadge() && (
           <div className="absolute top-1.5 left-1.5">
             {getStockStatusBadge()}
-          </div>
-        )}
-        {product.images && product.images.length > 1 && (
-          <div className="absolute bottom-1.5 right-1.5 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded-full">
-            {product.images.length}
           </div>
         )}
       </div>

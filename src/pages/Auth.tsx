@@ -115,34 +115,15 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Animated Logo */}
-        <div className="text-center mb-8 relative">
-          <div className="flex justify-center mb-4 relative">
-            {/* Animated love emojis */}
-            <div className="absolute inset-0 animate-pulse">
-              <div className="absolute -top-2 -left-2 text-lg animate-bounce" style={{ animationDelay: '0s' }}>💕</div>
-              <div className="absolute -top-2 -right-2 text-lg animate-bounce" style={{ animationDelay: '0.5s' }}>💖</div>
-              <div className="absolute -bottom-2 -left-2 text-lg animate-bounce" style={{ animationDelay: '1s' }}>💗</div>
-              <div className="absolute -bottom-2 -right-2 text-lg animate-bounce" style={{ animationDelay: '1.5s' }}>💝</div>
-              <div className="absolute top-6 -left-6 text-sm animate-bounce" style={{ animationDelay: '0.25s' }}>❤️</div>
-              <div className="absolute top-6 -right-6 text-sm animate-bounce" style={{ animationDelay: '0.75s' }}>💞</div>
-              <div className="absolute bottom-6 -left-6 text-sm animate-bounce" style={{ animationDelay: '1.25s' }}>💘</div>
-              <div className="absolute bottom-6 -right-6 text-sm animate-bounce" style={{ animationDelay: '1.75s' }}>💓</div>
-            </div>
-            
-            {/* Main logo with heartbeat animation */}
-            <div className="relative z-10 w-20 h-20 rounded-full overflow-hidden border-4 border-pink-300 shadow-lg">
-              <img 
-                src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
-                alt="Elso Boutique" 
-                className="w-full h-full object-cover animate-pulse"
-                style={{
-                  animation: 'heartbeat 1.5s ease-in-out infinite'
-                }}
-              />
-            </div>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
+              alt="ELSO Boutique" 
+              className="h-20 w-auto object-contain"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-pink-600 mb-2">Elso Boutique</h1>
           <p className="text-gray-600 mt-2">Welcome to your fashion destination</p>
         </div>
 
@@ -248,18 +229,6 @@ const Auth = () => {
           </Button>
         </div>
       </div>
-      
-      {/* CSS for heartbeat animation */}
-      <style>{`
-        @keyframes heartbeat {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.1);
-          }
-        }
-      `}</style>
     </div>
   );
 };

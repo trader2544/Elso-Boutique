@@ -1,21 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import ProductCard from "@/components/ProductCard";
-import MobileProductCard from "@/components/MobileProductCard";
-import { useCart } from "@/hooks/useCart";
-import { useWishlist } from "@/hooks/useWishlist";
-import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Product } from "@/types/product";
+import ProductCard from "./ProductCard";
 
-const FeaturedProducts = () => {
+interface FeaturedProductsProps {
+  onAddToCart: (product: Product) => void;
+}
+
+const FeaturedProducts = ({ onAddToCart }: FeaturedProductsProps) => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -31,49 +26,38 @@ const FeaturedProducts = () => {
 
       if (error) throw error;
 
-      const processedProducts = data?.map(product => ({
-        ...product,
-        previous_price: product.previous_price ?? undefined
-      })) || [];
+      const formattedProducts: Product[] = (data || []).map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description || "",
+        price: product.price,
+        previous_price: product.previous_price || undefined,
+        image_url: product.image_url || "",
+        in_stock: product.in_stock,
+        stock_status: product.stock_status,
+        quantity: product.quantity,
+        rating: product.rating || 0,
+        review_count: product.review_count || 0,
+        is_featured: product.is_featured,
+        category: product.category,
+        category_id: product.category_id,
+        created_at: product.created_at,
+      }));
 
-      setFeaturedProducts(processedProducts);
+      setFeaturedProducts(formattedProducts);
     } catch (error) {
       console.error("Error fetching featured products:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load featured products",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddToCart = async (productId: string) => {
-    await addToCart(productId);
-  };
-
-  const handleWishlistToggle = async (productId: string) => {
-    try {
-      if (isInWishlist(productId)) {
-        await removeFromWishlist(productId);
-      } else {
-        await addToWishlist(productId);
-      }
-    } catch (error) {
-      console.error("Error toggling wishlist:", error);
-    }
-  };
-
   if (loading) {
     return (
-      <section className="py-8 md:py-16 px-4">
-        <div className="container mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">Featured Products</h2>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {Array(4).fill(0).map((_, i) => (
-              <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-64 md:h-80"></div>
-            ))}
+      <section className="py-16 bg-gradient-to-br from-pink-50 to-purple-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
           </div>
         </div>
       </section>
@@ -81,39 +65,28 @@ const FeaturedProducts = () => {
   }
 
   if (featuredProducts.length === 0) {
-    return (
-      <section className="py-8 md:py-16 px-4">
-        <div className="container mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">Featured Products</h2>
-          <p className="text-center text-gray-600">No featured products available at the moment.</p>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   return (
-    <section className="py-8 md:py-16 px-4">
-      <div className="container mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">Featured Products</h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <section className="py-16 bg-gradient-to-br from-pink-50 to-purple-50">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Featured Products
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Discover our handpicked selection of premium fashion pieces
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {featuredProducts.map((product) => (
-            isMobile ? (
-              <MobileProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={handleAddToCart}
-                onWishlistToggle={handleWishlistToggle}
-                isInWishlist={isInWishlist(product.id)}
-              />
-            ) : (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={handleAddToCart}
-                onWishlistToggle={handleWishlistToggle}
-                isInWishlist={isInWishlist(product.id)}
-              />
-            )
+            <ProductCard
+              key={product.id}
+              product={product}
+              onAddToCart={() => onAddToCart(product)}
+            />
           ))}
         </div>
       </div>

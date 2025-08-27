@@ -1,315 +1,195 @@
 
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Heart,
-  ShoppingCart,
-  User,
-  Menu,
-  LogOut,
-  Settings
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useCart } from "@/hooks/useCart";
-import { useWishlist } from "@/hooks/useWishlist";
-import { useScrollDirection } from "@/hooks/useScrollDirection";
-import { useIsMobile } from "@/hooks/use-mobile";
-import SearchBar from "@/components/SearchBar";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-
-interface Category {
-  id: string;
-  name: string;
-}
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Heart, User, Search, Menu, X, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
   const { user, signOut } = useAuth();
   const { cartCount } = useCart();
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
-  const scrollDirection = useScrollDirection();
-  const isMobile = useIsMobile();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  // Check if user is admin
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    const checkAdminRole = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        setIsAdmin(profile?.role === 'admin');
+      } else {
+        setIsAdmin(false);
+      }
+    };
 
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("name");
+    checkAdminRole();
+  }, [user]);
 
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
-
-  const handleSignOut = async () => {
+  const handleLogout = async () => {
     await signOut();
-    navigate("/");
+    navigate('/');
   };
 
-  const isAdmin = user?.email === "admin@elsoboutique.com";
+  const categories = [
+    { name: 'Dresses', href: '/?category=Dresses' },
+    { name: 'Shoes', href: '/?category=Shoes' },
+    { name: 'Bags', href: '/?category=Bags' },
+    { name: 'Jewelry', href: '/?category=Jewelry' },
+    { name: 'Accessories', href: '/?category=Accessories' },
+  ];
 
   return (
-    <header
-      className={`bg-white shadow-sm border-b sticky top-0 z-50 transition-transform duration-300 ${
-        scrollDirection === "down" ? "-translate-y-full" : "translate-y-0"
-      }`}
-    >
+    <header className="bg-white/90 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-14 md:h-16">
+        {/* Top bar */}
+        <div className="flex items-center justify-between py-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-pink-300 shadow-sm">
-              <img 
-                src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
-                alt="Elso Boutique" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className="font-bold text-lg md:text-xl text-pink-600 hidden sm:block">
-              Elso Boutique
-            </span>
+          <Link to="/" className="text-2xl font-bold text-pink-600 hover:text-pink-700 transition-colors">
+            Elso Boutique
           </Link>
 
           {/* Desktop Navigation */}
-          {!isMobile && (
-            <>
-              {/* Categories Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="text-sm font-medium">
-                    Categories
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-48">
-                  {categories.map((category) => (
-                    <DropdownMenuItem key={category.id} asChild>
-                      <Link to={`/?category=${category.id}`} className="w-full">
-                        {category.name}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link to="/" className="text-gray-700 hover:text-pink-600 transition-colors">Home</Link>
+            <Link to="/about" className="text-gray-700 hover:text-pink-600 transition-colors">About</Link>
+            <Link to="/contact" className="text-gray-700 hover:text-pink-600 transition-colors">Contact</Link>
+          </nav>
 
-              {/* Search Bar */}
-              <div className="flex-1 max-w-md mx-4">
-                <SearchBar />
-              </div>
+          {/* Right side icons */}
+          <div className="flex items-center space-x-4">
+            {/* Search icon */}
+            <button className="text-gray-700 hover:text-pink-600 transition-colors">
+              <Search size={20} />
+            </button>
 
-              {/* Contact Link */}
-              <Link
-                to="/contact"
-                className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors"
-              >
-                Contact
+            {/* Admin icon - only show for admin users */}
+            {isAdmin && (
+              <Link to="/admin" className="text-gray-700 hover:text-pink-600 transition-colors">
+                <Settings size={20} />
               </Link>
+            )}
 
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-3">
-                <Link to="/wishlist" className="relative">
-                  <Button variant="ghost" size="sm">
-                    <Heart className="w-5 h-5" />
-                    {wishlistItems.length > 0 && (
-                      <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                        {wishlistItems.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
+            {/* Wishlist */}
+            <Link to="/wishlist" className="relative text-gray-700 hover:text-pink-600 transition-colors">
+              <Heart size={20} />
+              {wishlistItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
 
-                <Link to="/cart" className="relative">
-                  <Button variant="ghost" size="sm">
-                    <ShoppingCart className="w-5 h-5" />
-                    {cartCount > 0 && (
-                      <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                        {cartCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
+            {/* Cart */}
+            <Link to="/cart" className="relative text-gray-700 hover:text-pink-600 transition-colors">
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
 
+            {/* User menu */}
+            <div className="relative group">
+              <button className="text-gray-700 hover:text-pink-600 transition-colors">
+                <User size={20} />
+              </button>
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 {user ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <User className="w-5 h-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem asChild>
-                        <Link to="/profile" className="flex items-center">
-                          <User className="w-4 h-4 mr-2" />
-                          Profile
-                        </Link>
-                      </DropdownMenuItem>
-                      {isAdmin && (
-                        <DropdownMenuItem asChild>
-                          <Link to="/admin" className="flex items-center">
-                            <Settings className="w-4 h-4 mr-2" />
-                            Admin Panel
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut} className="flex items-center">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <>
+                    <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600">
+                      My Profile
+                    </Link>
+                    {isAdmin && (
+                      <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600">
+                        Admin Panel
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600"
+                    >
+                      Sign Out
+                    </button>
+                  </>
                 ) : (
-                  <Link to="/auth">
-                    <Button variant="default" size="sm">
-                      Sign In
-                    </Button>
+                  <Link to="/auth" className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600">
+                    Sign In
                   </Link>
                 )}
               </div>
-            </>
-          )}
-
-          {/* Mobile Menu */}
-          {isMobile && (
-            <div className="flex items-center space-x-2">
-              <Link to="/wishlist" className="relative">
-                <Button variant="ghost" size="sm">
-                  <Heart className="w-4 h-4" />
-                  {wishlistItems.length > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs">
-                      {wishlistItems.length}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-
-              <Link to="/cart" className="relative">
-                <Button variant="ghost" size="sm">
-                  <ShoppingCart className="w-4 h-4" />
-                  {cartCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs">
-                      {cartCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-
-              <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Menu className="w-5 h-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                  <SheetHeader>
-                    <SheetTitle className="text-left">Menu</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-4">
-                    {/* Search Bar for Mobile */}
-                    <div className="pb-4 border-b">
-                      <SearchBar />
-                    </div>
-
-                    {/* Categories for Mobile - Updated Grid Layout */}
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-sm uppercase tracking-wide text-gray-500">Categories</h3>
-                      <div className="space-y-2">
-                        {categories.map((category) => (
-                          <Link
-                            key={category.id}
-                            to={`/?category=${category.id}`}
-                            onClick={() => setIsMenuOpen(false)}
-                            className="block p-3 text-sm border rounded-lg hover:bg-gray-50 transition-colors text-center font-medium"
-                          >
-                            {category.name}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t space-y-3">
-                      <Link
-                        to="/contact"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="block py-2 text-sm font-medium"
-                      >
-                        Contact
-                      </Link>
-
-                      {user ? (
-                        <>
-                          <Link
-                            to="/profile"
-                            onClick={() => setIsMenuOpen(false)}
-                            className="flex items-center py-2 text-sm"
-                          >
-                            <User className="w-4 h-4 mr-2" />
-                            Profile
-                          </Link>
-                          {isAdmin && (
-                            <Link
-                              to="/admin"
-                              onClick={() => setIsMenuOpen(false)}
-                              className="flex items-center py-2 text-sm"
-                            >
-                              <Settings className="w-4 h-4 mr-2" />
-                              Admin Panel
-                            </Link>
-                          )}
-                          <Button
-                            onClick={() => {
-                              handleSignOut();
-                              setIsMenuOpen(false);
-                            }}
-                            variant="ghost"
-                            className="w-full justify-start p-0"
-                          >
-                            <LogOut className="w-4 h-4 mr-2" />
-                            Sign Out
-                          </Button>
-                        </>
-                      ) : (
-                        <Link
-                          to="/auth"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="block"
-                        >
-                          <Button variant="default" className="w-full">
-                            Sign In
-                          </Button>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
             </div>
-          )}
+
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden text-gray-700 hover:text-pink-600 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-pink-100 py-4">
+            <nav className="flex flex-col space-y-3">
+              <Link
+                to="/"
+                className="text-gray-700 hover:text-pink-600 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                to="/about"
+                className="text-gray-700 hover:text-pink-600 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                About
+              </Link>
+              <Link
+                to="/contact"
+                className="text-gray-700 hover:text-pink-600 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="text-gray-700 hover:text-pink-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin Panel
+                </Link>
+              )}
+              <div className="border-t border-pink-100 pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Categories</p>
+                {categories.map((category) => (
+                  <Link
+                    key={category.name}
+                    to={category.href}
+                    className="block py-2 text-gray-700 hover:text-pink-600 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );
