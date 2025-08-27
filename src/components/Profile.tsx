@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { ImageUpload } from "@/components/ImageUpload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, X, Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Camera, Plus, X, Edit, Trash2 } from "lucide-react";
+import ImageUpload from "@/components/ImageUpload";
 
-interface Profile {
+interface UserProfile {
   id: string;
   email: string;
   full_name: string;
@@ -29,20 +30,29 @@ interface Testimonial {
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(false);
+  const [editingTestimonial, setEditingTestimonial] = useState<string | null>(null);
   
+  // Profile form state
+  const [profileForm, setProfileForm] = useState({
+    full_name: "",
+    phone: "",
+  });
+
   // Testimonial form state
   const [testimonialForm, setTestimonialForm] = useState({
+    user_name: "",
     description: "",
-    images: [] as string[]
   });
+  const [testimonialImages, setTestimonialImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchProfile();
-      fetchUserTestimonials();
+      fetchTestimonials();
     }
   }, [user]);
 
@@ -57,15 +67,21 @@ const Profile = () => {
         .single();
 
       if (error) throw error;
+
       setProfile(data);
+      setProfileForm({
+        full_name: data.full_name || "",
+        phone: data.phone || "",
+      });
     } catch (error) {
       console.error("Error fetching profile:", error);
     }
   };
 
-  const fetchUserTestimonials = async () => {
+  const fetchTestimonials = async () => {
     if (!user) return;
 
+    setTestimonialsLoading(true);
     try {
       const { data, error } = await supabase
         .from("testimonials")
@@ -77,19 +93,22 @@ const Profile = () => {
       setTestimonials(data || []);
     } catch (error) {
       console.error("Error fetching testimonials:", error);
+    } finally {
+      setTestimonialsLoading(false);
     }
   };
 
-  const updateProfile = async () => {
-    if (!user || !profile) return;
+  const updateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
 
     setLoading(true);
     try {
       const { error } = await supabase
         .from("profiles")
         .update({
-          full_name: profile.full_name,
-          phone: profile.phone,
+          full_name: profileForm.full_name,
+          phone: profileForm.phone,
         })
         .eq("id", user.id);
 
@@ -97,13 +116,14 @@ const Profile = () => {
 
       toast({
         title: "Success",
-        description: "Profile updated successfully",
+        description: "Profile updated successfully!",
       });
-    } catch (error) {
-      console.error("Error updating profile:", error);
+
+      fetchProfile();
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: error.message || "Failed to update profile",
         variant: "destructive",
       });
     } finally {
@@ -111,57 +131,57 @@ const Profile = () => {
     }
   };
 
-  const addTestimonialImage = (imageUrl: string) => {
-    setTestimonialForm({
-      ...testimonialForm,
-      images: [...testimonialForm.images, imageUrl]
-    });
-  };
-
-  const removeTestimonialImage = (index: number) => {
-    const newImages = testimonialForm.images.filter((_, i) => i !== index);
-    setTestimonialForm({
-      ...testimonialForm,
-      images: newImages
-    });
-  };
-
-  const submitTestimonial = async () => {
-    if (!user || !testimonialForm.description.trim() || testimonialForm.images.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add a description and at least one image",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleTestimonialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !testimonialForm.user_name || !testimonialForm.description) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("testimonials")
-        .insert({
-          user_id: user.id,
-          user_name: profile?.full_name || "Anonymous",
-          description: testimonialForm.description,
-          images: testimonialForm.images,
+      if (editingTestimonial) {
+        // Update existing testimonial
+        const { error } = await supabase
+          .from("testimonials")
+          .update({
+            user_name: testimonialForm.user_name,
+            description: testimonialForm.description,
+            images: testimonialImages,
+          })
+          .eq("id", editingTestimonial);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Testimonial updated successfully!",
         });
+      } else {
+        // Create new testimonial
+        const { error } = await supabase
+          .from("testimonials")
+          .insert({
+            user_id: user.id,
+            user_name: testimonialForm.user_name,
+            description: testimonialForm.description,
+            images: testimonialImages,
+          });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Testimonial posted successfully!",
-      });
+        toast({
+          title: "Success",
+          description: "Testimonial posted successfully!",
+        });
+      }
 
-      // Reset form and refresh testimonials
-      setTestimonialForm({ description: "", images: [] });
-      fetchUserTestimonials();
-    } catch (error) {
-      console.error("Error posting testimonial:", error);
+      // Reset form
+      setTestimonialForm({ user_name: "", description: "" });
+      setTestimonialImages([]);
+      setEditingTestimonial(null);
+      fetchTestimonials();
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to post testimonial",
+        description: error.message || "Failed to post testimonial",
         variant: "destructive",
       });
     } finally {
@@ -169,42 +189,64 @@ const Profile = () => {
     }
   };
 
-  const deleteTestimonial = async (testimonialId: string) => {
+  const handleEditTestimonial = (testimonial: Testimonial) => {
+    setEditingTestimonial(testimonial.id);
+    setTestimonialForm({
+      user_name: testimonial.user_name,
+      description: testimonial.description,
+    });
+    setTestimonialImages(testimonial.images);
+  };
+
+  const handleDeleteTestimonial = async (id: string) => {
     if (!confirm("Are you sure you want to delete this testimonial?")) return;
 
     try {
       const { error } = await supabase
         .from("testimonials")
         .delete()
-        .eq("id", testimonialId);
+        .eq("id", id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Testimonial deleted successfully",
+        description: "Testimonial deleted successfully!",
       });
 
-      fetchUserTestimonials();
-    } catch (error) {
-      console.error("Error deleting testimonial:", error);
+      fetchTestimonials();
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to delete testimonial",
+        description: error.message || "Failed to delete testimonial",
         variant: "destructive",
       });
     }
   };
 
-  if (!user || !profile) {
-    return <div className="p-8">Loading...</div>;
+  const handleImageUpload = (url: string) => {
+    setTestimonialImages(prev => [...prev, url]);
+  };
+
+  const removeImage = (index: number) => {
+    setTestimonialImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const cancelEdit = () => {
+    setEditingTestimonial(null);
+    setTestimonialForm({ user_name: "", description: "" });
+    setTestimonialImages([]);
+  };
+
+  if (!user) {
+    return <div>Please sign in to view your profile.</div>;
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-8">My Profile</h1>
 
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="profile">Profile Settings</TabsTrigger>
           <TabsTrigger value="testimonials">My Testimonials</TabsTrigger>
@@ -215,154 +257,182 @@ const Profile = () => {
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email}
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
+            <CardContent>
+              <form onSubmit={updateProfile} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={user.email || ""}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  value={profile.full_name}
-                  onChange={(e) =>
-                    setProfile({ ...profile, full_name: e.target.value })
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                    placeholder="Enter your full name"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={profile.phone}
-                  onChange={(e) =>
-                    setProfile({ ...profile, phone: e.target.value })
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    placeholder="Enter your phone number"
+                  />
+                </div>
 
-              <Button onClick={updateProfile} disabled={loading} className="w-full">
-                {loading ? "Updating..." : "Update Profile"}
-              </Button>
+                <Button type="submit" disabled={loading} className="w-full md:w-auto">
+                  {loading ? "Updating..." : "Update Profile"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="testimonials">
           <div className="space-y-6">
-            {/* Post New Testimonial */}
+            {/* Add/Edit Testimonial Form */}
             <Card>
               <CardHeader>
-                <CardTitle>Share Your Experience</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  {editingTestimonial ? "Edit Testimonial" : "Share Your Experience"}
+                  {editingTestimonial && (
+                    <Button variant="outline" size="sm" onClick={cancelEdit}>
+                      Cancel Edit
+                    </Button>
+                  )}
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="description">Your Review</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Share your experience with our products..."
-                    value={testimonialForm.description}
-                    onChange={(e) =>
-                      setTestimonialForm({
-                        ...testimonialForm,
-                        description: e.target.value
-                      })
-                    }
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Images</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {testimonialForm.images.map((image, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={image}
-                          alt={`Testimonial ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          onClick={() => removeTestimonialImage(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center">
-                      <ImageUpload
-                        onImageUploaded={addTestimonialImage}
-                        currentImage=""
-                      />
-                    </div>
+              <CardContent>
+                <form onSubmit={handleTestimonialSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="user_name">Display Name</Label>
+                    <Input
+                      id="user_name"
+                      value={testimonialForm.user_name}
+                      onChange={(e) => setTestimonialForm({ ...testimonialForm, user_name: e.target.value })}
+                      placeholder="How should we display your name?"
+                      required
+                    />
                   </div>
-                </div>
 
-                <Button 
-                  onClick={submitTestimonial} 
-                  disabled={loading || !testimonialForm.description.trim() || testimonialForm.images.length === 0}
-                  className="w-full"
-                >
-                  {loading ? "Posting..." : "Post Testimonial"}
-                </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Your Experience</Label>
+                    <Textarea
+                      id="description"
+                      value={testimonialForm.description}
+                      onChange={(e) => setTestimonialForm({ ...testimonialForm, description: e.target.value })}
+                      placeholder="Share your experience with our products..."
+                      rows={4}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Photos (Optional)</Label>
+                    <ImageUpload onImageUpload={handleImageUpload} />
+                    {testimonialImages.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {testimonialImages.map((url, index) => (
+                          <div key={index} className="relative">
+                            <img src={url} alt={`Upload ${index + 1}`} className="w-full h-20 object-cover rounded border" />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                              onClick={() => removeImage(index)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <Button type="submit" disabled={loading}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    {loading ? "Posting..." : editingTestimonial ? "Update Testimonial" : "Post Testimonial"}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
 
             {/* Existing Testimonials */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Your Testimonials</h3>
-              {testimonials.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center text-gray-500">
-                    You haven't posted any testimonials yet.
-                  </CardContent>
-                </Card>
-              ) : (
-                testimonials.map((testimonial) => (
-                  <Card key={testimonial.id}>
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="font-semibold">{testimonial.user_name}</h4>
-                          <p className="text-sm text-gray-500">
-                            {new Date(testimonial.created_at).toLocaleDateString()}
-                          </p>
+            <Card>
+              <CardHeader>
+                <CardTitle>My Testimonials</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {testimonialsLoading ? (
+                  <div className="space-y-4">
+                    {Array(2).fill(0).map((_, i) => (
+                      <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-32"></div>
+                    ))}
+                  </div>
+                ) : testimonials.length === 0 ? (
+                  <p className="text-gray-600 text-center py-8">
+                    You haven't posted any testimonials yet. Share your experience above!
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {testimonials.map((testimonial) => (
+                      <div key={testimonial.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold">{testimonial.user_name}</h3>
+                            <p className="text-sm text-gray-500">
+                              {new Date(testimonial.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditTestimonial(testimonial)}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteTestimonial(testimonial.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteTestimonial(testimonial.id)}
-                        >
-                          Delete
-                        </Button>
+                        
+                        <p className="text-gray-700 mb-3">{testimonial.description}</p>
+                        
+                        {testimonial.images.length > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {testimonial.images.map((image, index) => (
+                              <img
+                                key={index}
+                                src={image}
+                                alt={`Testimonial ${index + 1}`}
+                                className="w-full h-20 object-cover rounded border"
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      
-                      <p className="mb-4">{testimonial.description}</p>
-                      
-                      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                        {testimonial.images.map((image, index) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`Testimonial ${index + 1}`}
-                            className="w-full h-16 object-cover rounded-lg"
-                          />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>

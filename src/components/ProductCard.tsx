@@ -1,8 +1,7 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Heart, ShoppingCart } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
-import { useWishlist } from "@/hooks/useWishlist";
 import { useNavigate } from "react-router-dom";
 
 interface Product {
@@ -12,6 +11,7 @@ interface Product {
   price: number;
   previous_price: number | null;
   image_url: string | null;
+  images?: string[];
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
@@ -20,24 +20,43 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart: (productId: string) => void;
+  onWishlistToggle: (productId: string) => void;
+  isInWishlist: boolean;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
-  const { addToCart } = useCart();
-  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+const ProductCard = ({ product, onAddToCart, onWishlistToggle, isInWishlist }: ProductCardProps) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await addToCart(product.id);
+    await onAddToCart(product.id);
   };
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isInWishlist(product.id)) {
-      await removeFromWishlist(product.id);
-    } else {
-      await addToWishlist(product.id);
+    onWishlistToggle(product.id);
+  };
+
+  const handleMouseEnter = () => {
+    if (product.images && product.images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex(prev => (prev + 1) % product.images!.length);
+      }, 1000);
+      
+      // Store interval in a way we can clear it
+      (document.getElementById(`product-${product.id}`) as any)?.setAttribute('data-interval', interval);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    const element = document.getElementById(`product-${product.id}`);
+    const interval = element?.getAttribute('data-interval');
+    if (interval) {
+      clearInterval(parseInt(interval));
+      element?.removeAttribute('data-interval');
+      setCurrentImageIndex(0);
     }
   };
 
@@ -54,15 +73,22 @@ const ProductCard = ({ product }: ProductCardProps) => {
     }
   };
 
+  const currentImage = product.images && product.images.length > 0 
+    ? product.images[currentImageIndex] 
+    : product.image_url;
+
   return (
     <div 
+      id={`product-${product.id}`}
       className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5"
       onClick={() => navigate(`/product/${product.id}`)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden">
-        {product.image_url ? (
+        {currentImage ? (
           <img 
-            src={product.image_url} 
+            src={currentImage} 
             alt={product.name}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
@@ -74,14 +100,19 @@ const ProductCard = ({ product }: ProductCardProps) => {
           size="sm"
           onClick={handleWishlistToggle}
           className={`absolute top-2 right-2 p-1.5 rounded-full bg-white/90 hover:bg-white shadow-sm ${
-            isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400'
+            isInWishlist ? 'text-red-500' : 'text-gray-400'
           }`}
         >
-          <Heart className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isInWishlist ? 'fill-current' : ''}`} />
         </Button>
         {getStockStatusBadge() && (
           <div className="absolute top-2 left-2">
             {getStockStatusBadge()}
+          </div>
+        )}
+        {product.images && product.images.length > 1 && (
+          <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+            {product.images.length} photos
           </div>
         )}
       </div>

@@ -131,7 +131,7 @@ const Auth = () => {
             </div>
             
             {/* Main logo with heartbeat animation */}
-            <div className="relative z-10 w-20 h-20 rounded-full overflow-hidden border-4 border-pink-300 shadow-lg animate-pulse">
+            <div className="relative z-10 w-20 h-20 rounded-full overflow-hidden border-4 border-pink-300 shadow-lg">
               <img 
                 src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
                 alt="Elso Boutique" 
@@ -250,7 +250,7 @@ const Auth = () => {
       </div>
       
       {/* CSS for heartbeat animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes heartbeat {
           0%, 100% {
             transform: scale(1);

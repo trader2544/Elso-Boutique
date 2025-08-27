@@ -4,37 +4,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Package, 
   ShoppingCart, 
+  Package, 
   Users, 
   TrendingUp,
-  AlertCircle,
-  CheckCircle,
+  DollarSign,
+  Eye,
   Clock,
-  Star
+  CheckCircle
 } from "lucide-react";
 
 interface DashboardStats {
-  totalProducts: number;
   totalOrders: number;
-  totalUsers: number;
   totalRevenue: number;
-  lowStockProducts: number;
+  totalProducts: number;
+  totalUsers: number;
   pendingOrders: number;
   completedOrders: number;
-  averageRating: number;
+  lowStockProducts: number;
+  featuredProducts: number;
 }
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalProducts: 0,
     totalOrders: 0,
-    totalUsers: 0,
     totalRevenue: 0,
-    lowStockProducts: 0,
+    totalProducts: 0,
+    totalUsers: 0,
     pendingOrders: 0,
     completedOrders: 0,
-    averageRating: 0,
+    lowStockProducts: 0,
+    featuredProducts: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -44,43 +44,46 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      // Fetch all stats in parallel
-      const [
-        productsResult,
-        ordersResult,
-        usersResult,
-        lowStockResult,
-        pendingOrdersResult,
-        completedOrdersResult,
-        revenueResult,
-        ratingsResult,
-      ] = await Promise.all([
-        supabase.from("products").select("*", { count: "exact" }),
-        supabase.from("orders").select("*", { count: "exact" }),
-        supabase.from("profiles").select("*", { count: "exact" }),
-        supabase.from("products").select("*", { count: "exact" }).lt("quantity", 10),
-        supabase.from("orders").select("*", { count: "exact" }).eq("status", "pending"),
-        supabase.from("orders").select("*", { count: "exact" }).in("status", ["delivered", "paid"]),
-        supabase.from("orders").select("total_price").in("status", ["delivered", "paid"]),
-        supabase.from("products").select("rating").gt("rating", 0),
-      ]);
+      // Fetch orders data
+      const { data: orders, error: ordersError } = await supabase
+        .from("orders")
+        .select("total_price, status");
 
-      // Calculate total revenue
-      const totalRevenue = revenueResult.data?.reduce((sum, order) => sum + (order.total_price || 0), 0) || 0;
+      if (ordersError) throw ordersError;
 
-      // Calculate average rating
-      const ratings = ratingsResult.data?.map(p => p.rating).filter(r => r > 0) || [];
-      const averageRating = ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : 0;
+      // Fetch products data
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("quantity, is_featured");
+
+      if (productsError) throw productsError;
+
+      // Fetch users data
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id");
+
+      if (profilesError) throw profilesError;
+
+      // Calculate stats
+      const totalOrders = orders?.length || 0;
+      const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_price || 0), 0) || 0;
+      const totalProducts = products?.length || 0;
+      const totalUsers = profiles?.length || 0;
+      const pendingOrders = orders?.filter(order => order.status === 'pending').length || 0;
+      const completedOrders = orders?.filter(order => order.status === 'delivered').length || 0;
+      const lowStockProducts = products?.filter(product => product.quantity < 10).length || 0;
+      const featuredProducts = products?.filter(product => product.is_featured).length || 0;
 
       setStats({
-        totalProducts: productsResult.count || 0,
-        totalOrders: ordersResult.count || 0,
-        totalUsers: usersResult.count || 0,
+        totalOrders,
         totalRevenue,
-        lowStockProducts: lowStockResult.count || 0,
-        pendingOrders: pendingOrdersResult.count || 0,
-        completedOrders: completedOrdersResult.count || 0,
-        averageRating,
+        totalProducts,
+        totalUsers,
+        pendingOrders,
+        completedOrders,
+        lowStockProducts,
+        featuredProducts,
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -91,10 +94,15 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-4 md:space-y-6">
+        <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Dashboard Overview</h1>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {Array(8).fill(0).map((_, i) => (
-            <div key={i} className="h-24 md:h-32 bg-gray-200 animate-pulse rounded-lg"></div>
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-3 md:p-6">
+                <div className="h-12 md:h-16 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
@@ -103,166 +111,120 @@ const AdminDashboard = () => {
 
   const statCards = [
     {
-      title: "Total Products",
-      value: stats.totalProducts,
-      icon: Package,
-      color: "bg-blue-500",
-      textColor: "text-blue-600",
-    },
-    {
       title: "Total Orders",
       value: stats.totalOrders,
       icon: ShoppingCart,
-      color: "bg-green-500",
-      textColor: "text-green-600",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
     },
     {
-      title: "Total Users",
+      title: "Revenue",
+      value: `KSh ${stats.totalRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Products",
+      value: stats.totalProducts,
+      icon: Package,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+    {
+      title: "Users",
       value: stats.totalUsers,
       icon: Users,
-      color: "bg-purple-500",
-      textColor: "text-purple-600",
-    },
-    {
-      title: "Total Revenue",
-      value: `KSh ${stats.totalRevenue.toLocaleString()}`,
-      icon: TrendingUp,
-      color: "bg-emerald-500",
-      textColor: "text-emerald-600",
-    },
-    {
-      title: "Low Stock Items",
-      value: stats.lowStockProducts,
-      icon: AlertCircle,
-      color: "bg-red-500",
-      textColor: "text-red-600",
-      badge: stats.lowStockProducts > 0 ? "warning" : null,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
     },
     {
       title: "Pending Orders",
       value: stats.pendingOrders,
       icon: Clock,
-      color: "bg-yellow-500",
-      textColor: "text-yellow-600",
-      badge: stats.pendingOrders > 0 ? "attention" : null,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
     },
     {
-      title: "Completed Orders",
+      title: "Completed",
       value: stats.completedOrders,
       icon: CheckCircle,
-      color: "bg-green-500",
-      textColor: "text-green-600",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
     },
     {
-      title: "Average Rating",
-      value: stats.averageRating.toFixed(1),
-      icon: Star,
-      color: "bg-yellow-500",
-      textColor: "text-yellow-600",
+      title: "Low Stock",
+      value: stats.lowStockProducts,
+      icon: TrendingUp,
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+    },
+    {
+      title: "Featured",
+      value: stats.featuredProducts,
+      icon: Eye,
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
     },
   ];
 
   return (
-    <div className="p-2 md:p-8 space-y-4 md:space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl md:text-3xl font-bold">Dashboard Overview</h2>
-        <Badge variant="secondary" className="text-xs md:text-sm">
-          Last updated: {new Date().toLocaleDateString()}
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <h1 className="text-xl md:text-2xl font-bold">Dashboard Overview</h1>
+        <Badge variant="secondary" className="text-xs">
+          Real-time data
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        {statCards.map((card, index) => {
-          const IconComponent = card.icon;
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        {statCards.map((stat, index) => {
+          const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <Card key={index} className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
                 <CardTitle className="text-xs md:text-sm font-medium text-gray-600">
-                  {card.title}
+                  {stat.title}
                 </CardTitle>
-                <div className="relative">
-                  <IconComponent className={`w-4 h-4 md:w-5 md:h-5 ${card.textColor}`} />
-                  {card.badge && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                  )}
+                <div className={`p-1 md:p-2 rounded-full ${stat.bgColor}`}>
+                  <Icon className={`w-3 h-3 md:w-4 md:h-4 ${stat.color}`} />
                 </div>
               </CardHeader>
-              <CardContent className="p-3 md:p-6 pt-0">
-                <div className="text-lg md:text-2xl font-bold">{card.value}</div>
+              <CardContent className="pt-0 pb-2 md:pb-4">
+                <div className="text-lg md:text-2xl font-bold text-gray-900">
+                  {stat.value}
+                </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="p-3 md:p-6">
-            <CardTitle className="text-sm md:text-base flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-              Urgent Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 md:p-6 pt-0 space-y-2">
-            {stats.lowStockProducts > 0 && (
-              <div className="text-xs md:text-sm text-red-600">
-                • {stats.lowStockProducts} products low in stock
-              </div>
-            )}
-            {stats.pendingOrders > 0 && (
-              <div className="text-xs md:text-sm text-yellow-600">
-                • {stats.pendingOrders} orders pending processing
-              </div>
-            )}
-            {stats.lowStockProducts === 0 && stats.pendingOrders === 0 && (
-              <div className="text-xs md:text-sm text-green-600">
-                • All systems operating normally
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="p-3 md:p-6">
-            <CardTitle className="text-sm md:text-base flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-500" />
-              Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 md:p-6 pt-0 space-y-2">
-            <div className="text-xs md:text-sm">
-              • Revenue: KSh {stats.totalRevenue.toLocaleString()}
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base md:text-lg">Quick Insights</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+              <span className="text-xs md:text-sm text-gray-600">Order Completion Rate</span>
+              <Badge variant="secondary" className="text-xs">
+                {stats.totalOrders > 0 
+                  ? `${Math.round((stats.completedOrders / stats.totalOrders) * 100)}%`
+                  : '0%'
+                }
+              </Badge>
             </div>
-            <div className="text-xs md:text-sm">
-              • Completion Rate: {stats.totalOrders > 0 ? Math.round((stats.completedOrders / stats.totalOrders) * 100) : 0}%
+            <div className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
+              <span className="text-xs md:text-sm text-gray-600">Products Needing Attention</span>
+              <Badge variant={stats.lowStockProducts > 0 ? "destructive" : "secondary"} className="text-xs">
+                {stats.lowStockProducts}
+              </Badge>
             </div>
-            <div className="text-xs md:text-sm">
-              • Avg. Rating: {stats.averageRating.toFixed(1)}/5
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="p-3 md:p-6">
-            <CardTitle className="text-sm md:text-base flex items-center gap-2">
-              <Package className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
-              Inventory Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 md:p-6 pt-0 space-y-2">
-            <div className="text-xs md:text-sm">
-              • Total Products: {stats.totalProducts}
-            </div>
-            <div className="text-xs md:text-sm">
-              • Low Stock: {stats.lowStockProducts}
-            </div>
-            <div className="text-xs md:text-sm">
-              • Stock Health: {stats.totalProducts > 0 ? Math.round(((stats.totalProducts - stats.lowStockProducts) / stats.totalProducts) * 100) : 0}%
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

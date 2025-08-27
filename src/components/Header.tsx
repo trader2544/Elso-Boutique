@@ -2,15 +2,12 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search,
   Heart,
   ShoppingCart,
   User,
   Menu,
-  X,
   LogOut,
   Settings
 } from "lucide-react";
@@ -18,8 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useScrollDirection } from "@/hooks/useScrollDirection";
-import { useMobile } from "@/hooks/use-mobile";
-import { SearchBar } from "@/components/SearchBar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import SearchBar from "@/components/SearchBar";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
@@ -47,9 +44,8 @@ const Header = () => {
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const scrollDirection = useScrollDirection();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -75,14 +71,6 @@ const Header = () => {
     navigate("/");
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
-    }
-  };
-
   const isAdmin = user?.email === "admin@elsoboutique.com";
 
   return (
@@ -95,11 +83,13 @@ const Header = () => {
         <div className="flex items-center justify-between h-14 md:h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <img 
-              src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
-              alt="Elso Boutique" 
-              className="h-8 md:h-10 w-auto object-contain"
-            />
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-pink-300 shadow-sm">
+              <img 
+                src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
+                alt="Elso Boutique" 
+                className="w-full h-full object-cover"
+              />
+            </div>
             <span className="font-bold text-lg md:text-xl text-pink-600 hidden sm:block">
               Elso Boutique
             </span>
@@ -244,16 +234,16 @@ const Header = () => {
                       <SearchBar />
                     </div>
 
-                    {/* Categories for Mobile */}
+                    {/* Categories for Mobile - Updated Grid Layout */}
                     <div className="space-y-3">
                       <h3 className="font-semibold text-sm uppercase tracking-wide text-gray-500">Categories</h3>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
                         {categories.map((category) => (
                           <Link
                             key={category.id}
                             to={`/?category=${category.id}`}
                             onClick={() => setIsMenuOpen(false)}
-                            className="p-2 text-sm border rounded-md hover:bg-gray-50 transition-colors text-center"
+                            className="block p-3 text-sm border rounded-lg hover:bg-gray-50 transition-colors text-center font-medium"
                           >
                             {category.name}
                           </Link>
