@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,7 +227,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Product not found</h2>
+          <h2 className="text-xl font-bold mb-4">Product not found</h2>
           <Button onClick={() => navigate("/")}>Back to Home</Button>
         </div>
       </div>
@@ -241,13 +240,13 @@ const ProductDetail = () => {
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
-          className={`mb-4 ${isMobile ? 'text-sm' : ''}`}
+          className={`mb-4 ${isMobile ? 'text-sm h-8' : ''}`}
         >
           <ArrowLeft className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
-          Back to Products
+          Back
         </Button>
 
-        <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-8`}>
+        <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-6`}>
           <div className={`${isMobile ? 'aspect-square' : 'aspect-square'} bg-white rounded-lg shadow-md overflow-hidden`}>
             {product.image_url ? (
               <img
@@ -256,35 +255,35 @@ const ProductDetail = () => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-6xl">
+              <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
                 📷
               </div>
             )}
           </div>
 
-          <div className={`space-y-4 ${isMobile ? 'px-2' : 'space-y-6'}`}>
+          <div className={`space-y-3 ${isMobile ? 'px-2' : 'space-y-4'}`}>
             <div>
-              <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold mb-2`}>{product.name}</h1>
-              <p className={`text-gray-600 mb-4 ${isMobile ? 'text-sm' : ''}`}>{product.description}</p>
+              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold mb-2`}>{product.name}</h1>
+              <p className={`text-gray-600 mb-3 ${isMobile ? 'text-sm' : ''}`}>{product.description}</p>
               
-              <div className={`flex items-center space-x-4 mb-4 ${isMobile ? 'space-x-2' : ''}`}>
-                <span className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-pink-600`}>
+              <div className={`flex items-center space-x-3 mb-3 ${isMobile ? 'space-x-2' : ''}`}>
+                <span className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-pink-600`}>
                   KSh {product.price.toLocaleString()}
                 </span>
                 {product.previous_price && (
-                  <span className={`${isMobile ? 'text-lg' : 'text-xl'} text-gray-500 line-through`}>
+                  <span className={`${isMobile ? 'text-base' : 'text-lg'} text-gray-500 line-through`}>
                     KSh {product.previous_price.toLocaleString()}
                   </span>
                 )}
               </div>
 
               {product.rating && (
-                <div className={`flex items-center space-x-2 mb-4 ${isMobile ? 'space-x-1' : ''}`}>
+                <div className={`flex items-center space-x-2 mb-3 ${isMobile ? 'space-x-1' : ''}`}>
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${
+                        className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${
                           i < Math.floor(product.rating!)
                             ? "text-yellow-400 fill-current"
                             : "text-gray-300"
@@ -292,29 +291,29 @@ const ProductDetail = () => {
                       />
                     ))}
                   </div>
-                  <span className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>
+                  <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                     {product.rating} ({product.review_count} reviews)
                   </span>
                 </div>
               )}
             </div>
 
-            <div className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
-              <div className={`flex items-center space-x-4 ${isMobile ? 'space-x-2' : ''}`}>
-                <label className={`font-medium ${isMobile ? 'text-sm' : ''}`}>Quantity:</label>
+            <div className={`space-y-3 ${isMobile ? 'space-y-2' : ''}`}>
+              <div className={`flex items-center space-x-3 ${isMobile ? 'space-x-2' : ''}`}>
+                <label className={`font-medium ${isMobile ? 'text-sm' : ''}`}>Qty:</label>
                 <Input
                   type="number"
                   min="1"
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className={`${isMobile ? 'w-16 h-8 text-sm' : 'w-20'}`}
+                  className={`${isMobile ? 'w-14 h-8 text-sm' : 'w-16'}`}
                 />
               </div>
 
-              <div className={`flex space-x-4 ${isMobile ? 'space-x-2' : ''}`}>
+              <div className={`flex space-x-3 ${isMobile ? 'space-x-2' : ''}`}>
                 <Button 
                   onClick={addToCart} 
-                  className={`flex-1 ${isMobile ? 'text-sm h-10' : ''}`}
+                  className={`flex-1 ${isMobile ? 'text-sm h-9' : ''}`}
                 >
                   <ShoppingCart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
                   Add to Cart
@@ -322,7 +321,7 @@ const ProductDetail = () => {
                 <Button 
                   variant="outline" 
                   onClick={addToWishlist}
-                  className={`${isMobile ? 'h-10 px-3' : ''}`}
+                  className={`${isMobile ? 'h-9 px-3' : ''}`}
                 >
                   <Heart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                 </Button>
@@ -331,14 +330,14 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'}`}>
+        <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
           <Card className={`${isMobile ? 'mx-2' : ''}`}>
-            <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-              <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Write a Review</CardTitle>
+            <CardHeader className={`${isMobile ? 'pb-2' : ''}`}>
+              <CardTitle className={`${isMobile ? 'text-base' : ''}`}>Write a Review</CardTitle>
             </CardHeader>
-            <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 pt-0' : ''}`}>
+            <CardContent className={`space-y-3 ${isMobile ? 'space-y-2 pt-0' : ''}`}>
               <div>
-                <label className={`block font-medium mb-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>Rating</label>
+                <label className={`block font-medium mb-1 ${isMobile ? 'text-sm' : 'text-sm'}`}>Rating</label>
                 <div className="flex space-x-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -346,7 +345,7 @@ const ProductDetail = () => {
                       onClick={() => setNewReview({ ...newReview, rating: star })}
                     >
                       <Star
-                        className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} ${
+                        className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${
                           star <= newReview.rating
                             ? "text-yellow-400 fill-current"
                             : "text-gray-300"
@@ -358,18 +357,18 @@ const ProductDetail = () => {
               </div>
               
               <div>
-                <label className={`block font-medium mb-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>Comment</label>
+                <label className={`block font-medium mb-1 ${isMobile ? 'text-sm' : 'text-sm'}`}>Comment</label>
                 <Textarea
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                  placeholder="Share your thoughts about this product..."
-                  className={`${isMobile ? 'text-sm min-h-20' : ''}`}
+                  placeholder="Share your thoughts..."
+                  className={`${isMobile ? 'text-sm min-h-16' : ''}`}
                 />
               </div>
               
               <Button 
                 onClick={submitReview} 
-                className={`w-full ${isMobile ? 'text-sm h-10' : ''}`}
+                className={`w-full ${isMobile ? 'text-sm h-8' : ''}`}
               >
                 Submit Review
               </Button>
@@ -377,22 +376,22 @@ const ProductDetail = () => {
           </Card>
 
           <Card className={`${isMobile ? 'mx-2' : ''}`}>
-            <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-              <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Customer Reviews</CardTitle>
+            <CardHeader className={`${isMobile ? 'pb-2' : ''}`}>
+              <CardTitle className={`${isMobile ? 'text-base' : ''}`}>Reviews</CardTitle>
             </CardHeader>
             <CardContent className={`${isMobile ? 'pt-0' : ''}`}>
               {reviews.length === 0 ? (
-                <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>No reviews yet. Be the first to review!</p>
+                <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>No reviews yet.</p>
               ) : (
-                <div className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+                <div className={`space-y-3 ${isMobile ? 'space-y-2' : ''}`}>
                   {reviews.map((review) => (
-                    <div key={review.id} className={`border-b pb-4 ${isMobile ? 'pb-3' : ''}`}>
-                      <div className={`flex items-center space-x-2 mb-2 ${isMobile ? 'space-x-1 mb-1' : ''}`}>
+                    <div key={review.id} className={`border-b pb-3 ${isMobile ? 'pb-2' : ''}`}>
+                      <div className={`flex items-center space-x-2 mb-1 ${isMobile ? 'space-x-1' : ''}`}>
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${
+                              className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} ${
                                 i < review.rating
                                   ? "text-yellow-400 fill-current"
                                   : "text-gray-300"
@@ -400,15 +399,15 @@ const ProductDetail = () => {
                             />
                           ))}
                         </div>
-                        <span className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+                        <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {review.profiles?.full_name || 'Anonymous'}
                         </span>
-                        <span className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <span className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-xs'}`}>
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
                       {review.comment && (
-                        <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>{review.comment}</p>
+                        <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>{review.comment}</p>
                       )}
                     </div>
                   ))}

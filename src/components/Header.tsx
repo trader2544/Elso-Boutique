@@ -54,8 +54,14 @@ const Header = () => {
         {/* Top bar */}
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-pink-600 hover:text-pink-700 transition-colors">
-            Elso Boutique
+          <Link to="/" className="flex items-center">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-pink-300 hover:border-pink-400 transition-colors">
+              <img 
+                src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
+                alt="ELSO Boutique" 
+                className="w-full h-full object-cover"
+              />
+            </div>
           </Link>
 
           {/* Desktop Navigation */}

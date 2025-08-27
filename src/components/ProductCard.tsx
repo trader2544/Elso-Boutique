@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
@@ -16,6 +17,7 @@ interface Product {
   review_count: number | null;
   in_stock: boolean;
   stock_status: string;
+  images?: string[];
 }
 
 interface ProductCardProps {
@@ -26,6 +28,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const navigate = useNavigate();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -54,15 +58,44 @@ const ProductCard = ({ product }: ProductCardProps) => {
     }
   };
 
+  const images = product.images && product.images.length > 0 ? product.images : [product.image_url].filter(Boolean);
+  const currentImage = images[currentImageIndex] || product.image_url;
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      }, 800);
+      
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        setCurrentImageIndex(0);
+      }, images.length * 800);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setCurrentImageIndex(0);
+  };
+
   return (
     <div 
       className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5"
       onClick={() => navigate(`/product/${product.id}`)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden">
-        {product.image_url ? (
+        {currentImage ? (
           <img 
-            src={product.image_url} 
+            src={currentImage} 
             alt={product.name}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
@@ -82,6 +115,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
         {getStockStatusBadge() && (
           <div className="absolute top-2 left-2">
             {getStockStatusBadge()}
+          </div>
+        )}
+        {images.length > 1 && isHovered && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+            {images.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full ${
+                  index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                }`}
+              />
+            ))}
           </div>
         )}
       </div>

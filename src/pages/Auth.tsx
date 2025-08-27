@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -118,11 +117,13 @@ const Auth = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <img 
-              src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
-              alt="ELSO Boutique" 
-              className="h-20 w-auto object-contain"
-            />
+            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-pink-300 animate-pulse">
+              <img 
+                src="/lovable-uploads/348f1448-0870-4006-b782-dfb9a8d5927f.png" 
+                alt="ELSO Boutique" 
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
           <p className="text-gray-600 mt-2">Welcome to your fashion destination</p>
         </div>
