@@ -4,8 +4,8 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  previous_price?: number;
-  image_url: string;
+  previous_price?: number | null;
+  image_url: string | null;
   in_stock: boolean;
   stock_status: string;
   quantity: number;
@@ -13,6 +13,6 @@ export interface Product {
   review_count: number;
   is_featured: boolean;
   category: string;
-  category_id?: string;
+  category_id?: string | null;
   created_at?: string;
 }

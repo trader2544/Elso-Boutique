@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Edit, Trash2, Plus } from "lucide-react";
 import MultiImageUpload from "./MultiImageUpload";
 
-interface Product {
+interface AdminProduct {
   id: string;
   name: string;
   description: string;
@@ -22,7 +23,6 @@ interface Product {
   category: string;
   category_id: string | null;
   image_url: string | null;
-  images: string[] | null;
   in_stock: boolean;
   stock_status: string;
   quantity: number;
@@ -37,10 +37,10 @@ interface Category {
 }
 
 const AdminProducts = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -69,14 +69,7 @@ const AdminProducts = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
-      // Ensure images array is properly handled
-      const formattedProducts: Product[] = (data || []).map(product => ({
-        ...product,
-        images: product.images || (product.image_url ? [product.image_url] : [])
-      }));
-      
-      setProducts(formattedProducts);
+      setProducts(data || []);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({
@@ -124,13 +117,20 @@ const AdminProducts = () => {
       const selectedCategory = categories.find(cat => cat.id === productForm.category_id);
       
       const productData = {
-        ...productForm,
+        name: productForm.name,
+        description: productForm.description || "",
+        price: productForm.price,
+        previous_price: productForm.previous_price,
         category: selectedCategory?.name || "",
+        category_id: productForm.category_id,
         image_url: productForm.images[0] || null,
-        images: productForm.images,
         in_stock: productForm.quantity > 0,
         stock_status: productForm.quantity === 0 ? "out_of_stock" : 
                      productForm.quantity <= 5 ? "few_units_left" : "stocked",
+        quantity: productForm.quantity,
+        rating: editingProduct?.rating || 0,
+        review_count: editingProduct?.review_count || 0,
+        is_featured: productForm.is_featured,
       };
 
       if (editingProduct) {
@@ -163,7 +163,7 @@ const AdminProducts = () => {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = (product: AdminProduct) => {
     setEditingProduct(product);
     setProductForm({
       name: product.name,
@@ -171,7 +171,7 @@ const AdminProducts = () => {
       price: product.price,
       previous_price: product.previous_price,
       category_id: product.category_id || "",
-      images: product.images || (product.image_url ? [product.image_url] : []),
+      images: product.image_url ? [product.image_url] : [],
       quantity: product.quantity,
       is_featured: product.is_featured,
       stock_status: product.stock_status,
