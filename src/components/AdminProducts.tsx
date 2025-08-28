@@ -69,7 +69,14 @@ const AdminProducts = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      
+      // Ensure images array is properly handled
+      const formattedProducts: Product[] = (data || []).map(product => ({
+        ...product,
+        images: product.images || (product.image_url ? [product.image_url] : [])
+      }));
+      
+      setProducts(formattedProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({

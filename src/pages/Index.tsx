@@ -62,14 +62,8 @@ const Index = () => {
     }
   };
 
-  const handleAddToCart = (product: Product) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image_url: product.image_url,
-      quantity: 1,
-    });
+  const handleAddToCart = async (product: Product) => {
+    await addToCart(product.id);
     
     toast({
       title: "Added to cart",
@@ -85,7 +79,6 @@ const Index = () => {
         <>
           <ShopByCategory />
           <FeaturedProducts onAddToCart={handleAddToCart} />
-          <TestimonialsCarousel />
         </>
       )}
 
@@ -111,7 +104,6 @@ const Index = () => {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onAddToCart={() => handleAddToCart(product)}
                   />
                 ))}
               </div>

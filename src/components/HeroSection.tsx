@@ -27,14 +27,14 @@ const HeroSection = () => {
       <div className="absolute bottom-0 left-0 right-0 z-10 pb-12 md:pb-20">
         <div className="container mx-auto px-4">
           {/* Text positioned bottom-left on desktop, bottom-center on mobile */}
-          <div className="text-center md:text-left md:max-w-2xl text-white">
-            {/* Brand Name */}
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-light mb-4 tracking-wide">
+          <div className="text-center md:text-left md:max-w-2xl">
+            {/* Brand Name - with gradient color */}
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-light mb-4 tracking-wide bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
               ELSO BOUTIQUE
             </h1>
             
-            {/* Tagline */}
-            <p className="text-sm md:text-base font-light tracking-widest uppercase mb-8 opacity-90">
+            {/* Tagline - with golden color */}
+            <p className="text-sm md:text-base font-light tracking-widest uppercase mb-8 opacity-90 text-yellow-300">
               The Latest Luxury Women's Fashion
             </p>
             
