@@ -224,7 +224,7 @@ const Contact = () => {
           <CardContent className="text-center">
             <div className="bg-pink-50 rounded-lg p-8">
               <p className="text-gray-600 mb-4">
-                Our flagship store is located in the heart of Nairobi, easily accessible by public transport.
+                Our flagship store is located in the heart of Kisumu, easily accessible by public transport.
                 We'd love to welcome you and help you find the perfect outfit!
               </p>
               <p className="text-sm text-gray-500">
