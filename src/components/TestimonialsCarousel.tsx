@@ -44,13 +44,24 @@ const TestimonialsCarousel = () => {
 
   const fetchTestimonials = async () => {
     try {
-      const { data, error } = await supabase
-        .from("testimonials")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTestimonials(data || []);
+      // Mock testimonials since the table doesn't exist yet
+      const mockTestimonials: Testimonial[] = [
+        {
+          id: "1",
+          user_name: "Sarah Johnson",
+          description: "Amazing quality and beautiful designs! I love shopping at Elso Boutique.",
+          images: ["https://images.unsplash.com/photo-1494790108755-2616b2e88e37?w=400"],
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: "2", 
+          user_name: "Mary Atieno",
+          description: "Fast delivery and excellent customer service. Highly recommended!",
+          images: ["https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400"],
+          created_at: new Date().toISOString(),
+        }
+      ];
+      setTestimonials(mockTestimonials);
     } catch (error) {
       console.error("Error fetching testimonials:", error);
     }

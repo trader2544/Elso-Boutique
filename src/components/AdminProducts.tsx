@@ -29,6 +29,8 @@ interface AdminProduct {
   rating: number;
   review_count: number;
   is_featured: boolean;
+  images?: string[];
+  color_labels?: string[];
 }
 
 interface Category {
@@ -36,9 +38,18 @@ interface Category {
   name: string;
 }
 
+interface StockBatch {
+  id: string;
+  batch_number: string;
+  quantity: number;
+  supplier?: string;
+  expiry_date?: string;
+}
+
 const AdminProducts = () => {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stockBatches, setStockBatches] = useState<StockBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -51,14 +62,17 @@ const AdminProducts = () => {
     previous_price: null as number | null,
     category_id: "",
     images: [] as string[],
+    color_labels: [] as string[],
     quantity: 0,
     is_featured: false,
     stock_status: "stocked",
+    batch_id: "" as string,
   });
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchStockBatches();
   }, []);
 
   const fetchProducts = async () => {
@@ -95,6 +109,20 @@ const AdminProducts = () => {
     }
   };
 
+  const fetchStockBatches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("stock_batches")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setStockBatches(data || []);
+    } catch (error) {
+      console.error("Error fetching stock batches:", error);
+    }
+  };
+
   const resetForm = () => {
     setProductForm({
       name: "",
@@ -103,9 +131,11 @@ const AdminProducts = () => {
       previous_price: null,
       category_id: "",
       images: [],
+      color_labels: [],
       quantity: 0,
       is_featured: false,
       stock_status: "stocked",
+      batch_id: "batch1", // Default to batch1
     });
     setEditingProduct(null);
   };
@@ -172,9 +202,11 @@ const AdminProducts = () => {
       previous_price: product.previous_price,
       category_id: product.category_id || "",
       images: product.image_url ? [product.image_url] : [],
+      color_labels: product.color_labels || [],
       quantity: product.quantity,
       is_featured: product.is_featured,
       stock_status: product.stock_status,
+      batch_id: "batch1", // Default to batch1 when editing
     });
     setIsDialogOpen(true);
   };
@@ -300,19 +332,57 @@ const AdminProducts = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_featured"
-                  checked={productForm.is_featured}
-                  onCheckedChange={(checked) => setProductForm({ ...productForm, is_featured: checked as boolean })}
-                />
-                <Label htmlFor="is_featured" className="text-sm md:text-base">Featured Product</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="batch">Stock Batch</Label>
+                  <Select value={productForm.batch_id} onValueChange={(value) => setProductForm({ ...productForm, batch_id: value })}>
+                    <SelectTrigger className="text-sm md:text-base">
+                      <SelectValue placeholder="Select batch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="batch1">Batch 1 (Default)</SelectItem>
+                      {stockBatches.map((batch) => (
+                        <SelectItem key={batch.id} value={batch.batch_number}>
+                          {batch.batch_number} - {batch.supplier || 'No supplier'} ({batch.quantity} items)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2 pt-6">
+                  <Checkbox
+                    id="is_featured"
+                    checked={productForm.is_featured}
+                    onCheckedChange={(checked) => setProductForm({ ...productForm, is_featured: !!checked })}
+                  />
+                  <Label htmlFor="is_featured" className="text-sm">Featured Product</Label>
+                </div>
               </div>
 
-              <MultiImageUpload
-                onImagesUploaded={handleImagesUploaded}
-                currentImages={productForm.images}
-              />
+              <div>
+                <Label>Product Images with Color Labels</Label>
+                <MultiImageUpload
+                  onImagesUploaded={handleImagesUploaded}
+                  currentImages={productForm.images}
+                />
+                <div className="mt-2 space-y-2">
+                  {productForm.images.map((image, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <img src={image} alt={`Product ${index + 1}`} className="w-16 h-16 object-cover rounded" />
+                      <Input
+                        placeholder={`Color label for image ${index + 1}`}
+                        value={productForm.color_labels[index] || ''}
+                        onChange={(e) => {
+                          const newLabels = [...productForm.color_labels];
+                          newLabels[index] = e.target.value;
+                          setProductForm({ ...productForm, color_labels: newLabels });
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="text-sm md:text-base">

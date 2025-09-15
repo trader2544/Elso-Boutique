@@ -10,6 +10,7 @@ import ShopByCategory from "@/components/ShopByCategory";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ProductCard from "@/components/ProductCard";
 import TestimonialsCarousel from "@/components/TestimonialsCarousel";
+import LiveChatWidget from "@/components/LiveChatWidget";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -36,23 +37,23 @@ const Index = () => {
 
       if (error) throw error;
 
-      const formattedProducts: Product[] = (data || []).map(product => ({
-        id: product.id,
-        name: product.name,
-        description: product.description || "",
-        price: product.price,
-        previous_price: product.previous_price || undefined,
-        image_url: product.image_url || "",
-        in_stock: product.in_stock,
-        stock_status: product.stock_status,
-        quantity: product.quantity,
-        rating: product.rating || 0,
-        review_count: product.review_count || 0,
-        is_featured: product.is_featured,
-        category: product.category,
-        category_id: product.category_id,
-        created_at: product.created_at,
-      }));
+        const formattedProducts: Product[] = (data || []).map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || "",
+          price: product.price,
+          previous_price: product.previous_price || null,
+          image_url: product.image_url || "",
+          in_stock: product.in_stock,
+          stock_status: product.stock_status,
+          quantity: product.quantity,
+          rating: product.rating || 0,
+          review_count: product.review_count || 0,
+          is_featured: product.is_featured,
+          category: product.category,
+          category_id: product.category_id,
+          created_at: product.created_at,
+        }));
 
       setProducts(formattedProducts);
     } catch (error) {
@@ -104,6 +105,7 @@ const Index = () => {
                   <ProductCard
                     key={product.id}
                     product={product}
+                    onAddToCart={() => handleAddToCart(product)}
                   />
                 ))}
               </div>
@@ -119,6 +121,9 @@ const Index = () => {
           </div>
         </section>
       )}
+      
+      <TestimonialsCarousel />
+      <LiveChatWidget />
     </div>
   );
 };

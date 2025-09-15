@@ -5,26 +5,29 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useNavigate } from "react-router-dom";
+import ColorImageSelector from "./ColorImageSelector";
 
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  previous_price: number | null;
+  previous_price?: number | null;
   image_url: string | null;
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
   stock_status: string;
   images?: string[];
+  color_labels?: string[];
 }
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart?: () => void;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const navigate = useNavigate();
@@ -33,7 +36,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await addToCart(product.id);
+    if (onAddToCart) {
+      onAddToCart();
+    } else {
+      await addToCart(product.id);
+    }
   };
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
@@ -157,9 +164,16 @@ const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
         
+        <ColorImageSelector
+          images={images}
+          colorLabels={product.color_labels || []}
+          onImageChange={setCurrentImageIndex}
+          currentImageIndex={currentImageIndex}
+        />
+        
         <Button 
           onClick={handleAddToCart}
-          className="w-full rounded-lg bg-pink-500 hover:bg-pink-600 text-xs md:text-sm py-1.5 md:py-2" 
+          className="w-full rounded-lg bg-pink-500 hover:bg-pink-600 text-xs md:text-sm py-1.5 md:py-2 mt-2" 
           size="sm"
           disabled={!product.in_stock || product.stock_status === "out_of_stock"}
         >

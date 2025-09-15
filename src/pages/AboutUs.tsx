@@ -136,7 +136,7 @@ const AboutUs = () => {
                 Shop Now
               </a>
               <a
-                href="https://wa.me/254700000000"
+                href="https://wa.me/254745242174"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-8 py-3 border border-pink-300 text-base font-medium rounded-md text-pink-700 bg-white hover:bg-pink-50 transition-all duration-300 shadow-lg hover:shadow-xl"

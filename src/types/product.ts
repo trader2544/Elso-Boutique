@@ -15,4 +15,6 @@ export interface Product {
   category: string;
   category_id?: string | null;
   created_at?: string;
+  images?: string[];
+  color_labels?: string[];
 }

@@ -31,7 +31,7 @@ const FeaturedProducts = ({ onAddToCart }: FeaturedProductsProps) => {
         name: product.name,
         description: product.description || "",
         price: product.price,
-        previous_price: product.previous_price || undefined,
+        previous_price: product.previous_price || null,
         image_url: product.image_url || "",
         in_stock: product.in_stock,
         stock_status: product.stock_status,
