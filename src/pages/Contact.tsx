@@ -145,8 +145,7 @@ const Contact = () => {
                   <Mail className="w-6 h-6 text-pink-600 mt-1" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Email</h3>
-                    <p className="text-gray-600">info@elsoboutique.com</p>
-                    <p className="text-gray-600">support@elsoboutique.com</p>
+                    <p className="text-gray-600">elsokisumu@gmail.com</p>
                   </div>
                 </div>
                 
@@ -154,8 +153,7 @@ const Contact = () => {
                   <Phone className="w-6 h-6 text-pink-600 mt-1" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Phone</h3>
-                    <p className="text-gray-600">+254 700 123 456</p>
-                    <p className="text-gray-600">+254 722 987 654</p>
+                    <p className="text-gray-600">+254 745 242174</p>
                   </div>
                 </div>
                 
@@ -163,8 +161,7 @@ const Contact = () => {
                   <MapPin className="w-6 h-6 text-pink-600 mt-1" />
                   <div>
                     <h3 className="font-semibold text-gray-800">Address</h3>
-                    <p className="text-gray-600">123 Fashion Street</p>
-                    <p className="text-gray-600">Nairobi, Kenya</p>
+                    <p className="text-gray-600">Kisumu, Kenya</p>
                   </div>
                 </div>
                 
