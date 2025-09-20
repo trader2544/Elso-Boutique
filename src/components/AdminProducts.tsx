@@ -154,6 +154,8 @@ const AdminProducts = () => {
         category: selectedCategory?.name || "",
         category_id: productForm.category_id,
         image_url: productForm.images[0] || null,
+        images: productForm.images,
+        color_labels: productForm.color_labels,
         in_stock: productForm.quantity > 0,
         stock_status: productForm.quantity === 0 ? "out_of_stock" : 
                      productForm.quantity <= 5 ? "few_units_left" : "stocked",
@@ -201,7 +203,7 @@ const AdminProducts = () => {
       price: product.price,
       previous_price: product.previous_price,
       category_id: product.category_id || "",
-      images: product.image_url ? [product.image_url] : [],
+      images: product.images && product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : []),
       color_labels: product.color_labels || [],
       quantity: product.quantity,
       is_featured: product.is_featured,
