@@ -214,10 +214,12 @@ export type Database = {
         Row: {
           category: string
           category_id: string | null
+          color_labels: string[] | null
           created_at: string | null
           description: string | null
           id: string
           image_url: string | null
+          images: string[] | null
           in_stock: boolean | null
           is_featured: boolean | null
           name: string
@@ -231,10 +233,12 @@ export type Database = {
         Insert: {
           category: string
           category_id?: string | null
+          color_labels?: string[] | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           in_stock?: boolean | null
           is_featured?: boolean | null
           name: string
@@ -248,10 +252,12 @@ export type Database = {
         Update: {
           category?: string
           category_id?: string | null
+          color_labels?: string[] | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           in_stock?: boolean | null
           is_featured?: boolean | null
           name?: string
@@ -438,6 +444,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      testimonials: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          images: string[]
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          images?: string[]
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          images?: string[]
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
