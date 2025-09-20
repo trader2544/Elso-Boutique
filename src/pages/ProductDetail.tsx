@@ -21,6 +21,8 @@ interface Product {
   rating: number | null;
   review_count: number | null;
   in_stock: boolean;
+  images?: string[];
+  color_labels?: string[];
 }
 
 interface Review {
