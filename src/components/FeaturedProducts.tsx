@@ -42,6 +42,8 @@ const FeaturedProducts = ({ onAddToCart }: FeaturedProductsProps) => {
         category: product.category,
         category_id: product.category_id,
         created_at: product.created_at,
+        images: product.images || [],
+        color_labels: product.color_labels || [],
       }));
 
       setFeaturedProducts(formattedProducts);

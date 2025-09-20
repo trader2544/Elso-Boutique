@@ -53,6 +53,8 @@ const Index = () => {
           category: product.category,
           category_id: product.category_id,
           created_at: product.created_at,
+          images: product.images || [],
+          color_labels: product.color_labels || [],
         }));
 
       setProducts(formattedProducts);
