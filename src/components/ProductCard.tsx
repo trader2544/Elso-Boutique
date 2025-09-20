@@ -164,6 +164,16 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
           )}
         </div>
         
+        {/* Available Colors Display */}
+        {images.length > 1 && product.color_labels && product.color_labels.some(label => label && label.trim()) && (
+          <div className="mb-2">
+            <span className="text-xs font-medium text-gray-600">Available Colors: </span>
+            <span className="text-xs text-gray-500">
+              {product.color_labels.filter(label => label && label.trim()).join(', ')}
+            </span>
+          </div>
+        )}
+        
         <ColorImageSelector
           images={images}
           colorLabels={product.color_labels || []}
