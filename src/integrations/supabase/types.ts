@@ -495,9 +495,11 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           category: string
+          color_labels: string[]
           description: string
           id: string
           image_url: string
+          images: string[]
           in_stock: boolean
           name: string
           previous_price: number
@@ -512,9 +514,11 @@ export type Database = {
         Args: { category_name: string }
         Returns: {
           category: string
+          color_labels: string[]
           description: string
           id: string
           image_url: string
+          images: string[]
           in_stock: boolean
           is_featured: boolean
           name: string
