@@ -6,12 +6,12 @@ import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
+import { ProductStructuredData } from "@/components/ProductStructuredData";
 import HeroSection from "@/components/HeroSection";
 import ShopByCategory from "@/components/ShopByCategory";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ProductCard from "@/components/ProductCard";
 import LiveChatWidget from "@/components/LiveChatWidget";
-import { ProductStructuredData } from "@/components/ProductStructuredData";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
