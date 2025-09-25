@@ -11,7 +11,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen overflow-hidden">
+    <section className="relative h-[70vh] md:h-[80vh] overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img
