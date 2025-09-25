@@ -5,12 +5,13 @@ import { Product } from "@/types/product";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 import HeroSection from "@/components/HeroSection";
 import ShopByCategory from "@/components/ShopByCategory";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ProductCard from "@/components/ProductCard";
-import TestimonialsCarousel from "@/components/TestimonialsCarousel";
 import LiveChatWidget from "@/components/LiveChatWidget";
+import { ProductStructuredData } from "@/components/ProductStructuredData";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -76,6 +77,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead 
+        title="ELSO Boutique Kisumu - Best Women's Fashion Store in Kenya"
+        description="Shop premium women's fashion at ELSO Boutique in Kisumu, Kenya. Discover the latest trends in dresses, accessories, and luxury items. Free shipping across Kenya on orders over KSh 5000."
+        keywords="ELSO Boutique Kisumu, best boutique Kenya, women's fashion Kisumu, luxury clothing Kenya, designer dresses Kisumu, fashion store Kenya, boutique Kisumu city"
+        canonical="https://elso-boutique.com/"
+      />
+      <ProductStructuredData products={products} />
       <HeroSection />
       
       {!category && (
@@ -124,7 +132,6 @@ const Index = () => {
         </section>
       )}
       
-      <TestimonialsCarousel />
       <LiveChatWidget />
     </div>
   );
