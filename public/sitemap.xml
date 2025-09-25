@@ -64,71 +64,29 @@
   
   <!-- Category Pages -->
   <url>
-    <loc>https://elso-boutique.com/?category=Dresses</loc>
-    <lastmod>2024-09-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
-    <loc>https://elso-boutique.com/?category=Tops</loc>
-    <lastmod>2024-09-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
-    <loc>https://elso-boutique.com/?category=Bottoms</loc>
-    <lastmod>2024-09-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
-    <loc>https://elso-boutique.com/?category=Outerwear</loc>
-    <lastmod>2024-09-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
     <loc>https://elso-boutique.com/?category=Accessories</loc>
-    <lastmod>2024-09-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
-    <loc>https://elso-boutique.com/?category=Shoes</loc>
-    <lastmod>2024-09-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <url>
-    <loc>https://elso-boutique.com/?category=Jewelry</loc>
-    <lastmod>2024-09-25</lastmod>
+    <lastmod>2025-01-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://elso-boutique.com/?category=Bags</loc>
-    <lastmod>2024-09-25</lastmod>
+    <lastmod>2025-01-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>https://elso-boutique.com/?category=Beauty</loc>
-    <lastmod>2024-09-25</lastmod>
+    <loc>https://elso-boutique.com/?category=Jewelry</loc>
+    <lastmod>2025-01-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>https://elso-boutique.com/?category=Sportswear</loc>
-    <lastmod>2024-09-25</lastmod>
+    <loc>https://elso-boutique.com/?category=Outfits</loc>
+    <lastmod>2025-01-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
