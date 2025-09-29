@@ -49,9 +49,38 @@ const ColorImageSelector = ({
   };
   return <div className="mt-3 space-y-2">
       {isMobile ?
-    // Mobile: Show only "Colors:" text
-    <div className="flex items-center">
-          
+    // Mobile: Show clickable color labels and swipe indicators
+    <div className="space-y-2">
+          <span className="text-xs font-medium text-gray-600">Colors:</span>
+          <div className="flex space-x-2 overflow-x-auto pb-1" 
+               onTouchStart={handleTouchStart} 
+               onTouchEnd={handleTouchEnd}>
+            {images.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => onImageChange(index)}
+                className={`flex-shrink-0 px-2 py-1 rounded-md text-xs transition-all ${
+                  currentImageIndex === index 
+                    ? 'bg-pink-100 text-pink-600 font-medium' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {colorLabels[index] || `Color ${index + 1}`}
+              </button>
+            ))}
+          </div>
+          {images.length > 1 && (
+            <div className="flex justify-center space-x-1">
+              {images.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full ${
+                    index === currentImageIndex ? 'bg-pink-400' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div> : <>
           {/* Desktop: Full Color Options */}
           <div className="flex items-center justify-between">
