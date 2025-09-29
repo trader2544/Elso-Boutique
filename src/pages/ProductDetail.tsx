@@ -265,29 +265,29 @@ const ProductDetail = () => {
         </Button>
 
         <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-6`}>
-          <div className={`${isMobile ? 'aspect-square' : 'aspect-square'} bg-white rounded-lg shadow-md overflow-hidden`}>
-            {currentImage ? (
-              <img
-                src={currentImage}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
-                📷
-              </div>
-            )}
-            
-            {/* Color Image Selector */}
-            {availableImages.length > 1 && (
-              <div className="p-3 bg-white">
-                <ColorImageSelector
-                  images={availableImages}
-                  colorLabels={product.color_labels || []}
-                  onImageChange={handleImageChange}
-                  currentImageIndex={currentImageIndex}
+          <div className="space-y-3">
+            <div className={`${isMobile ? 'aspect-square' : 'aspect-square'} bg-white rounded-lg shadow-md overflow-hidden`}>
+              {currentImage ? (
+                <img
+                  src={currentImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
                 />
-              </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
+                  📷
+                </div>
+              )}
+            </div>
+            
+            {/* Color Image Selector - Outside the image container */}
+            {availableImages.length > 1 && (
+              <ColorImageSelector
+                images={availableImages}
+                colorLabels={product.color_labels || []}
+                onImageChange={handleImageChange}
+                currentImageIndex={currentImageIndex}
+              />
             )}
           </div>
 

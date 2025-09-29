@@ -41,11 +41,10 @@ const Header = () => {
   };
 
   const categories = [
-    { name: 'Dresses', href: '/?category=Dresses' },
-    { name: 'Shoes', href: '/?category=Shoes' },
+    { name: 'Accessories', href: '/?category=Accessories' },
     { name: 'Bags', href: '/?category=Bags' },
     { name: 'Jewelry', href: '/?category=Jewelry' },
-    { name: 'Accessories', href: '/?category=Accessories' },
+    { name: 'Outfits', href: '/?category=Outfits' },
   ];
 
   return (
