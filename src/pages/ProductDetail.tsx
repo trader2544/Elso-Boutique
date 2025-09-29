@@ -9,6 +9,7 @@ import { Heart, ShoppingCart, Star, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ColorImageSelector from "@/components/ColorImageSelector";
 
 interface Product {
   id: string;
@@ -45,6 +46,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,6 +70,7 @@ const ProductDetail = () => {
 
       if (error) throw error;
       setProduct(data);
+      setCurrentImageIndex(0); // Reset to first image when product changes
     } catch (error) {
       console.error("Error fetching product:", error);
       toast({
@@ -217,6 +220,19 @@ const ProductDetail = () => {
     }
   };
 
+  const handleImageChange = (imageIndex: number) => {
+    setCurrentImageIndex(imageIndex);
+  };
+
+  // Get available images (prioritize images array, fallback to image_url)
+  const availableImages = product?.images && product.images.length > 0 
+    ? product.images 
+    : product?.image_url 
+    ? [product.image_url] 
+    : [];
+
+  const currentImage = availableImages[currentImageIndex] || product?.image_url;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
@@ -250,15 +266,27 @@ const ProductDetail = () => {
 
         <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-6`}>
           <div className={`${isMobile ? 'aspect-square' : 'aspect-square'} bg-white rounded-lg shadow-md overflow-hidden`}>
-            {product.image_url ? (
+            {currentImage ? (
               <img
-                src={product.image_url}
+                src={currentImage}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
                 📷
+              </div>
+            )}
+            
+            {/* Color Image Selector */}
+            {availableImages.length > 1 && (
+              <div className="p-3 bg-white">
+                <ColorImageSelector
+                  images={availableImages}
+                  colorLabels={product.color_labels || []}
+                  onImageChange={handleImageChange}
+                  currentImageIndex={currentImageIndex}
+                />
               </div>
             )}
           </div>
