@@ -17,7 +17,7 @@ const HeroSection = () => {
         <img
           src="/lovable-uploads/2628dc36-6cb0-4db9-8729-b73f1e8362e4.png"
           alt="Hero Background"
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover object-[center_20%] md:object-[center_15%]"
         />
         {/* Subtle overlay for better text readability */}
         <div className="absolute inset-0 bg-black/20"></div>
