@@ -79,7 +79,8 @@ const ShopByCategory = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
+        <div className="flex justify-center">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 max-w-6xl">
           {categories.map((category) => {
             const currentImage = getCurrentImage(category);
             
@@ -122,6 +123,7 @@ const ShopByCategory = () => {
               </Card>
             );
           })}
+          </div>
         </div>
       </div>
     </section>
