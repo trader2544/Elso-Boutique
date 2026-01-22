@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart, ShoppingCart, Eye } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import ColorImageSelector from "./ColorImageSelector";
 
 interface Product {
@@ -52,14 +52,19 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
     }
   };
 
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/product/${product.id}`);
+  };
+
   const getStockStatusBadge = () => {
     switch (product.stock_status) {
       case "out_of_stock":
-        return <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">Out of Stock</span>;
+        return <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-semibold">Sold Out</span>;
       case "few_units_left":
-        return <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-medium">Few Left</span>;
+        return <span className="bg-orange-500 text-white text-xs px-3 py-1 rounded-full font-semibold animate-pulse">Few Left!</span>;
       case "flash_sale":
-        return <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">Flash Sale</span>;
+        return <span className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs px-3 py-1 rounded-full font-semibold">Flash Sale</span>;
       default:
         return null;
     }
@@ -68,130 +73,171 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
   const images = product.images && product.images.length > 0 ? product.images : [product.image_url].filter(Boolean);
   const currentImage = images[currentImageIndex] || product.image_url;
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (images.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % images.length);
-      }, 800);
-      
-      const timeout = setTimeout(() => {
-        clearInterval(interval);
-        setCurrentImageIndex(0);
-      }, images.length * 800);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setCurrentImageIndex(0);
-  };
+  const discountPercentage = product.previous_price 
+    ? Math.round(((product.previous_price - product.price) / product.previous_price) * 100)
+    : 0;
 
   return (
-    <div 
-      className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5"
+    <motion.div 
+      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer border border-gray-100"
       onClick={() => navigate(`/product/${product.id}`)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setCurrentImageIndex(0);
+      }}
+      whileHover={{ y: -8 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
     >
-      <div className="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden">
-        {currentImage ? (
-          <img 
-            src={currentImage} 
+      {/* Image Container */}
+      <div className="relative aspect-[3/4] bg-gray-50 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.img 
+            key={currentImage}
+            src={currentImage || "/placeholder.svg"} 
             alt={product.name}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
           />
-        ) : (
-          <div className="text-gray-300 text-3xl md:text-4xl">📷</div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleWishlistToggle}
-          className={`absolute top-2 right-2 p-1.5 rounded-full bg-white/90 hover:bg-white shadow-sm ${
-            isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400'
-          }`}
+        </AnimatePresence>
+
+        {/* Overlay on hover */}
+        <motion.div 
+          className="absolute inset-0 bg-black/20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.3 }}
+        />
+
+        {/* Quick action buttons */}
+        <motion.div 
+          className="absolute top-4 right-4 flex flex-col gap-2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: isHovered ? 1 : 0, x: isHovered ? 0 : 20 }}
+          transition={{ duration: 0.3 }}
         >
-          <Heart className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
-        </Button>
-        {getStockStatusBadge() && (
-          <div className="absolute top-2 left-2">
-            {getStockStatusBadge()}
-          </div>
-        )}
-        {images.length > 1 && isHovered && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={handleWishlistToggle}
+            className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 ${
+              isInWishlist(product.id) 
+                ? 'bg-pink-500 text-white hover:bg-pink-600' 
+                : 'bg-white/90 text-gray-700 hover:bg-white hover:text-pink-500'
+            }`}
+          >
+            <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={handleQuickView}
+            className="w-10 h-10 rounded-full bg-white/90 shadow-lg backdrop-blur-sm text-gray-700 hover:bg-white hover:text-pink-500 transition-all duration-300"
+          >
+            <Eye className="w-5 h-5" />
+          </Button>
+        </motion.div>
+
+        {/* Badges */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          {discountPercentage > 0 && (
+            <motion.span 
+              className="bg-pink-500 text-white text-xs font-bold px-3 py-1.5 rounded-full"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500 }}
+            >
+              -{discountPercentage}%
+            </motion.span>
+          )}
+          {getStockStatusBadge()}
+        </div>
+
+        {/* Add to cart button - slides up on hover */}
+        <motion.div 
+          className="absolute bottom-0 left-0 right-0 p-4"
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: isHovered ? 0 : 100, opacity: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
+          <Button 
+            onClick={handleAddToCart}
+            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-300"
+            disabled={!product.in_stock || product.stock_status === "out_of_stock"}
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            {product.stock_status === "out_of_stock" ? "Out of Stock" : "Add to Cart"}
+          </Button>
+        </motion.div>
+
+        {/* Image dots indicator */}
+        {images.length > 1 && (
+          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             {images.map((_, index) => (
-              <div
+              <button
                 key={index}
-                className={`w-2 h-2 rounded-full ${
-                  index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentImageIndex 
+                    ? 'bg-white w-4' 
+                    : 'bg-white/50 hover:bg-white/80'
                 }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex(index);
+                }}
               />
             ))}
           </div>
         )}
       </div>
       
-      <div className="p-3 md:p-4">
-        <h3 className="font-medium text-sm md:text-base mb-1.5 md:mb-2 line-clamp-1 text-gray-800">{product.name}</h3>
-        <p className="text-gray-500 text-xs md:text-sm mb-2 md:mb-3 line-clamp-2 leading-relaxed">{product.description}</p>
+      {/* Product Info */}
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1 group-hover:text-pink-600 transition-colors">
+          {product.name}
+        </h3>
+        <p className="text-gray-500 text-sm mb-3 line-clamp-2 leading-relaxed">
+          {product.description}
+        </p>
         
-        <div className="flex items-center justify-between mb-2.5 md:mb-3">
-          <div className="flex items-center space-x-1.5 md:space-x-2">
-            <span className="text-sm md:text-lg font-bold text-pink-600">
+        {/* Price */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-bold text-pink-600">
               KSh {product.price.toLocaleString()}
             </span>
             {product.previous_price && (
-              <span className="text-xs md:text-sm text-gray-400 line-through">
+              <span className="text-sm text-gray-400 line-through">
                 KSh {product.previous_price.toLocaleString()}
               </span>
             )}
           </div>
-          {product.rating && (
-            <div className="flex items-center text-xs md:text-sm text-yellow-500">
-              <span>⭐</span>
-              <span className="text-gray-500 ml-1">{product.rating.toFixed(1)}</span>
-              {product.review_count && (
-                <span className="text-gray-400 ml-1">({product.review_count})</span>
-              )}
+          {product.rating && product.rating > 0 && (
+            <div className="flex items-center text-sm text-gray-500">
+              <span className="text-yellow-400 mr-1">★</span>
+              <span>{product.rating.toFixed(1)}</span>
             </div>
           )}
         </div>
         
-        {/* Available Colors Display */}
+        {/* Color options */}
         {images.length > 1 && product.color_labels && product.color_labels.some(label => label && label.trim()) && (
-          <div className="mb-2">
-            <span className="text-xs font-medium text-gray-600">Available Colors: </span>
-            <span className="text-xs text-gray-500">
-              {product.color_labels.filter(label => label && label.trim()).join(', ')}
-            </span>
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <ColorImageSelector
+              images={images}
+              colorLabels={product.color_labels || []}
+              onImageChange={setCurrentImageIndex}
+              currentImageIndex={currentImageIndex}
+            />
           </div>
         )}
-        
-        <ColorImageSelector
-          images={images}
-          colorLabels={product.color_labels || []}
-          onImageChange={setCurrentImageIndex}
-          currentImageIndex={currentImageIndex}
-        />
-        
-        <Button 
-          onClick={handleAddToCart}
-          className="w-full rounded-lg bg-pink-500 hover:bg-pink-600 text-xs md:text-sm py-1.5 md:py-2 mt-2" 
-          size="sm"
-          disabled={!product.in_stock || product.stock_status === "out_of_stock"}
-        >
-          <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
-          {product.stock_status === "out_of_stock" ? "Out of Stock" : "Add to Cart"}
-        </Button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
