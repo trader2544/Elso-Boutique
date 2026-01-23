@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Truck, CreditCard, ShieldCheck } from "lucide-react";
+
 const HeroSection = () => {
   const scrollToCategories = () => {
     const categoriesSection = document.querySelector('.shop-categories');
@@ -11,130 +12,119 @@ const HeroSection = () => {
       });
     }
   };
-  return <section className="relative min-h-[60vh] md:min-h-[80vh] lg:min-h-[90vh] overflow-hidden bg-gradient-to-br from-pink-50 via-white to-pink-100">
-      {/* Animated background shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-pink-300/30 to-pink-500/20 rounded-full blur-3xl" animate={{
-        scale: [1, 1.2, 1],
-        rotate: [0, 90, 0]
-      }} transition={{
-        duration: 15,
-        repeat: Infinity,
-        ease: "linear"
-      }} />
-        <motion.div className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-purple-300/20 to-pink-400/20 rounded-full blur-3xl" animate={{
-        scale: [1.2, 1, 1.2],
-        rotate: [0, -90, 0]
-      }} transition={{
-        duration: 20,
-        repeat: Infinity,
-        ease: "linear"
-      }} />
-        <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-pink-200/10 to-purple-200/10 rounded-full blur-3xl" animate={{
-        scale: [1, 1.1, 1]
-      }} transition={{
-        duration: 10,
-        repeat: Infinity,
-        ease: "easeInOut"
-      }} />
+
+  return (
+    <section className="relative min-h-[70vh] md:min-h-[85vh] lg:min-h-screen overflow-hidden">
+      {/* Background Image - Full coverage */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="/lovable-uploads/2628dc36-6cb0-4db9-8729-b73f1e8362e4.png" 
+          alt="ELSO Boutique - Luxury Women's Fashion" 
+          className="w-full h-full object-cover object-center"
+        />
+        {/* Gradient overlays for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
       </div>
 
-      {/* Background Image with overlay */}
-      <div className="absolute inset-0 z-0">
-        <img src="/lovable-uploads/2628dc36-6cb0-4db9-8729-b73f1e8362e4.png" alt="ELSO Boutique - Luxury Women's Fashion" className="w-full h-full object-cover object-[center_15%]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-      </div>
+      {/* Floating decorative elements */}
+      <motion.div 
+        className="absolute top-20 right-10 w-32 h-32 border-2 border-pink-400/30 rounded-full hidden lg:block"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div 
+        className="absolute bottom-40 right-20 w-20 h-20 bg-pink-500/20 rounded-full blur-xl hidden lg:block"
+        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      />
 
       {/* Content */}
-      <div className="relative z-10 h-full min-h-[60vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center">
-        <div className="container mx-auto px-4 md:px-8">
-          <div className="max-w-2xl">
-            {/* Badge */}
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.6,
-            delay: 0.2
-          }} className="mb-6">
-              
+      <div className="relative z-10 h-full min-h-[70vh] md:min-h-[85vh] lg:min-h-screen flex items-center">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12">
+          <div className="max-w-3xl">
+            {/* Hot Badge */}
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mb-6"
+            >
+              <span className="inline-flex items-center gap-2 bg-pink-600 text-white text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                New Collection Available
+              </span>
             </motion.div>
 
-            {/* Main Heading */}
-            <motion.h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight" initial={{
-            opacity: 0,
-            y: 30
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.8,
-            delay: 0.3
-          }}>
-              <span className="text-white drop-shadow-2xl">ELSO</span>
-              <br />
-              <span className="bg-gradient-to-r from-pink-400 via-pink-500 to-purple-500 bg-clip-text text-transparent">
-                BOUTIQUE
-              </span>
-            </motion.h1>
+            {/* Main Heading - Pink Boutique Style */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black mb-4 leading-[0.9] tracking-tight">
+                <span className="text-white block">YOUR STYLE.</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-pink-500 to-pink-600 block">
+                  YOUR STORY.
+                </span>
+              </h1>
+            </motion.div>
             
-            {/* Tagline */}
-            <motion.p className="text-lg md:text-xl text-white/90 mb-8 max-w-lg font-light tracking-wide" initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.6,
-            delay: 0.5
-          }}>
-              Discover the latest in luxury African fashion. 
-              Premium outfits, jewelry, bags & accessories.
+            {/* Subheading */}
+            <motion.p 
+              className="text-base sm:text-lg md:text-xl text-white/80 mb-8 max-w-xl font-light leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
+              Discover authentic African fashion. Premium outfits, handcrafted jewelry, 
+              stunning bags & unique accessories for the modern woman.
             </motion.p>
             
             {/* CTA Buttons */}
-            <motion.div className="flex flex-col sm:flex-row gap-4" initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.6,
-            delay: 0.7
-          }}>
-              <Button size="lg" className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-10 py-6 text-lg font-semibold rounded-full shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-300 hover:scale-105" onClick={scrollToCategories}>
-                SHOP NOW
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4 mb-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+            >
+              <Button 
+                size="lg" 
+                className="bg-pink-600 hover:bg-pink-700 text-white px-8 sm:px-12 py-6 sm:py-7 text-base sm:text-lg font-bold rounded-none shadow-2xl hover:shadow-pink-500/40 transition-all duration-300 hover:-translate-y-1 uppercase tracking-wider"
+                onClick={scrollToCategories}
+              >
+                Shop Now
               </Button>
               
-              <Link to="/auth">
-                <Button variant="outline" size="lg" className="bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white hover:text-gray-900 px-10 py-6 text-lg font-semibold rounded-full transition-all duration-300">
-                  JOIN US
+              <Link to="/?category=Outfits">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-pink-600 px-8 sm:px-12 py-6 sm:py-7 text-base sm:text-lg font-bold rounded-none transition-all duration-300 uppercase tracking-wider w-full sm:w-auto"
+                >
+                  View Outfits
                 </Button>
               </Link>
             </motion.div>
 
-            {/* Trust badges */}
-            <motion.div className="flex items-center gap-6 mt-10 text-white/70 text-sm" initial={{
-            opacity: 0
-          }} animate={{
-            opacity: 1
-          }} transition={{
-            duration: 0.6,
-            delay: 0.9
-          }}>
+            {/* Trust Badges */}
+            <motion.div 
+              className="flex flex-wrap items-center gap-4 sm:gap-8 text-white/70 text-xs sm:text-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.9 }}
+            >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                <Truck className="w-4 h-4 text-pink-400" />
                 <span>Free Delivery in Kisumu CBD</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-pink-400"></div>
+                <CreditCard className="w-4 h-4 text-pink-400" />
                 <span>M-Pesa Accepted</span>
+              </div>
+              <div className="flex items-center gap-2 hidden sm:flex">
+                <ShieldCheck className="w-4 h-4 text-pink-400" />
+                <span>Secure Shopping</span>
               </div>
             </motion.div>
           </div>
@@ -142,18 +132,25 @@ const HeroSection = () => {
       </div>
 
       {/* Scroll indicator */}
-      <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10" animate={{
-      y: [0, 10, 0]
-    }} transition={{
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }}>
-        <button onClick={scrollToCategories} className="flex flex-col items-center text-white/60 hover:text-white transition-colors">
-          <span className="text-xs mb-2 tracking-widest uppercase">Scroll</span>
-          <ChevronDown className="w-6 h-6" />
+      <motion.div 
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <button 
+          onClick={scrollToCategories} 
+          className="flex flex-col items-center text-white/60 hover:text-pink-400 transition-colors"
+          aria-label="Scroll to categories"
+        >
+          <span className="text-[10px] mb-1 tracking-widest uppercase font-medium">Explore</span>
+          <ChevronDown className="w-5 h-5" />
         </button>
       </motion.div>
-    </section>;
+
+      {/* Bottom decorative bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-600 via-pink-400 to-pink-600" />
+    </section>
+  );
 };
+
 export default HeroSection;

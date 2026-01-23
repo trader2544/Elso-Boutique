@@ -1,13 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Heart, Star, Shield, Phone, TrendingUp } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Heart, Star, Shield, Phone, TrendingUp, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Cart = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -43,267 +42,266 @@ const Cart = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-2">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-pink-300/30 border-t-pink-500"></div>
-          <p className="text-pink-600 font-medium text-xs">Loading your cart...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
+        <motion.div 
+          className="flex flex-col items-center space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
+          <p className="text-pink-600 font-medium">Loading your cart...</p>
+        </motion.div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30 backdrop-blur-3xl flex items-center justify-center p-2">
-        <div className="w-full max-w-xs mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-pink-500/80 to-pink-400/80 backdrop-blur-xl text-white text-center py-4">
-            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-2">
-              <ShoppingBag className="w-6 h-6" />
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
+        <motion.div 
+          className="w-full max-w-sm"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="border-0 shadow-2xl shadow-pink-200/40 bg-white/90 backdrop-blur-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-600 to-pink-500 text-white text-center py-8">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShoppingBag className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold">Sign In Required</h2>
             </div>
-            <h2 className="text-sm font-bold text-pink-50">Sign In Required</h2>
-          </div>
-          <div className="p-4 text-center">
-            <p className="text-pink-600 mb-4 text-xs">Please sign in to view your cart and start shopping.</p>
-            <Button 
-              onClick={() => navigate("/auth")} 
-              className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-pink-300/20"
-            >
-              Sign In Now
-            </Button>
-          </div>
-        </div>
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-600 mb-6">Please sign in to view your cart and start shopping.</p>
+              <Button 
+                onClick={() => navigate("/auth")} 
+                className="w-full bg-pink-600 hover:bg-pink-700 text-white py-6 font-bold uppercase tracking-wider"
+              >
+                Sign In Now
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50/20 via-white/10 to-pink-100/30">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/5 backdrop-blur-2xl border-b border-white/10">
-        <div className="container mx-auto px-2 py-2">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-pink-100">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
-              className="flex items-center space-x-1 hover:bg-pink-50/20 rounded-lg px-2 py-1 backdrop-blur-xl"
+              className="flex items-center gap-2 hover:bg-pink-50 text-pink-600"
             >
-              <ArrowLeft className="w-3 h-3 text-pink-600" />
-              <span className="hidden sm:inline text-pink-600 font-medium text-xs">Continue Shopping</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Continue Shopping</span>
             </Button>
-            <h1 className="text-sm font-bold text-pink-600">
-              Cart ({cartItems.length})
+            <h1 className="text-lg font-bold text-gray-900">
+              Shopping Bag ({cartItems.length})
             </h1>
-            <div className="w-12"></div>
+            <div className="w-20" />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-2 py-3">
+      <div className="container mx-auto px-4 py-8">
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-pink-300/30 border-t-pink-500 mb-2"></div>
-            <p className="text-pink-600 font-medium text-xs">Loading your cart...</p>
+          <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading your cart...</p>
           </div>
         ) : cartItems.length === 0 ? (
-          <div className="max-w-xs mx-auto">
-            <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-xl overflow-hidden">
-              <CardContent className="text-center py-8 px-4">
-                <div className="w-12 h-12 bg-pink-100/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3">
-                  <ShoppingBag className="w-6 h-6 text-pink-400" />
+          <motion.div 
+            className="max-w-md mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl text-center py-12">
+              <CardContent>
+                <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <ShoppingBag className="w-10 h-10 text-pink-400" />
                 </div>
-                <h2 className="text-sm font-bold text-pink-600 mb-2">Your cart is empty</h2>
-                <p className="text-pink-500 mb-4 text-xs">Discover amazing products and start shopping!</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Your bag is empty</h2>
+                <p className="text-gray-500 mb-8">Discover amazing products and start shopping!</p>
                 <Button 
                   onClick={() => navigate("/")}
-                  className="bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white px-4 py-2 rounded-lg text-xs font-semibold backdrop-blur-xl border border-pink-300/20"
+                  className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-6 font-bold uppercase tracking-wider"
                 >
                   Start Shopping
                 </Button>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-            {/* Cart Items Card */}
-            <div className="lg:col-span-8">
-              <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-xl overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-pink-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-2">
-                  <CardTitle className="text-sm font-bold flex items-center text-pink-600">
-                    <ShoppingBag className="w-3 h-3 mr-1" />
-                    Cart Items ({cartItems.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 space-y-2">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-3 p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                      {/* Product Image */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-pink-100/10 to-pink-50/10 backdrop-blur-sm rounded-md overflow-hidden flex-shrink-0">
-                        {item.products.image_url ? (
-                          <img
-                            src={item.products.image_url}
-                            alt={item.products.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-pink-300 text-xs">
-                            📷
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Cart Items */}
+            <div className="lg:col-span-2 space-y-4">
+              <AnimatePresence>
+                {cartItems.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl overflow-hidden">
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex gap-4">
+                          {/* Product Image */}
+                          <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            {item.products.image_url ? (
+                              <img
+                                src={item.products.image_url}
+                                alt={item.products.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <ShoppingBag className="w-8 h-8" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Product Details */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-xs text-pink-600 truncate">{item.products.name}</p>
-                        <div className="flex items-center space-x-1 mt-0.5">
-                          <span className="text-xs font-bold text-pink-500">
-                            KSh {item.products.price.toLocaleString()}
-                          </span>
-                          {!item.products.in_stock && (
-                            <span className="bg-red-100/20 text-red-400 px-1 py-0.5 rounded-full text-xs font-medium backdrop-blur-xl">
-                              Out of stock
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-pink-500 mt-0.5">Qty: {item.quantity}</p>
-                      </div>
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-gray-900 text-base sm:text-lg mb-1 truncate">
+                              {item.products.name}
+                            </h3>
+                            <p className="text-pink-600 font-bold text-lg mb-3">
+                              KSh {item.products.price.toLocaleString()}
+                            </p>
+                            
+                            {!item.products.in_stock && (
+                              <span className="inline-block bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded mb-2">
+                                Out of stock
+                              </span>
+                            )}
 
-                      {/* Quantity Controls & Price */}
-                      <div className="flex flex-col items-end space-y-1">
-                        <div className="flex items-center space-x-0.5 bg-white/5 backdrop-blur-xl rounded-md p-0.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1 || isLoading}
-                            className="h-5 w-5 rounded-sm hover:bg-pink-100/20"
-                          >
-                            <Minus className="w-2 h-2" />
-                          </Button>
-                          <span className="w-5 text-center font-semibold text-xs text-pink-600">{item.quantity}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={isLoading}
-                            className="h-5 w-5 rounded-sm hover:bg-pink-100/20"
-                          >
-                            <Plus className="w-2 h-2" />
-                          </Button>
+                            <div className="flex items-center justify-between">
+                              {/* Quantity Controls */}
+                              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  disabled={item.quantity <= 1 || isLoading}
+                                  className="h-8 w-8 p-0 hover:bg-white"
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </Button>
+                                <span className="w-8 text-center font-bold">{item.quantity}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  disabled={isLoading}
+                                  className="h-8 w-8 p-0 hover:bg-white"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              </div>
+
+                              {/* Remove Button */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFromCart(item.id)}
+                                disabled={isLoading}
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Item Total */}
+                          <div className="text-right hidden sm:block">
+                            <p className="text-lg font-bold text-gray-900">
+                              KSh {(item.products.price * item.quantity).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                        
-                        <div className="text-right">
-                          <p className="text-xs font-bold text-pink-600">
-                            KSh {(item.products.price * item.quantity).toLocaleString()}
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFromCart(item.id)}
-                            disabled={isLoading}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-50/10 rounded-sm text-xs p-0.5 mt-0.5"
-                          >
-                            <Trash2 className="w-2 h-2" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
-            {/* Order Summary Card */}
-            <div className="lg:col-span-4">
-              <div className="sticky top-16 space-y-3">
-                <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-pink-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-2">
-                    <CardTitle className="text-sm font-bold flex items-center text-pink-600">
-                      <ShoppingBag className="w-3 h-3 mr-1" />
-                      Order Summary
-                    </CardTitle>
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-24 space-y-6">
+                <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
+                  <CardHeader className="pb-4 border-b border-gray-100">
+                    <CardTitle className="text-lg font-bold">Order Summary</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-3 space-y-3">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-pink-500">Subtotal ({cartItems.length} items):</span>
-                        <span className="font-semibold text-pink-600">KSh {getTotalPrice().toLocaleString()}</span>
-                      </div>
-                      <div className="border-t border-pink-100/20 pt-2">
-                        <div className="flex justify-between text-sm font-bold">
-                          <span className="text-pink-600">Total:</span>
-                          <span className="text-pink-600">
-                            KSh {getTotalPrice().toLocaleString()}
-                          </span>
-                        </div>
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal ({cartItems.length} items)</span>
+                      <span className="font-medium">KSh {getTotalPrice().toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Delivery</span>
+                      <span className="font-medium text-green-600">Calculated at checkout</span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-4">
+                      <div className="flex justify-between text-lg font-bold">
+                        <span>Total</span>
+                        <span className="text-pink-600">KSh {getTotalPrice().toLocaleString()}</span>
                       </div>
                     </div>
 
                     <Button
                       onClick={proceedToCheckout}
-                      className="w-full bg-gradient-to-r from-pink-500/80 to-pink-400/80 hover:from-pink-600/80 hover:to-pink-500/80 text-white py-2 rounded-lg text-xs font-bold backdrop-blur-xl border border-pink-300/20"
+                      className="w-full bg-pink-600 hover:bg-pink-700 text-white py-6 font-bold uppercase tracking-wider group"
                       disabled={cartItems.some(item => !item.products.in_stock) || isLoading}
                     >
-                      Proceed to Checkout
+                      Checkout
+                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
                     
                     {cartItems.some(item => !item.products.in_stock) && (
-                      <div className="bg-red-50/10 backdrop-blur-xl border border-red-200/20 rounded-lg p-2">
-                        <p className="text-red-400 text-xs font-medium text-center">
-                          ⚠️ Remove out of stock items to proceed
-                        </p>
-                      </div>
+                      <p className="text-red-500 text-sm text-center">
+                        Remove out of stock items to proceed
+                      </p>
                     )}
                   </CardContent>
                 </Card>
 
-                {/* Store Features Card */}
-                <Card className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl rounded-xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-purple-500/20 to-pink-400/20 backdrop-blur-xl border-b border-white/10 py-1">
-                    <CardTitle className="text-xs font-bold flex items-center text-pink-600">
-                      <Heart className="w-3 h-3 mr-1" />
-                      Why Choose Us?
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-2 space-y-1">
-                    <div className="flex items-start space-x-1">
-                      <Star className="w-3 h-3 text-yellow-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold text-xs text-pink-600">Premium Quality</h4>
-                        <p className="text-xs text-pink-500">Top-quality products carefully selected</p>
+                {/* Trust Badges */}
+                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-xl">
+                  <CardContent className="py-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                          <Shield className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Secure Checkout</p>
+                          <p className="text-xs text-gray-500">Your data is protected</p>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-1">
-                      <Shield className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold text-xs text-pink-600">Premium Packaging</h4>
-                        <p className="text-xs text-pink-500">Secure & elegant packaging</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-600">
+                          M
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">M-Pesa Payment</p>
+                          <p className="text-xs text-gray-500">Easy & fast mobile payments</p>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-1">
-                      <div className="w-3 h-3 bg-green-500/80 rounded text-white text-xs flex items-center justify-center mt-0.5 font-bold flex-shrink-0">
-                        M
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-xs text-pink-600">M-Pesa Payment</h4>
-                        <p className="text-xs text-pink-500">Easy & secure mobile payments</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-1">
-                      <Phone className="w-3 h-3 text-blue-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold text-xs text-pink-600">24/7 Customer Care</h4>
-                        <p className="text-xs text-pink-500">Full-time support via call or WhatsApp</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-1">
-                      <TrendingUp className="w-3 h-3 text-pink-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold text-xs text-pink-600">Trusted Store</h4>
-                        <p className="text-xs text-pink-500">Popular choice among thousands</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                          <Heart className="w-5 h-5 text-pink-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Premium Quality</p>
+                          <p className="text-xs text-gray-500">Carefully selected products</p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
