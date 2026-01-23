@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, ShoppingCart, Star, ArrowLeft } from "lucide-react";
+import { Heart, ShoppingCart, Star, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ColorImageSelector from "@/components/ColorImageSelector";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Product {
   id: string;
@@ -70,7 +71,7 @@ const ProductDetail = () => {
 
       if (error) throw error;
       setProduct(data);
-      setCurrentImageIndex(0); // Reset to first image when product changes
+      setCurrentImageIndex(0);
     } catch (error) {
       console.error("Error fetching product:", error);
       toast({
@@ -107,6 +108,7 @@ const ProductDetail = () => {
         title: "Sign in required",
         description: "Please sign in to add items to cart",
       });
+      navigate("/auth");
       return;
     }
 
@@ -122,8 +124,8 @@ const ProductDetail = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Item added to cart",
+        title: "Added to bag! 🛍️",
+        description: `${product?.name} has been added to your cart`,
       });
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -168,8 +170,8 @@ const ProductDetail = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: isInWishlist ? "Removed from wishlist" : "Added to wishlist",
+        title: isInWishlist ? "Removed from wishlist" : "Added to wishlist! ❤️",
+        description: isInWishlist ? "Item removed from your wishlist" : "You can view it in your wishlist",
       });
     } catch (error) {
       console.error("Error updating wishlist:", error);
@@ -203,8 +205,8 @@ const ProductDetail = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Review submitted successfully",
+        title: "Review submitted! ⭐",
+        description: "Thank you for your feedback",
       });
 
       setNewReview({ rating: 5, comment: "" });
@@ -224,7 +226,6 @@ const ProductDetail = () => {
     setCurrentImageIndex(imageIndex);
   };
 
-  // Get available images (prioritize images array, fallback to image_url)
   const availableImages = product?.images && product.images.length > 0 
     ? product.images 
     : product?.image_url 
@@ -235,52 +236,101 @@ const ProductDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
+        <motion.div 
+          className="flex flex-col items-center space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
+          <p className="text-pink-600 font-medium">Loading product...</p>
+        </motion.div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-4">Product not found</h2>
-          <Button onClick={() => navigate("/")}>Back to Home</Button>
+          <Button onClick={() => navigate("/")} className="bg-pink-600 hover:bg-pink-700">
+            Back to Home
+          </Button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className={`container mx-auto px-4 py-4 ${isMobile ? 'max-w-sm' : ''}`}>
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className={`mb-4 ${isMobile ? 'text-sm h-8' : ''}`}
-        >
-          <ArrowLeft className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
-          Back
-        </Button>
+  const discountPercentage = product.previous_price 
+    ? Math.round(((product.previous_price - product.price) / product.previous_price) * 100)
+    : 0;
 
-        <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-6`}>
-          <div className="space-y-3">
-            <div className={`${isMobile ? 'aspect-square' : 'aspect-square'} bg-white rounded-lg shadow-md overflow-hidden`}>
-              {currentImage ? (
-                <img
-                  src={currentImage}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-xl border-b border-pink-100 sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* Product Images */}
+          <motion.div 
+            className="space-y-4"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <div className="relative aspect-square bg-white rounded-2xl shadow-xl overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentImageIndex}
+                  src={currentImage || ""}
                   alt={product.name}
                   className="w-full h-full object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
-                  📷
+              </AnimatePresence>
+              
+              {/* Discount Badge */}
+              {discountPercentage > 0 && (
+                <div className="absolute top-4 left-4 bg-pink-600 text-white text-sm font-bold px-3 py-1 rounded">
+                  -{discountPercentage}%
                 </div>
               )}
             </div>
             
-            {/* Color Image Selector - Outside the image container */}
+            {/* Thumbnail Gallery */}
+            {availableImages.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {availableImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleImageChange(idx)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      idx === currentImageIndex 
+                        ? 'border-pink-600 shadow-lg' 
+                        : 'border-transparent hover:border-pink-300'
+                    }`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+            
             {availableImages.length > 1 && (
               <ColorImageSelector
                 images={availableImages}
@@ -289,96 +339,149 @@ const ProductDetail = () => {
                 currentImageIndex={currentImageIndex}
               />
             )}
-          </div>
+          </motion.div>
 
-          <div className={`space-y-3 ${isMobile ? 'px-2' : 'space-y-4'}`}>
+          {/* Product Info */}
+          <motion.div 
+            className="space-y-6"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
             <div>
-              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold mb-2`}>{product.name}</h1>
-              <p className={`text-gray-600 mb-3 ${isMobile ? 'text-sm' : ''}`}>{product.description}</p>
-              
-              <div className={`flex items-center space-x-3 mb-3 ${isMobile ? 'space-x-2' : ''}`}>
-                <span className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-pink-600`}>
-                  KSh {product.price.toLocaleString()}
-                </span>
-                {product.previous_price && (
-                  <span className={`${isMobile ? 'text-base' : 'text-lg'} text-gray-500 line-through`}>
-                    KSh {product.previous_price.toLocaleString()}
-                  </span>
-                )}
-              </div>
+              <p className="text-pink-600 text-sm font-medium uppercase tracking-wider mb-2">
+                {product.category}
+              </p>
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-4">
+                {product.name}
+              </h1>
+              <p className="text-gray-600 leading-relaxed">
+                {product.description}
+              </p>
+            </div>
 
-              {product.rating && (
-                <div className={`flex items-center space-x-2 mb-3 ${isMobile ? 'space-x-1' : ''}`}>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${
-                          i < Math.floor(product.rating!)
-                            ? "text-yellow-400 fill-current"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    {product.rating} ({product.review_count} reviews)
-                  </span>
-                </div>
+            {/* Price */}
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-black text-pink-600">
+                KSh {product.price.toLocaleString()}
+              </span>
+              {product.previous_price && (
+                <span className="text-xl text-gray-400 line-through">
+                  KSh {product.previous_price.toLocaleString()}
+                </span>
               )}
             </div>
 
-            <div className={`space-y-3 ${isMobile ? 'space-y-2' : ''}`}>
-              <div className={`flex items-center space-x-3 ${isMobile ? 'space-x-2' : ''}`}>
-                <label className={`font-medium ${isMobile ? 'text-sm' : ''}`}>Qty:</label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className={`${isMobile ? 'w-14 h-8 text-sm' : 'w-16'}`}
-                />
+            {/* Rating */}
+            {product.rating && (
+              <div className="flex items-center gap-2">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < Math.floor(product.rating!)
+                          ? "text-yellow-400 fill-current"
+                          : "text-gray-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-gray-600">
+                  {product.rating} ({product.review_count} reviews)
+                </span>
+              </div>
+            )}
+
+            {/* Stock Status */}
+            {!product.in_stock && (
+              <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium">
+                Out of Stock
+              </div>
+            )}
+
+            {/* Quantity & Actions */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <label className="font-medium text-gray-700">Quantity:</label>
+                <div className="flex items-center bg-gray-100 rounded-lg">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="h-10 w-10"
+                  >
+                    -
+                  </Button>
+                  <span className="w-12 text-center font-bold">{quantity}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="h-10 w-10"
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
 
-              <div className={`flex space-x-3 ${isMobile ? 'space-x-2' : ''}`}>
+              <div className="flex gap-3">
                 <Button 
                   onClick={addToCart} 
-                  className={`flex-1 ${isMobile ? 'text-sm h-9' : ''}`}
+                  className="flex-1 bg-pink-600 hover:bg-pink-700 text-white py-6 font-bold uppercase tracking-wider"
+                  disabled={!product.in_stock}
                 >
-                  <ShoppingCart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
-                  Add to Cart
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  Add to Bag
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={addToWishlist}
-                  className={`${isMobile ? 'h-9 px-3' : ''}`}
+                  className="px-6 py-6 border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50"
                 >
-                  <Heart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                  <Heart className="w-5 h-5 text-pink-600" />
                 </Button>
               </div>
             </div>
-          </div>
+
+            {/* Trust Badges */}
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
+              <div className="text-center">
+                <Truck className="w-6 h-6 text-pink-600 mx-auto mb-2" />
+                <p className="text-xs text-gray-600">Free Delivery in Kisumu CBD</p>
+              </div>
+              <div className="text-center">
+                <Shield className="w-6 h-6 text-pink-600 mx-auto mb-2" />
+                <p className="text-xs text-gray-600">Secure Payment</p>
+              </div>
+              <div className="text-center">
+                <RotateCcw className="w-6 h-6 text-pink-600 mx-auto mb-2" />
+                <p className="text-xs text-gray-600">Easy Returns</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
-          <Card className={`${isMobile ? 'mx-2' : ''}`}>
-            <CardHeader className={`${isMobile ? 'pb-2' : ''}`}>
-              <CardTitle className={`${isMobile ? 'text-base' : ''}`}>Write a Review</CardTitle>
+        {/* Reviews Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
+            <CardHeader className="border-b border-gray-100">
+              <CardTitle>Write a Review</CardTitle>
             </CardHeader>
-            <CardContent className={`space-y-3 ${isMobile ? 'space-y-2 pt-0' : ''}`}>
+            <CardContent className="pt-6 space-y-4">
               <div>
-                <label className={`block font-medium mb-1 ${isMobile ? 'text-sm' : 'text-sm'}`}>Rating</label>
-                <div className="flex space-x-1">
+                <label className="block text-sm font-medium mb-2">Rating</label>
+                <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       onClick={() => setNewReview({ ...newReview, rating: star })}
+                      className="focus:outline-none"
                     >
                       <Star
-                        className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${
+                        className={`w-8 h-8 transition-colors ${
                           star <= newReview.rating
                             ? "text-yellow-400 fill-current"
-                            : "text-gray-300"
+                            : "text-gray-200 hover:text-yellow-200"
                         }`}
                       />
                     </button>
@@ -387,59 +490,73 @@ const ProductDetail = () => {
               </div>
               
               <div>
-                <label className={`block font-medium mb-1 ${isMobile ? 'text-sm' : 'text-sm'}`}>Comment</label>
+                <label className="block text-sm font-medium mb-2">Your Review</label>
                 <Textarea
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                  placeholder="Share your thoughts..."
-                  className={`${isMobile ? 'text-sm min-h-16' : ''}`}
+                  placeholder="Share your experience with this product..."
+                  rows={4}
+                  className="border-gray-200 focus:border-pink-400 focus:ring-pink-400"
                 />
               </div>
               
               <Button 
                 onClick={submitReview} 
-                className={`w-full ${isMobile ? 'text-sm h-8' : ''}`}
+                className="w-full bg-pink-600 hover:bg-pink-700 font-bold uppercase tracking-wider"
               >
                 Submit Review
               </Button>
             </CardContent>
           </Card>
 
-          <Card className={`${isMobile ? 'mx-2' : ''}`}>
-            <CardHeader className={`${isMobile ? 'pb-2' : ''}`}>
-              <CardTitle className={`${isMobile ? 'text-base' : ''}`}>Reviews</CardTitle>
+          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
+            <CardHeader className="border-b border-gray-100">
+              <CardTitle>Customer Reviews ({reviews.length})</CardTitle>
             </CardHeader>
-            <CardContent className={`${isMobile ? 'pt-0' : ''}`}>
+            <CardContent className="pt-6">
               {reviews.length === 0 ? (
-                <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>No reviews yet.</p>
+                <div className="text-center py-8 text-gray-500">
+                  <Star className="w-12 h-12 mx-auto mb-4 text-gray-200" />
+                  <p>No reviews yet. Be the first to review!</p>
+                </div>
               ) : (
-                <div className={`space-y-3 ${isMobile ? 'space-y-2' : ''}`}>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
                   {reviews.map((review) => (
-                    <div key={review.id} className={`border-b pb-3 ${isMobile ? 'pb-2' : ''}`}>
-                      <div className={`flex items-center space-x-2 mb-1 ${isMobile ? 'space-x-1' : ''}`}>
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} ${
-                                i < review.rating
-                                  ? "text-yellow-400 fill-current"
-                                  : "text-gray-300"
-                              }`}
-                            />
-                          ))}
+                    <motion.div 
+                      key={review.id} 
+                      className="border-b border-gray-100 pb-4 last:border-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 font-bold text-sm">
+                            {(review.profiles?.full_name || 'A').charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-sm">
+                            {review.profiles?.full_name || 'Anonymous'}
+                          </span>
                         </div>
-                        <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          {review.profiles?.full_name || 'Anonymous'}
-                        </span>
-                        <span className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                        <span className="text-xs text-gray-400">
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
+                      <div className="flex mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < review.rating
+                                ? "text-yellow-400 fill-current"
+                                : "text-gray-200"
+                            }`}
+                          />
+                        ))}
+                      </div>
                       {review.comment && (
-                        <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>{review.comment}</p>
+                        <p className="text-gray-600 text-sm">{review.comment}</p>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}

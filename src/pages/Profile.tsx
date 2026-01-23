@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, User, Package, Mail, Phone, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Order, convertJsonToOrderProducts } from "@/types/order";
+import { motion } from "framer-motion";
 
 interface UserProfile {
   full_name: string;
@@ -35,10 +36,8 @@ const Profile = () => {
     const initializeUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        console.log("User from auth:", user);
         
         if (!user) {
-          console.log("No user found, redirecting to auth");
           navigate("/auth");
           return;
         }
@@ -60,11 +59,9 @@ const Profile = () => {
     initializeUser();
   }, [navigate, toast]);
 
-  // Add real-time subscription for order updates
   useEffect(() => {
     if (!user) return;
 
-    console.log("Setting up real-time subscription for orders");
     const channel = supabase
       .channel('order-updates')
       .on(
@@ -76,8 +73,6 @@ const Profile = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Real-time order update received:', payload);
-          
           if (payload.eventType === 'UPDATE') {
             const updatedOrder = {
               ...payload.new,
@@ -90,7 +85,6 @@ const Profile = () => {
               )
             );
 
-            // Show toast notification for status changes
             if (payload.old.status !== payload.new.status) {
               toast({
                 title: "Order Status Updated",
@@ -103,14 +97,12 @@ const Profile = () => {
       .subscribe();
 
     return () => {
-      console.log("Cleaning up real-time subscription");
       supabase.removeChannel(channel);
     };
   }, [user, toast]);
 
   const fetchProfile = async (currentUser: SupabaseUser) => {
     try {
-      console.log("Fetching profile for user:", currentUser.id);
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -118,9 +110,7 @@ const Profile = () => {
         .single();
 
       if (error) {
-        console.error("Profile fetch error:", error);
         if (error.code === 'PGRST116') {
-          console.log("Profile not found, creating new profile");
           const { error: insertError } = await supabase
             .from("profiles")
             .insert({
@@ -131,10 +121,7 @@ const Profile = () => {
               role: "user"
             });
           
-          if (insertError) {
-            console.error("Error creating profile:", insertError);
-            throw insertError;
-          }
+          if (insertError) throw insertError;
           
           setProfile({
             full_name: "",
@@ -146,7 +133,6 @@ const Profile = () => {
         throw error;
       }
       
-      console.log("Profile data:", data);
       setProfile({
         full_name: data.full_name || "",
         phone: data.phone || "",
@@ -164,25 +150,19 @@ const Profile = () => {
 
   const fetchOrders = async (userId: string) => {
     try {
-      console.log("Fetching orders for user:", userId);
       const { data, error } = await supabase
         .from("orders")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Orders fetch error:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log("Raw orders data:", data);
       const formattedOrders = (data || []).map(order => ({
         ...order,
         products: convertJsonToOrderProducts(order.products)
       }));
       
-      console.log("Formatted orders:", formattedOrders);
       setOrders(formattedOrders);
     } catch (error) {
       console.error("Error in fetchOrders:", error);
@@ -206,8 +186,8 @@ const Profile = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Profile updated successfully",
+        title: "Profile Updated! 🎉",
+        description: "Your changes have been saved.",
       });
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -223,33 +203,40 @@ const Profile = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "paid": return "bg-blue-100 text-blue-800";
-      case "shipped": return "bg-purple-100 text-purple-800";
-      case "delivered": return "bg-green-100 text-green-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "pending": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "paid": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "shipped": return "bg-purple-100 text-purple-800 border-purple-200";
+      case "delivered": return "bg-green-100 text-green-800 border-green-200";
+      case "cancelled": return "bg-red-100 text-red-800 border-red-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
+        <motion.div 
+          className="flex flex-col items-center space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
+          <p className="text-pink-600 font-medium">Loading your profile...</p>
+        </motion.div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Sign In Required</CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-0 shadow-2xl">
+          <CardHeader className="text-center">
+            <CardTitle>Sign In Required</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-gray-600 mb-4">Please sign in to view your profile.</p>
-            <Button onClick={() => navigate("/auth")} className="w-full text-sm">
+          <CardContent>
+            <p className="text-gray-600 mb-6 text-center">Please sign in to view your profile.</p>
+            <Button onClick={() => navigate("/auth")} className="w-full bg-pink-600 hover:bg-pink-700">
               Sign In
             </Button>
           </CardContent>
@@ -259,131 +246,204 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-6xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4 text-sm h-8 px-2"
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-xl border-b border-pink-100 sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Profile Header */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          <ArrowLeft className="w-3 h-3 mr-1" />
-          Back to Home
-        </Button>
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+              {profile.full_name ? profile.full_name.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {profile.full_name || 'Welcome!'}
+              </h1>
+              <p className="text-gray-500">{profile.email}</p>
+            </div>
+          </div>
+        </motion.div>
 
-        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">My Profile</h1>
-
-        <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 h-9">
-            <TabsTrigger value="profile" className="text-sm">Profile</TabsTrigger>
-            <TabsTrigger value="orders" className="text-sm">Orders</TabsTrigger>
+        <Tabs defaultValue="profile" className="space-y-6">
+          <TabsList className="w-full grid grid-cols-2 bg-white/80 backdrop-blur-xl shadow-lg p-1 rounded-xl">
+            <TabsTrigger 
+              value="profile"
+              className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-semibold rounded-lg py-3"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger 
+              value="orders"
+              className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-semibold rounded-lg py-3"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Orders
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
-            <Card className="shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Personal Information</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <form onSubmit={updateProfile} className="space-y-3">
-                  <div>
-                    <Label htmlFor="fullName" className="text-sm">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      value={profile.full_name}
-                      onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                      placeholder="Enter your full name"
-                      className="mt-1 h-9 text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="email" className="text-sm">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile.email}
-                      disabled
-                      className="mt-1 h-9 text-sm bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Email cannot be changed from here
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="phone" className="text-sm">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      placeholder="Enter your phone number"
-                      className="mt-1 h-9 text-sm"
-                    />
-                  </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
+                <CardHeader className="border-b border-gray-100">
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-pink-600" />
+                    Personal Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <form onSubmit={updateProfile} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="flex items-center gap-2 text-sm font-medium">
+                        <User className="w-4 h-4 text-pink-500" />
+                        Full Name
+                      </Label>
+                      <Input
+                        id="fullName"
+                        value={profile.full_name}
+                        onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                        placeholder="Enter your full name"
+                        className="h-12 border-gray-200 focus:border-pink-400 focus:ring-pink-400"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+                        <Mail className="w-4 h-4 text-pink-500" />
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profile.email}
+                        disabled
+                        className="h-12 bg-gray-50"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Email cannot be changed from here
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="flex items-center gap-2 text-sm font-medium">
+                        <Phone className="w-4 h-4 text-pink-500" />
+                        Phone Number
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={profile.phone}
+                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                        placeholder="Enter your phone number"
+                        className="h-12 border-gray-200 focus:border-pink-400 focus:ring-pink-400"
+                      />
+                    </div>
 
-                  <Button type="submit" disabled={updating} className="text-sm h-9 px-4">
-                    {updating ? "Updating..." : "Update Profile"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                    <Button 
+                      type="submit" 
+                      disabled={updating} 
+                      className="bg-pink-600 hover:bg-pink-700 text-white font-bold uppercase tracking-wider h-12 px-8"
+                    >
+                      {updating ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           <TabsContent value="orders">
-            <Card className="shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Order History</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {orders.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-sm text-gray-600 mb-3">No orders yet</p>
-                    <Button onClick={() => navigate("/")} className="text-sm h-9">
-                      Start Shopping
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {orders.map((order) => (
-                      <div key={order.id} className="border rounded-lg p-3 bg-white">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-3 gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium">Order #{order.id.slice(-8)}</p>
-                            <p className="text-xs text-gray-600">
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Badge className={`${getStatusColor(order.status)} text-xs px-2 py-1 shrink-0`}>
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-1 mb-3">
-                          {order.products.map((product, index) => (
-                            <div key={index} className="flex justify-between text-xs">
-                              <span className="truncate mr-2">{product.name} x {product.quantity}</span>
-                              <span className="text-pink-600 font-medium shrink-0">
-                                KSh {(product.price * product.quantity).toLocaleString()}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        <div className="border-t pt-2">
-                          <div className="flex justify-between text-sm font-medium">
-                            <span>Total:</span>
-                            <span className="text-pink-600">
-                              KSh {order.total_price.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
+                <CardHeader className="border-b border-gray-100">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-pink-600" />
+                    Order History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {orders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Package className="w-10 h-10 text-pink-400" />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">No orders yet</h3>
+                      <p className="text-gray-500 mb-6">Start shopping to see your orders here</p>
+                      <Button onClick={() => navigate("/")} className="bg-pink-600 hover:bg-pink-700">
+                        Start Shopping
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order, index) => (
+                        <motion.div 
+                          key={order.id} 
+                          className="border border-gray-100 rounded-xl p-4 hover:shadow-lg transition-shadow bg-white"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
+                            <div>
+                              <p className="font-bold text-gray-900">Order #{order.id.slice(-8)}</p>
+                              <p className="text-sm text-gray-500">
+                                {new Date(order.created_at).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <Badge className={`${getStatusColor(order.status)} border font-semibold px-3 py-1`}>
+                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-2 mb-4">
+                            {order.products.map((product, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span className="text-gray-600">{product.name} × {product.quantity}</span>
+                                <span className="font-medium">KSh {(product.price * product.quantity).toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="border-t border-gray-100 pt-3">
+                            <div className="flex justify-between font-bold">
+                              <span>Total</span>
+                              <span className="text-pink-600">KSh {order.total_price.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </div>
