@@ -173,6 +173,54 @@ const Profile = () => {
     }
   };
 
+  const fetchExistingReviews = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("product_id")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      const reviewedIds = new Set((data || []).map(r => r.product_id).filter(Boolean) as string[]);
+      setExistingReviews(reviewedIds);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+
+  const submitReview = async (productId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("reviews")
+        .insert({
+          user_id: user.id,
+          product_id: productId,
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Review submitted! ⭐",
+        description: "Thank you for your feedback",
+      });
+
+      setReviewData({ rating: 5, comment: "" });
+      setReviewingProduct(null);
+      setExistingReviews(prev => new Set([...prev, productId]));
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
