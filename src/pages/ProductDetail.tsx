@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, ShoppingCart, Star, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +46,7 @@ const ProductDetail = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { toast } = useToast();
 
