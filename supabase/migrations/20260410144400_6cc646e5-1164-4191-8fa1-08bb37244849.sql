@@ -1,0 +1,1 @@
+UPDATE public.products SET category = TRIM(category) WHERE category != TRIM(category);
