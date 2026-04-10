@@ -68,7 +68,7 @@ const ShopByCategory = () => {
         
         {/* Category Grid - Centered */}
         <div className="flex justify-center">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl w-full">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 max-w-6xl w-full">
             {categories.map((category, index) => (
               <motion.div
                 key={category.name}
@@ -79,7 +79,7 @@ const ShopByCategory = () => {
                 className="group cursor-pointer"
                 onClick={() => handleCategoryClick(category.name)}
               >
-                <div className="relative overflow-hidden bg-gray-100 aspect-[3/4] md:aspect-[4/5]">
+                <div className="relative overflow-hidden bg-gray-100 aspect-[3/4] md:aspect-[4/5] rounded-lg">
                   {/* Image */}
                   <motion.img
                     src={category.image}
