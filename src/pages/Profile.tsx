@@ -47,7 +47,7 @@ const Profile = () => {
         }
         
         setUser(user);
-        await Promise.all([fetchProfile(user), fetchOrders(user.id)]);
+        await Promise.all([fetchProfile(user), fetchOrders(user.id), fetchExistingReviews(user.id)]);
       } catch (error) {
         console.error("Error initializing user:", error);
         toast({
