@@ -462,53 +462,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Reviews Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
-            <CardHeader className="border-b border-gray-100">
-              <CardTitle>Write a Review</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Rating</label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setNewReview({ ...newReview, rating: star })}
-                      className="focus:outline-none"
-                    >
-                      <Star
-                        className={`w-8 h-8 transition-colors ${
-                          star <= newReview.rating
-                            ? "text-yellow-400 fill-current"
-                            : "text-gray-200 hover:text-yellow-200"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Your Review</label>
-                <Textarea
-                  value={newReview.comment}
-                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                  placeholder="Share your experience with this product..."
-                  rows={4}
-                  className="border-gray-200 focus:border-pink-400 focus:ring-pink-400"
-                />
-              </div>
-              
-              <Button 
-                onClick={submitReview} 
-                className="w-full bg-pink-600 hover:bg-pink-700 font-bold uppercase tracking-wider"
-              >
-                Submit Review
-              </Button>
-            </CardContent>
-          </Card>
-
+        <div className="max-w-3xl mx-auto">
           <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100">
               <CardTitle>Customer Reviews ({reviews.length})</CardTitle>
