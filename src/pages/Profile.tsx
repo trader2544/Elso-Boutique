@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Package, Mail, Phone, Settings } from "lucide-react";
+import { ArrowLeft, User, Package, Mail, Phone, Settings, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -29,6 +30,9 @@ const Profile = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [reviewingProduct, setReviewingProduct] = useState<string | null>(null);
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: "" });
+  const [existingReviews, setExistingReviews] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -43,7 +47,7 @@ const Profile = () => {
         }
         
         setUser(user);
-        await Promise.all([fetchProfile(user), fetchOrders(user.id)]);
+        await Promise.all([fetchProfile(user), fetchOrders(user.id), fetchExistingReviews(user.id)]);
       } catch (error) {
         console.error("Error initializing user:", error);
         toast({
@@ -166,6 +170,54 @@ const Profile = () => {
       setOrders(formattedOrders);
     } catch (error) {
       console.error("Error in fetchOrders:", error);
+    }
+  };
+
+  const fetchExistingReviews = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("product_id")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      const reviewedIds = new Set((data || []).map(r => r.product_id).filter(Boolean) as string[]);
+      setExistingReviews(reviewedIds);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+
+  const submitReview = async (productId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("reviews")
+        .insert({
+          user_id: user.id,
+          product_id: productId,
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Review submitted! ⭐",
+        description: "Thank you for your feedback",
+      });
+
+      setReviewData({ rating: 5, comment: "" });
+      setReviewingProduct(null);
+      setExistingReviews(prev => new Set([...prev, productId]));
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review",
+        variant: "destructive",
+      });
     }
   };
 
@@ -437,6 +489,79 @@ const Profile = () => {
                               <span className="text-pink-600">KSh {order.total_price.toLocaleString()}</span>
                             </div>
                           </div>
+
+                          {/* Review section for delivered orders */}
+                          {order.status === "delivered" && (
+                            <div className="border-t border-gray-100 pt-3 mt-3 space-y-2">
+                              <p className="text-sm font-semibold text-gray-700">Rate your products:</p>
+                              {order.products.map((product) => {
+                                const alreadyReviewed = existingReviews.has(product.id);
+                                const isReviewing = reviewingProduct === product.id;
+                                return (
+                                  <div key={product.id} className="bg-gray-50 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-gray-700">{product.name}</span>
+                                      {alreadyReviewed ? (
+                                        <Badge className="bg-green-100 text-green-700 border-green-200">Reviewed ✓</Badge>
+                                      ) : (
+                                        <Button
+                                          size="sm"
+                                          variant={isReviewing ? "secondary" : "outline"}
+                                          onClick={() => {
+                                            setReviewingProduct(isReviewing ? null : product.id);
+                                            setReviewData({ rating: 5, comment: "" });
+                                          }}
+                                          className="text-xs border-pink-200 hover:bg-pink-50"
+                                        >
+                                          <Star className="w-3 h-3 mr-1" />
+                                          {isReviewing ? "Cancel" : "Write Review"}
+                                        </Button>
+                                      )}
+                                    </div>
+                                    {isReviewing && (
+                                      <motion.div 
+                                        className="mt-3 space-y-3"
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                      >
+                                        <div className="flex gap-1">
+                                          {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                              key={star}
+                                              onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                              className="focus:outline-none"
+                                            >
+                                              <Star
+                                                className={`w-6 h-6 transition-colors ${
+                                                  star <= reviewData.rating
+                                                    ? "text-yellow-400 fill-current"
+                                                    : "text-gray-200 hover:text-yellow-200"
+                                                }`}
+                                              />
+                                            </button>
+                                          ))}
+                                        </div>
+                                        <Textarea
+                                          value={reviewData.comment}
+                                          onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                                          placeholder="Share your experience..."
+                                          rows={3}
+                                          className="border-gray-200 focus:border-pink-400 focus:ring-pink-400 text-sm"
+                                        />
+                                        <Button
+                                          size="sm"
+                                          onClick={() => submitReview(product.id)}
+                                          className="bg-pink-600 hover:bg-pink-700 text-white text-xs"
+                                        >
+                                          Submit Review
+                                        </Button>
+                                      </motion.div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                     </div>

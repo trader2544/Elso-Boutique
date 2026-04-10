@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, ShoppingCart, Star, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +44,6 @@ const ProductDetail = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { toast } = useToast();
 
@@ -183,44 +180,8 @@ const ProductDetail = () => {
     }
   };
 
-  const submitReview = async () => {
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to leave a review",
-      });
-      return;
-    }
 
-    try {
-      const { error } = await supabase
-        .from("reviews")
-        .insert({
-          user_id: user.id,
-          product_id: id,
-          rating: newReview.rating,
-          comment: newReview.comment,
-        });
 
-      if (error) throw error;
-
-      toast({
-        title: "Review submitted! ⭐",
-        description: "Thank you for your feedback",
-      });
-
-      setNewReview({ rating: 5, comment: "" });
-      fetchReviews();
-      fetchProduct();
-    } catch (error) {
-      console.error("Error submitting review:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleImageChange = (imageIndex: number) => {
     setCurrentImageIndex(imageIndex);
@@ -462,53 +423,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Reviews Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
-            <CardHeader className="border-b border-gray-100">
-              <CardTitle>Write a Review</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Rating</label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setNewReview({ ...newReview, rating: star })}
-                      className="focus:outline-none"
-                    >
-                      <Star
-                        className={`w-8 h-8 transition-colors ${
-                          star <= newReview.rating
-                            ? "text-yellow-400 fill-current"
-                            : "text-gray-200 hover:text-yellow-200"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Your Review</label>
-                <Textarea
-                  value={newReview.comment}
-                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                  placeholder="Share your experience with this product..."
-                  rows={4}
-                  className="border-gray-200 focus:border-pink-400 focus:ring-pink-400"
-                />
-              </div>
-              
-              <Button 
-                onClick={submitReview} 
-                className="w-full bg-pink-600 hover:bg-pink-700 font-bold uppercase tracking-wider"
-              >
-                Submit Review
-              </Button>
-            </CardContent>
-          </Card>
-
+        <div className="max-w-3xl mx-auto">
           <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100">
               <CardTitle>Customer Reviews ({reviews.length})</CardTitle>
