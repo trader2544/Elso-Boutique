@@ -30,6 +30,9 @@ const Profile = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [reviewingProduct, setReviewingProduct] = useState<string | null>(null);
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: "" });
+  const [existingReviews, setExistingReviews] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
 
