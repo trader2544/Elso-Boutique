@@ -489,6 +489,79 @@ const Profile = () => {
                               <span className="text-pink-600">KSh {order.total_price.toLocaleString()}</span>
                             </div>
                           </div>
+
+                          {/* Review section for delivered orders */}
+                          {order.status === "delivered" && (
+                            <div className="border-t border-gray-100 pt-3 mt-3 space-y-2">
+                              <p className="text-sm font-semibold text-gray-700">Rate your products:</p>
+                              {order.products.map((product) => {
+                                const alreadyReviewed = existingReviews.has(product.id);
+                                const isReviewing = reviewingProduct === product.id;
+                                return (
+                                  <div key={product.id} className="bg-gray-50 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-gray-700">{product.name}</span>
+                                      {alreadyReviewed ? (
+                                        <Badge className="bg-green-100 text-green-700 border-green-200">Reviewed ✓</Badge>
+                                      ) : (
+                                        <Button
+                                          size="sm"
+                                          variant={isReviewing ? "secondary" : "outline"}
+                                          onClick={() => {
+                                            setReviewingProduct(isReviewing ? null : product.id);
+                                            setReviewData({ rating: 5, comment: "" });
+                                          }}
+                                          className="text-xs border-pink-200 hover:bg-pink-50"
+                                        >
+                                          <Star className="w-3 h-3 mr-1" />
+                                          {isReviewing ? "Cancel" : "Write Review"}
+                                        </Button>
+                                      )}
+                                    </div>
+                                    {isReviewing && (
+                                      <motion.div 
+                                        className="mt-3 space-y-3"
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                      >
+                                        <div className="flex gap-1">
+                                          {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                              key={star}
+                                              onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                              className="focus:outline-none"
+                                            >
+                                              <Star
+                                                className={`w-6 h-6 transition-colors ${
+                                                  star <= reviewData.rating
+                                                    ? "text-yellow-400 fill-current"
+                                                    : "text-gray-200 hover:text-yellow-200"
+                                                }`}
+                                              />
+                                            </button>
+                                          ))}
+                                        </div>
+                                        <Textarea
+                                          value={reviewData.comment}
+                                          onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                                          placeholder="Share your experience..."
+                                          rows={3}
+                                          className="border-gray-200 focus:border-pink-400 focus:ring-pink-400 text-sm"
+                                        />
+                                        <Button
+                                          size="sm"
+                                          onClick={() => submitReview(product.id)}
+                                          className="bg-pink-600 hover:bg-pink-700 text-white text-xs"
+                                        >
+                                          Submit Review
+                                        </Button>
+                                      </motion.div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                     </div>
