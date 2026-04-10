@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, ShoppingCart, Star, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +44,6 @@ const ProductDetail = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { toast } = useToast();
 
@@ -183,44 +180,8 @@ const ProductDetail = () => {
     }
   };
 
-  const submitReview = async () => {
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to leave a review",
-      });
-      return;
-    }
 
-    try {
-      const { error } = await supabase
-        .from("reviews")
-        .insert({
-          user_id: user.id,
-          product_id: id,
-          rating: newReview.rating,
-          comment: newReview.comment,
-        });
 
-      if (error) throw error;
-
-      toast({
-        title: "Review submitted! ⭐",
-        description: "Thank you for your feedback",
-      });
-
-      setNewReview({ rating: 5, comment: "" });
-      fetchReviews();
-      fetchProduct();
-    } catch (error) {
-      console.error("Error submitting review:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleImageChange = (imageIndex: number) => {
     setCurrentImageIndex(imageIndex);
