@@ -165,9 +165,9 @@ const Footer = () => {
             © {currentYear} ELSO Boutique. All rights reserved.
           </p>
           <p className="text-gray-500 text-sm flex items-center gap-1">
-            Made with <Heart className="w-4 h-4 text-pink-500 fill-pink-500" /> by{' '}
-            <a href="https://telvix.tech" target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:text-pink-400 transition-colors">
-              Telvix
+            Made with <lp className="w-4 h-4 text-pink-500 fill-pink-500" /> by{' '}
+            <a href="https://www.lpsolutions.co.ke/" target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:text-pink-400 transition-colors">
+              Lp Solutions
             </a>
           </p>
         </div>
